@@ -1,0 +1,35 @@
+import { z } from 'zod';
+
+try {
+  process.loadEnvFile('.env');
+} catch {
+  // .env is optional; real env vars may already be set (e.g. in production)
+}
+
+const envSchema = z.object({
+  TELEGRAM_BOT_TOKEN: z.string().min(1, 'TELEGRAM_BOT_TOKEN is required'),
+  ANTHROPIC_API_KEY: z.string().min(1, 'ANTHROPIC_API_KEY is required'),
+  PUBLIC_BASE_URL: z.string().url(),
+  SILPO_MCP_URL: z.string().url().default('https://mcp.silpo.ua/mcp'),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  MAX_TOOL_CALLS_PER_TURN: z.coerce.number().int().positive().default(25),
+  PORT: z.coerce.number().int().positive().default(3000),
+  AGENT_MODEL: z.string().default('claude-sonnet-4-5'),
+});
+
+export type Config = z.infer<typeof envSchema>;
+
+function loadConfig(): Config {
+  const parsed = envSchema.safeParse(process.env);
+  if (!parsed.success) {
+    console.error('Invalid environment configuration:');
+    for (const issue of parsed.error.issues) {
+      console.error(`  ${issue.path.join('.')}: ${issue.message}`);
+    }
+    process.exit(1);
+  }
+  return parsed.data;
+}
+
+export const config = loadConfig();
