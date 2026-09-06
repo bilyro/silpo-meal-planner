@@ -10,10 +10,10 @@ see the original spec (`silpo-meal-planner-agent-spec.md`) this repo implements.
 
 ## Status
 
-Currently **Phase 0 — project skeleton**. See `docs/` and the phase list below.
+Currently **Phase 1 — MCP spike done**. See `docs/` and the phase list below.
 
-- [x] Phase 0 — project skeleton (this commit)
-- [ ] Phase 1 — MCP spike (login + `tools/list`)
+- [x] Phase 0 — project skeleton
+- [x] Phase 1 — MCP spike (login + `tools/list`) — see `docs/tools.json` (40 tools, real account)
 - [ ] Phase 2 — OAuth linking through Telegram
 - [ ] Phase 3 — Agent loop with MCP tools
 - [ ] Phase 4 — Deterministic cart context
@@ -69,8 +69,10 @@ npm test
 
 ## Tools used (Silpo MCP)
 
-Filled in as each phase lands — see spec §4.4 for the full table this project implements
-against (Profile, Cart context, Resolve list, Build cart, Finish categories).
+The live server exposes 40 tools as of the Phase 1 spike (`docs/tools.json`, generated via
+`npm run spike`) — confirms every tool spec §4.4 lists as needed, plus a few not yet used
+(Nova Poshta lookup, favorites, certificates, category browsing). See spec §4.4 for the
+per-phase table of which tool is called when and why.
 
 ## Repository layout
 
