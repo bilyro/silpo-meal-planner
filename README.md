@@ -15,9 +15,8 @@ Currently **Phase 2 — code complete, live verification pending**. See `docs/` 
 - [x] Phase 0 — project skeleton
 - [x] Phase 1 — MCP spike (login + `tools/list`) — see `docs/tools.json` (40 tools, real account)
 - [x] Phase 2 — OAuth linking through Telegram — code complete; live end-to-end confirmation
-      blocked on Silpo's own login page intermittently failing ("invalid or expired state",
-      observed before any redirect reaches us — ~1-in-8 attempts succeeded in testing). Retry
-      later with a single clean attempt; see git log for `feat: Phase 2 OAuth linking` for details.
+      blocked on a Silpo-side issue, see "Known issues" below. Retry with a fast single attempt;
+      see git log for `feat: Phase 2 OAuth linking` for implementation details.
 - [ ] Phase 3 — Agent loop with MCP tools
 - [ ] Phase 4 — Deterministic cart context
 - [ ] Phase 5 — Ingredient → product resolution and cart build
@@ -69,6 +68,33 @@ Schema lives in `src/db/schema.ts` (Drizzle ORM). Migrations are generated with
 ```bash
 npm test
 ```
+
+## Known issues
+
+**Silpo's OAuth login intermittently fails with "Invalid or expired state" before ever
+redirecting back to our `/auth/callback`** (observed ~1-in-8 attempts succeeding in Phase 2
+testing on 6 Sept 2026). Root cause, confirmed by direct HTTP probing (not our code):
+`mcp.silpo.ua/authorize` is a broker in front of the real IdP, not the IdP itself. It ignores
+our request's `client_id`/`code_challenge`/`state` and redirects to `auth.silpo.ua` using
+*Silpo's own* internal client id and a freshly generated internal state UUID. After login,
+`auth.silpo.ua` redirects back to `mcp.silpo.ua/callback?code=...&state=<their-uuid>`, which
+looks up that UUID server-side to reconstruct the original request — and this lookup expires
+quickly enough that a normal phone+OTP login (SMS delivery + typing) often outlasts it:
+
+```
+curl "https://mcp.silpo.ua/callback?code=test123&state=00000000-0000-0000-0000-000000000000"
+→ Invalid or expired state
+```
+
+That's the exact error text users see, reproduced with a dummy UUID — proof it's Silpo's broker
+rejecting its own expired internal state, unrelated to anything this project sends. Nothing in
+`SilpoAuthProvider`/`SilpoMcpClient` can influence this (also ruled out: our OAuth `state` param,
+reusing one DCR client vs. registering fresh each time, and cookies — only one `set-cookie` was
+present, `__cf_bm`, Cloudflare bot-management, not an app session).
+
+**Workaround:** have the OTP ready to enter the instant you tap the Telegram link; retry on
+failure. **Worth reporting** to `mcp@silpo.club` (contact given in the MCP docs) since it likely
+affects every hackathon participant equally.
 
 ## Tools used (Silpo MCP)
 
