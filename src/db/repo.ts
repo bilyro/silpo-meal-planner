@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { OAuthClientInformationFull, OAuthTokens } from '@modelcontextprotocol/sdk/shared/auth.js';
 import { db } from './client.js';
-import { oauthClients, oauthPending, oauthTokens, users } from './schema.js';
+import { oauthClients, oauthPending, oauthTokens, sessions, toolCallLog, users } from './schema.js';
 
 export async function getOrCreateUser(telegramChatId: string) {
   const existing = await db.query.users.findFirst({ where: eq(users.telegramChatId, telegramChatId) });
@@ -79,4 +79,36 @@ export async function getMostRecentPendingAuth() {
 
 export async function deletePendingAuth(state: string): Promise<void> {
   await db.delete(oauthPending).where(eq(oauthPending.state, state));
+}
+
+/** Raw JSON in/out — agent/session.ts owns the SessionState shape and any validation. */
+export async function getSessionState(userId: number): Promise<unknown | undefined> {
+  const row = await db.query.sessions.findFirst({ where: eq(sessions.userId, userId) });
+  return row?.stateJson;
+}
+
+export async function saveSessionState(userId: number, state: unknown): Promise<void> {
+  const values = { stateJson: state, updatedAt: new Date() };
+  await db
+    .insert(sessions)
+    .values({ userId, ...values })
+    .onConflictDoUpdate({ target: sessions.userId, set: values });
+}
+
+export async function logToolCall(entry: {
+  userId: number;
+  tool: string;
+  args?: unknown;
+  ok: boolean;
+  ms: number;
+  error?: string;
+}): Promise<void> {
+  await db.insert(toolCallLog).values({
+    userId: entry.userId,
+    tool: entry.tool,
+    argsJson: entry.args ?? null,
+    ok: entry.ok,
+    ms: entry.ms,
+    error: entry.error ?? null,
+  });
 }
