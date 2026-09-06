@@ -164,12 +164,22 @@ export function createBot() {
       });
 
       const summary = await finishWithCheckout(user.id, state, mcp);
-      const lines = [`🛒 <b>Кошик зібрано</b> — ${products.length} поз., ${formatUah(state.totals?.sum ?? 0)} грн`];
+      // Prefer Silpo's own total: it includes delivery, so it is what the user will actually pay.
+      const total = summary.cartTotal ?? state.totals?.sum ?? 0;
+      const lines = [`🛒 <b>Кошик зібрано</b> — ${products.length} поз., ${formatUah(total)} грн`];
       if (skipped.length > 0) lines.push(`⚠️ Не додано: ${skipped.map((s) => escapeHtml(s)).join(', ')}`);
       if (summary.loyalty?.isEnabled) lines.push(`💳 Бонусів доступно: ${formatUah(summary.loyalty.bonusAvailable)}`);
       const link = summary.checkoutWebLink ?? summary.checkoutMobileLink;
-      if (link) lines.push(`\n👉 <a href="${escapeHtml(link)}">Оформити замовлення</a>`);
-      else lines.push('\nПосилання на оформлення зʼявиться, коли кошик пройде перевірку в Сільпо.');
+      if (link) {
+        lines.push(`\n👉 <a href="${escapeHtml(link)}">Оформити замовлення</a>`);
+      } else if (summary.blockers?.length) {
+        // Say WHY there is no link. Silpo withholds it below a minimum order value, and a bare
+        // "the link will appear later" leaves the user with no idea what to do about it.
+        lines.push(`\n⚠️ Оформлення поки недоступне: ${escapeHtml(summary.blockers.join('; '))}.`);
+        lines.push('Додайте ще позицій або попросіть мене доповнити меню.');
+      } else {
+        lines.push('\nПосилання на оформлення зʼявиться, коли кошик пройде перевірку в Сільпо.');
+      }
       await replyHtml(ctx, lines.join('\n'));
     } catch (err) {
       if (err instanceof NeedsAuthError) {

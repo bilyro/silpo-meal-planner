@@ -46,8 +46,12 @@ export function isPromo(p: ProductCandidate): boolean {
 
 export function isAvailable(p: ProductCandidate): boolean {
   if (p.available === false) return false;
-  if (typeof p.stock === 'number' && p.stock <= 0) return false;
-  return true;
+  if (typeof p.stock !== 'number') return true;
+  // Stock must cover at least ONE purchasable increment. A weighted item with stock 0.05 and
+  // step 0.1 is listed as in-stock but cannot actually be bought, and adding it makes Silpo
+  // reject the cart with `product.offer.stock.max`.
+  const minimum = p.weighted ? (typeof p.step === 'number' && p.step > 0 ? p.step : 0.1) : 1;
+  return p.stock >= minimum;
 }
 
 /**
@@ -204,16 +208,30 @@ export function computeQuantity(qtyText: string, p: ProductCandidate): number {
     // Only a stated mass gives a real target. For anything else («3 зубчики», «2 шт», «за смаком»)
     // buy the smallest purchasable increment: one step is a head of garlic or a couple of carrots,
     // whereas the old 0.5 kg default bought half a kilo of garlic for three cloves.
-    if (!Number.isFinite(amount) || !isMass) return step ?? 0.1;
-    const kg = unit === 'кг' || unit === 'л' ? amount : amount / 1000;
-    if (!step) return Math.max(round3(kg), 0.1);
-    // Round the multiplication too: 3 × 0.2 lands on 0.6000000000000001 in binary floating point,
-    // which reaches the user as «× 0.60» and Silpo as an off-step quantity.
-    return round3(Math.max(Math.ceil(kg / step) * step, step));
+    const stepSize = step ?? 0.1;
+    let kg = stepSize;
+    if (Number.isFinite(amount) && isMass) {
+      const target = unit === 'кг' || unit === 'л' ? amount : amount / 1000;
+      // Round the multiplication too: 3 × 0.2 lands on 0.6000000000000001 in binary floating
+      // point, which reaches the user as «× 0.60» and Silpo as an off-step quantity.
+      kg = step ? Math.max(Math.ceil(target / step) * step, step) : Math.max(target, 0.1);
+    }
+    return round3(capToStock(kg, p, stepSize));
   }
 
-  if (Number.isFinite(amount) && isPieces) {
-    return Math.max(Math.ceil(amount), 1);
-  }
-  return 1;
+  const pieces = Number.isFinite(amount) && isPieces ? Math.max(Math.ceil(amount), 1) : 1;
+  return capToStock(pieces, p, 1);
+}
+
+/**
+ * Never order more than Silpo has. Requesting above the listed stock makes the cart fail
+ * validation with `product.offer.stock.max` and withholds the checkout link entirely — observed
+ * live on a 0.4 kg cheese line against 0.2 kg of stock. Cutting the amount down still cooks the
+ * meal imperfectly; a blocked checkout helps nobody.
+ */
+function capToStock(quantity: number, p: ProductCandidate, increment: number): number {
+  if (typeof p.stock !== 'number' || quantity <= p.stock) return quantity;
+  // Round DOWN to a whole increment so the capped amount stays purchasable.
+  const capped = Math.floor(p.stock / increment) * increment;
+  return capped >= increment ? capped : increment;
 }

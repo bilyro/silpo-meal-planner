@@ -78,7 +78,42 @@ export interface CheckoutSummary {
   checkoutWebLink?: string;
   checkoutMobileLink?: string;
   loyalty?: CartByIdResult['loyalty'];
+  /** Silpo's own total, including delivery — larger than our products-only `totals.sum`. */
+  cartTotal?: number;
+  /** Why checkout is unavailable, in Ukrainian, when Silpo blocks it. */
+  blockers?: string[];
   error?: string;
+}
+
+interface CartValidation {
+  level?: string;
+  type?: string;
+  message?: string;
+  context?: Record<string, unknown>;
+}
+
+/**
+ * Turns Silpo's cart validations into actionable Ukrainian text.
+ *
+ * Discovered live: a 359 грн cart returns no checkout link at all, with
+ * `{level:'error', type:'order', message:'order.cost.min', context:{orderCostMin:799}}`. Silpo
+ * enforces a minimum order value, so without surfacing this the user just sees a missing link and
+ * no reason. Only `level: 'error'` entries block checkout; `info` ones (e.g. a payment method
+ * being unavailable below some total) are not the user's problem here.
+ */
+export function describeBlockers(cart: Record<string, unknown>): string[] {
+  const validations = (cart.calculation as { validations?: CartValidation[] } | undefined)?.validations ?? [];
+  return validations
+    .filter((v) => v.level === 'error')
+    .map((v) => {
+      if (v.message === 'order.cost.min') {
+        const min = v.context?.orderCostMin;
+        return `мінімальна сума замовлення${typeof min === 'number' ? ` — ${min} грн` : ''}`;
+      }
+      if (v.message === 'product.offer.stock.max') return 'одного з товарів не вистачає на складі';
+      if (v.type === 'timeslot') return 'час доставки більше не доступний — потрібно обрати новий слот';
+      return v.message ?? 'кошик не пройшов перевірку Сільпо';
+    });
 }
 
 /**
@@ -103,10 +138,15 @@ export async function finishWithCheckout(
   state.stage = 'cart_built';
   await saveSession(userId, state);
 
+  const blockers = describeBlockers(cart.cart);
+  const cartTotal = (cart.cart.calculation as { total?: number } | undefined)?.total;
+
   return {
     ...(cart.checkoutWebLink === undefined ? {} : { checkoutWebLink: cart.checkoutWebLink }),
     ...(cart.checkoutMobileLink === undefined ? {} : { checkoutMobileLink: cart.checkoutMobileLink }),
     ...(cart.loyalty == null ? {} : { loyalty: cart.loyalty }),
+    ...(typeof cartTotal === 'number' ? { cartTotal } : {}),
+    ...(blockers.length > 0 ? { blockers } : {}),
   };
 }
 
