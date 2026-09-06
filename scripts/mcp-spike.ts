@@ -51,19 +51,24 @@ async function main() {
   const callbackPort = Number(redirectUri.port || 80);
 
   const auth = new SilpoAuthProvider(redirectUri.toString(), openInBrowser);
-  const transport = new StreamableHTTPClientTransport(new URL(config.SILPO_MCP_URL), {
-    authProvider: auth,
-  });
-  const client = new Client({ name: 'silpo-meal-planner-spike', version: '0.1.0' }, { capabilities: {} });
+  const makeClient = () => new Client({ name: 'silpo-meal-planner-spike', version: '0.1.0' }, { capabilities: {} });
+  const makeTransport = () =>
+    new StreamableHTTPClientTransport(new URL(config.SILPO_MCP_URL), { authProvider: auth });
+
+  let client = makeClient();
 
   try {
-    await client.connect(transport);
+    await client.connect(makeTransport());
   } catch (err) {
     if (!(err instanceof UnauthorizedError)) throw err;
     console.log('Очікую авторизацію...');
     const code = await waitForCallback(callbackPort);
-    await transport.finishAuth(code);
-    await client.connect(transport);
+    // A transport that has thrown UnauthorizedError from connect() can't be reused for a
+    // retry ("already started"); finish the code exchange on a fresh transport instance,
+    // sharing the same authProvider so it picks up the tokens just saved by finishAuth.
+    await makeTransport().finishAuth(code);
+    client = makeClient();
+    await client.connect(makeTransport());
   }
 
   console.log('\n✅ Автентифіковано. Отримую tools/list...');

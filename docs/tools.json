@@ -1,0 +1,6058 @@
+{
+  "fetchedAt": "2026-09-06T07:41:06.452Z",
+  "toolCount": 40,
+  "tools": [
+    {
+      "name": "silpo_find_address",
+      "title": "Find Address",
+      "description": "Search for address coordinates using text input. Returns latitude and longitude for use with silpo_get_available_delivery_types to find delivery options.\n\nUSE: Pass addresses[].latitude and addresses[].longitude to silpo_get_available_delivery_types.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Address search text (e.g., \"Київ, вулиця Хрещатик, 1\")"
+          }
+        },
+        "required": [
+          "address"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "address": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "city": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "street": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "houseNumber": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "district": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "latitude": {
+                  "type": "number"
+                },
+                "longitude": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "address",
+                "city",
+                "street",
+                "houseNumber",
+                "district",
+                "latitude",
+                "longitude"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "addresses"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_time_slots",
+      "title": "Get Delivery Time Slots",
+      "description": "Get available delivery time slots for a Silpo branch.\n\nUSAGE: Use slots[].start and slots[].end with silpo_update_shopping_cart timeslot param. Only pick slots where available=true.\n\nTIMES: All times in the response are UTC — always convert to user's local timezone when presenting.\n\nBRANCH: Prefer using branchId from silpo_get_shopping_cart_by_id (existing cart). Only use silpo_get_available_delivery_types if user wants to change address.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id or silpo_get_available_delivery_types"
+          },
+          "deliveryTypes": {
+            "description": "Filter by delivery types",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Unknown",
+                "SelfPickup",
+                "DeliveryHome",
+                "DeliveryFlat",
+                "DeliveryOffice",
+                "DeliveryGlovo",
+                "DeliveryExpress",
+                "DeliveryExpressFood",
+                "JustIn",
+                "LongDelivery",
+                "JustInPost",
+                "NovaPoshta",
+                "DeliveryExpressByPromise",
+                "WideAssortDelivery",
+                "B2B",
+                "PreOrder"
+              ]
+            }
+          },
+          "limit": {
+            "description": "Max slots to return (default: 25)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "start": {
+            "description": "Start date-time in ISO format (Z suffix or +00:00 offset both accepted)",
+            "type": "string"
+          },
+          "end": {
+            "description": "End date-time in ISO format (Z suffix or +00:00 offset both accepted)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "branchId"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "string"
+                },
+                "end": {
+                  "type": "string"
+                },
+                "available": {
+                  "type": "boolean"
+                },
+                "deliveryType": {
+                  "type": "string"
+                },
+                "deliveryCost": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "deliveryCostMap": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "cost": {
+                        "type": "number"
+                      },
+                      "fromOrderCost": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "cost",
+                      "fromOrderCost"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "minOrderCost": {
+                  "type": "number"
+                },
+                "maxWeight": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "constraints": {
+                  "type": "object",
+                  "properties": {
+                    "isLimitedAlcohol": {
+                      "type": "boolean"
+                    },
+                    "isLimitedTobacco": {
+                      "type": "boolean"
+                    },
+                    "isLimitedCookedFood": {
+                      "type": "boolean"
+                    },
+                    "isLimitedOwnCooking": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "isLimitedAlcohol",
+                    "isLimitedTobacco",
+                    "isLimitedCookedFood",
+                    "isLimitedOwnCooking"
+                  ],
+                  "additionalProperties": false
+                },
+                "fast": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "cost": {
+                          "type": "number"
+                        },
+                        "time": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "cost",
+                        "time"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "start",
+                "end",
+                "available",
+                "deliveryType",
+                "deliveryCost",
+                "deliveryCostMap",
+                "minOrderCost",
+                "maxWeight",
+                "constraints",
+                "fast"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "total"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "slots",
+          "meta"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_find_products_batch",
+      "title": "Find Products Batch",
+      "description": "Search for multiple products at once (semicolon-separated, max 30). Prefer getting branchId/deliveryType/timeslot from silpo_get_shopping_cart_by_id (existing cart).\n\nSEARCH BY ARTICLE CODE: The `products` search terms accept exact numeric article codes (externalProductId) in addition to free-text names — e.g. searching \"795319\" returns the exact product with that externalProductId. This is the most reliable match: prefer numeric externalProductId over fuzzy name matching whenever it is already known (e.g. from a silpo_get_my_offline_orders receipt line's lagerId, a silpo_get_my_online_orders result, or a cart/favorites entry) — it eliminates ambiguity from product names.\n\nRESULT COUNT: queries[].totalFound is the real number of matches for that query — it can be larger than queries[].products.length if limit was smaller than the match count. If totalFound > products.length, more matches exist; increase limit or re-query to see them.\n\nPACKAGE SIZE: displayRatio shows the actual content of one unit (e.g. \"400г\", \"10 шт\") — use it together with step to compute how many units to add for a requested weight/volume/count. step alone only tells you the minimum increment (e.g. step=1 unit), not what one unit contains.\n\nBUDGET: If user mentions a budget, ALWAYS fill the cart as close to the budget limit as possible. Maximize the total spend without exceeding it — add more items or increase quantities to use the full budget.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id or silpo_get_available_delivery_types"
+          },
+          "deliveryType": {
+            "type": "string",
+            "enum": [
+              "Unknown",
+              "SelfPickup",
+              "DeliveryHome",
+              "DeliveryFlat",
+              "DeliveryOffice",
+              "DeliveryGlovo",
+              "DeliveryExpress",
+              "DeliveryExpressFood",
+              "JustIn",
+              "LongDelivery",
+              "JustInPost",
+              "NovaPoshta",
+              "DeliveryExpressByPromise",
+              "WideAssortDelivery",
+              "B2B",
+              "PreOrder"
+            ],
+            "description": "Delivery type"
+          },
+          "timeslotStart": {
+            "type": "string",
+            "description": "Timeslot start"
+          },
+          "timeslotEnd": {
+            "type": "string",
+            "description": "Timeslot end"
+          },
+          "products": {
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of product names to search for (max 30)"
+          },
+          "limit": {
+            "description": "Results per search (default: 30)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "branchId",
+          "deliveryType",
+          "timeslotStart",
+          "timeslotEnd",
+          "products"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "totalFound": {
+                  "type": "number"
+                },
+                "products": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "slug": {
+                        "type": "string"
+                      },
+                      "price": {
+                        "type": "number"
+                      },
+                      "oldPrice": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "stock": {
+                        "type": "number"
+                      },
+                      "available": {
+                        "type": "boolean"
+                      },
+                      "image": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "weighted": {
+                        "type": "boolean"
+                      },
+                      "step": {
+                        "type": "number"
+                      },
+                      "displayRatio": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "specialPrices": {
+                        "anyOf": [
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "price": {
+                                  "type": "number"
+                                },
+                                "count": {
+                                  "type": "number"
+                                },
+                                "type": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "price",
+                                "count",
+                                "type"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "companyId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "branchId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "externalProductId": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "slug",
+                      "price",
+                      "oldPrice",
+                      "stock",
+                      "available",
+                      "image",
+                      "weighted",
+                      "step",
+                      "displayRatio",
+                      "specialPrices",
+                      "companyId",
+                      "branchId",
+                      "externalProductId"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "query",
+                "totalFound",
+                "products"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "totalQueries": {
+                "type": "number"
+              },
+              "totalProducts": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "totalQueries",
+              "totalProducts"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "queries",
+          "meta"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_products",
+      "title": "Get Products",
+      "description": "Browse products at a Silpo branch with filters. At least one filter required: category, mustHavePromotion, promotionCode, or set. Prefer getting branchId/deliveryType/timeslot from silpo_get_shopping_cart_by_id (existing cart). NOTE: promotionCode automatically enables mustHavePromotion.\n\nPACKAGE SIZE: displayRatio shows the actual content of one unit (e.g. \"400г\", \"10 шт\") — use it together with step to compute quantities for a requested weight/volume/count.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id or silpo_get_available_delivery_types"
+          },
+          "deliveryType": {
+            "type": "string",
+            "enum": [
+              "Unknown",
+              "SelfPickup",
+              "DeliveryHome",
+              "DeliveryFlat",
+              "DeliveryOffice",
+              "DeliveryGlovo",
+              "DeliveryExpress",
+              "DeliveryExpressFood",
+              "JustIn",
+              "LongDelivery",
+              "JustInPost",
+              "NovaPoshta",
+              "DeliveryExpressByPromise",
+              "WideAssortDelivery",
+              "B2B",
+              "PreOrder"
+            ],
+            "description": "Delivery type"
+          },
+          "timeslotStart": {
+            "type": "string",
+            "description": "Timeslot start"
+          },
+          "timeslotEnd": {
+            "type": "string",
+            "description": "Timeslot end"
+          },
+          "mustHavePromotion": {
+            "description": "Only show promotional products",
+            "type": "boolean"
+          },
+          "category": {
+            "description": "Category filter",
+            "type": "string"
+          },
+          "promotionCode": {
+            "description": "Promotion code from silpo_get_promotions",
+            "type": "string"
+          },
+          "inStock": {
+            "description": "Only show in-stock products",
+            "type": "boolean"
+          },
+          "set": {
+            "description": "Set slug from silpo_get_product_sets to browse products in that set",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Max results (default: 25)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "offset": {
+            "description": "Skip items for pagination",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "sortBy": {
+            "description": "Sort field (default: popularity)",
+            "type": "string",
+            "enum": [
+              "popularity",
+              "score",
+              "title",
+              "price",
+              "promotion",
+              "productsList",
+              "slugsList",
+              "guestRating",
+              "carouselList"
+            ]
+          },
+          "sortDirection": {
+            "description": "Sort direction",
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "fromPrice": {
+            "description": "Min price",
+            "type": "number"
+          },
+          "toPrice": {
+            "description": "Max price",
+            "type": "number"
+          }
+        },
+        "required": [
+          "branchId",
+          "deliveryType",
+          "timeslotStart",
+          "timeslotEnd"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "oldPrice": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "stock": {
+                  "type": "number"
+                },
+                "available": {
+                  "type": "boolean"
+                },
+                "image": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "weighted": {
+                  "type": "boolean"
+                },
+                "step": {
+                  "type": "number"
+                },
+                "displayRatio": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "specialPrices": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "price": {
+                            "type": "number"
+                          },
+                          "count": {
+                            "type": "number"
+                          },
+                          "type": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "price",
+                          "count",
+                          "type"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "companyId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "branchId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "externalProductId": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "slug",
+                "price",
+                "oldPrice",
+                "stock",
+                "available",
+                "image",
+                "weighted",
+                "step",
+                "displayRatio",
+                "specialPrices",
+                "companyId",
+                "branchId",
+                "externalProductId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "number"
+              },
+              "offset": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "limit",
+              "offset",
+              "total"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "products",
+          "meta"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_promotions",
+      "title": "Get Promotions",
+      "description": "List active promotions at a Silpo branch. Returns promotion codes for use with silpo_get_products.\n\nAll inputs must be taken from silpo_get_shopping_cart_by_id: branchId, deliveryType, timeslotStart (slot.start), timeslotEnd (slot.end).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id"
+          },
+          "deliveryType": {
+            "type": "string",
+            "enum": [
+              "Unknown",
+              "SelfPickup",
+              "DeliveryHome",
+              "DeliveryFlat",
+              "DeliveryOffice",
+              "DeliveryGlovo",
+              "DeliveryExpress",
+              "DeliveryExpressFood",
+              "JustIn",
+              "LongDelivery",
+              "JustInPost",
+              "NovaPoshta",
+              "DeliveryExpressByPromise",
+              "WideAssortDelivery",
+              "B2B",
+              "PreOrder"
+            ],
+            "description": "Delivery type from silpo_get_shopping_cart_by_id"
+          },
+          "timeslotStart": {
+            "type": "string",
+            "description": "Timeslot start ISO timestamp from silpo_get_shopping_cart_by_id slot.start"
+          },
+          "timeslotEnd": {
+            "type": "string",
+            "description": "Timeslot end ISO timestamp from silpo_get_shopping_cart_by_id slot.end"
+          }
+        },
+        "required": [
+          "branchId",
+          "deliveryType",
+          "timeslotStart",
+          "timeslotEnd"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "promotions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "productCount": {
+                  "type": "number"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "title",
+                "productCount",
+                "url"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "promotions"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_popular_categories",
+      "title": "Get Popular Categories",
+      "description": "List popular/trending categories at a Silpo branch.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id or silpo_get_available_delivery_types"
+          },
+          "deliveryType": {
+            "type": "string",
+            "enum": [
+              "Unknown",
+              "SelfPickup",
+              "DeliveryHome",
+              "DeliveryFlat",
+              "DeliveryOffice",
+              "DeliveryGlovo",
+              "DeliveryExpress",
+              "DeliveryExpressFood",
+              "JustIn",
+              "LongDelivery",
+              "JustInPost",
+              "NovaPoshta",
+              "DeliveryExpressByPromise",
+              "WideAssortDelivery",
+              "B2B",
+              "PreOrder"
+            ],
+            "description": "Delivery type"
+          }
+        },
+        "required": [
+          "branchId",
+          "deliveryType"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "slug",
+                "title",
+                "url"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "categories"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_category",
+      "title": "Get Category Details",
+      "description": "Get detailed info about a specific category (name, path, price range, children).\n\nVISIBLE:FALSE means this category has no products here — treat it as unavailable, don't browse it via silpo_get_products.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id or silpo_get_available_delivery_types"
+          },
+          "deliveryType": {
+            "type": "string",
+            "enum": [
+              "Unknown",
+              "SelfPickup",
+              "DeliveryHome",
+              "DeliveryFlat",
+              "DeliveryOffice",
+              "DeliveryGlovo",
+              "DeliveryExpress",
+              "DeliveryExpressFood",
+              "JustIn",
+              "LongDelivery",
+              "JustInPost",
+              "NovaPoshta",
+              "DeliveryExpressByPromise",
+              "WideAssortDelivery",
+              "B2B",
+              "PreOrder"
+            ],
+            "description": "Delivery type"
+          },
+          "categorySlug": {
+            "type": "string",
+            "description": "Category slug from silpo_get_popular_categories or silpo_get_categories_tree"
+          }
+        },
+        "required": [
+          "branchId",
+          "deliveryType",
+          "categorySlug"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "category": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "path": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "title"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "priceRange": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "min": {
+                        "type": "number"
+                      },
+                      "max": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "min",
+                      "max"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "children": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "title"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "visible": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "slug",
+              "title",
+              "url",
+              "path",
+              "priceRange",
+              "children",
+              "visible"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "category"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_categories",
+      "title": "Get Categories",
+      "description": "List categories at a Silpo branch. Optionally filter by parent category to get subcategories.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id or silpo_get_available_delivery_types"
+          },
+          "parentId": {
+            "description": "Parent category ID to get subcategories",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Max categories (default: 1000)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "offset": {
+            "description": "Skip for pagination",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "branchId"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "parentId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "slug",
+                "title",
+                "parentId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "number"
+              },
+              "offset": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "limit",
+              "offset",
+              "total"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "categories",
+          "meta"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_categories_tree",
+      "title": "Get Categories Tree",
+      "description": "Get the full category hierarchy for a Silpo branch and time slot.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id"
+          },
+          "deliveryType": {
+            "type": "string",
+            "enum": [
+              "Unknown",
+              "SelfPickup",
+              "DeliveryHome",
+              "DeliveryFlat",
+              "DeliveryOffice",
+              "DeliveryGlovo",
+              "DeliveryExpress",
+              "DeliveryExpressFood",
+              "JustIn",
+              "LongDelivery",
+              "JustInPost",
+              "NovaPoshta",
+              "DeliveryExpressByPromise",
+              "WideAssortDelivery",
+              "B2B",
+              "PreOrder"
+            ],
+            "description": "Delivery type from silpo_get_shopping_cart_by_id"
+          },
+          "timeslotStart": {
+            "type": "string",
+            "description": "Timeslot start from silpo_get_shopping_cart_by_id"
+          },
+          "timeslotEnd": {
+            "type": "string",
+            "description": "Timeslot end from silpo_get_shopping_cart_by_id"
+          }
+        },
+        "required": [
+          "branchId",
+          "deliveryType",
+          "timeslotStart",
+          "timeslotEnd"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tree": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "tree"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_my_shopping_cart",
+      "title": "Get My Shopping Cart",
+      "description": "Get the authenticated user's shopping cart ID. START HERE — use this first, then silpo_get_shopping_cart_by_id to get branchId, deliveryType, and timeslot for product searches.\n\nIf exists=false (no cart found yet for this user), you MUST call silpo_create_shopping_cart to create one before doing anything else with the cart — do NOT call silpo_get_shopping_cart_by_id or any cart-modifying tool with a null shoppingCartId.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "shoppingCartId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exists": {
+            "type": "boolean",
+            "description": "false if the user has no shopping cart yet — call silpo_create_shopping_cart in that case"
+          }
+        },
+        "required": [
+          "success",
+          "shoppingCartId",
+          "exists"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_create_shopping_cart",
+      "title": "Create Shopping Cart",
+      "description": "Create a shopping cart for the authenticated user.\n\nONLY call this tool if silpo_get_my_shopping_cart returned exists=false. Do NOT call this tool if a cart already exists — use the shoppingCartId from silpo_get_my_shopping_cart instead. This endpoint is idempotent per user: if a cart already exists, it returns that same existing shoppingCartId instead of creating a duplicate, so calling it when a cart already exists is safe but unnecessary.\n\nREQUIRED WORKFLOW BEFORE CALLING THIS TOOL:\n1. Call silpo_find_address to get latitude/longitude/city/street/houseNumber/district for the user's address — map houseNumber to the \"house\" param here.\n2. Call silpo_get_available_delivery_types with that latitude/longitude to get deliveryType + branchId. If branchId is null (SelfPickup or NovaPoshta), call silpo_list_branches (hasPickup=true or hasNP=true) to resolve branchId.\n3. Call silpo_get_time_slots with the resolved branchId + deliveryType to get an available timeslot.\n\nFIELD GUIDE:\n- addressType/latitude/longitude/city/street/house/district — from silpo_find_address (latitude/longitude as numbers; houseNumber → house)\n- deliveryType/branchId — from silpo_get_available_delivery_types (or silpo_list_branches for SelfPickup/NovaPoshta)\n- timeslot — from silpo_get_time_slots\n\nAFTER THIS TOOL: use the returned shoppingCartId with silpo_get_shopping_cart_by_id to view the created cart and confirm delivery settings.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "addressType": {
+            "type": "string",
+            "enum": [
+              "house",
+              "flat",
+              "office",
+              "point",
+              "self-pickup",
+              "nova-poshta"
+            ],
+            "description": "Address type"
+          },
+          "latitude": {
+            "type": "number",
+            "description": "From silpo_find_address addresses[].latitude"
+          },
+          "longitude": {
+            "type": "number",
+            "description": "From silpo_find_address addresses[].longitude"
+          },
+          "city": {
+            "description": "From silpo_find_address addresses[].city",
+            "type": "string"
+          },
+          "street": {
+            "description": "From silpo_find_address addresses[].street",
+            "type": "string"
+          },
+          "house": {
+            "description": "From silpo_find_address addresses[].houseNumber",
+            "type": "string"
+          },
+          "district": {
+            "description": "From silpo_find_address addresses[].district",
+            "type": "string"
+          },
+          "deliveryType": {
+            "type": "string",
+            "enum": [
+              "SelfPickup",
+              "DeliveryHome",
+              "LongDelivery",
+              "DeliveryExpressByPromise",
+              "WideAssortDelivery",
+              "B2B",
+              "PreOrder",
+              "NovaPoshta"
+            ],
+            "description": "Delivery type from silpo_get_available_delivery_types"
+          },
+          "timeslot": {
+            "type": "object",
+            "properties": {
+              "start": {
+                "type": "string",
+                "description": "Start time ISO format"
+              },
+              "end": {
+                "type": "string",
+                "description": "End time ISO format"
+              }
+            },
+            "required": [
+              "start",
+              "end"
+            ],
+            "description": "Delivery timeslot from silpo_get_time_slots"
+          },
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_available_delivery_types or silpo_list_branches"
+          }
+        },
+        "required": [
+          "addressType",
+          "latitude",
+          "longitude",
+          "deliveryType",
+          "timeslot",
+          "branchId"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "shoppingCartId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "shoppingCartId"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_shopping_cart_by_id",
+      "title": "Get Shopping Cart Details",
+      "description": "View detailed shopping cart contents including products, delivery settings, totals, and errors/warnings.\n\nRESPONSE FIELDS GUIDE:\n- cart.shipments[0].branchId — use as branchId for product searches\n- cart.deliveryType — use as deliveryType for product searches\n- cart.timeslot.start / cart.timeslot.end — use as timeslotStart/timeslotEnd for product searches\n- cart.shipments[].products[].productId + companyId — use for add_or_update_cart_products\n- cart.calculation.validations[] — errors/warnings that block checkout\n- cart.calculation.total — full order total before discounts\n- cart.calculation.totalAfterDiscounts — the actual amount the user will PAY (always show this to the user, not total)\n- BUDGET CHECK: If the user stated a budget for this cart, compare it against cart.calculation.totalAfterDiscounts. If it exceeds the budget, you MUST go back to silpo_add_or_update_cart_products / silpo_remove_cart_products to reduce the cart, then call this tool again to re-verify — do NOT report the cart as complete while over budget.\n- cart.calculation.certificatesTotal — total discount applied from gift certificates\n- cart.calculation.delivery.totalWeight — total weight\n\nEXPRESS DELIVERY:\n- If cart.deliveryType = \"DeliveryExpressByPromise\": order will be delivered in ~cart.calculation.delivery.deliveryExpressByPromise.promiseTime seconds (convert to minutes for user). Use \"DeliveryHome\" as deliveryType for all other tools (product searches, time slots, etc.).\n- If cart.deliveryType != \"DeliveryExpressByPromise\": check cart.calculation.delivery.deliveryExpressByPromise. If isAvailable=true AND isTemporarilyUnavailable=false — HIGHLIGHT to user: \"Express delivery available! Delivery in ~{promiseTime/60} minutes for ₴{price}\". If user wants express, update cart deliveryType to \"DeliveryExpressByPromise\" via silpo_update_shopping_cart.\n\nTIMESLOT VALIDATION (MANDATORY — DO THIS IMMEDIATELY):\nYou MUST call silpo_get_time_slots IMMEDIATELY after this tool (branchId=cart.shipments[0].branchId, deliveryTypes=[cart.deliveryType], start=now, limit=10). Then check if cart.timeslot (start + end) exists in the returned slots where available=true. If not found or not available — ask user to pick a new timeslot and update via silpo_update_shopping_cart. Do NOT proceed with any other operations until timeslot is confirmed valid.\n\nVALIDATION HANDLING:\n- ERRORS in cart.calculation.validations[] MUST be highlighted to the user — they block checkout\n- WARNINGS MUST be communicated clearly\n- Timeslot times are UTC — always convert to user's local timezone\n\nPLASTIC BAGS: ALWAYS ignore plastic bags (пакет, пакет з пакетів, пакет-майка) when reordering products from this cart — never add them.\n\nCHECKOUT LINK: If checkoutWebLink/checkoutMobileLink are present in the response, ALWAYS show BOTH links to the user — checkoutWebLink labeled \"Оформити на сайті\" and checkoutMobileLink labeled \"Оформити в застосунку\".\n\nБАЛАБОНУСИ (BONUS PAY):\nCheck cart.calculation.loyalty after this tool:\n- If bonusRequested is null AND bonusAvailable > 0 AND bonusTotal >= bonusAvailable AND isEnabled is true — ALWAYS propose to user: \"У вас є {bonusAvailable} балабонусів. Бажаєте їх застосувати для оплати замовлення?\"\n- If user agrees — call silpo_update_shopping_cart with bonusRequested = bonusAvailable (or user-specified amount ≤ bonusAvailable)\n- If user declines — proceed without bonuses\n- bonusTotal — total balance the user has; bonusAvailable — amount applicable to this cart",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "shoppingCartId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Cart ID from silpo_get_my_shopping_cart"
+          }
+        },
+        "required": [
+          "shoppingCartId"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "cart": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "Full shopping cart object from API"
+          },
+          "loyalty": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "bonusAvailable": {
+                    "type": "number"
+                  },
+                  "bonusTotal": {
+                    "type": "number"
+                  },
+                  "bonusRequested": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "isEnabled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "bonusAvailable",
+                  "bonusTotal",
+                  "bonusRequested",
+                  "isEnabled"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Балабонуси loyalty bonus info (null if not available)"
+          },
+          "checkoutWebLink": {
+            "description": "Checkout link for web/desktop (present when cart is non-empty and error-free)",
+            "type": "string"
+          },
+          "checkoutMobileLink": {
+            "description": "Checkout link for mobile apps (present when cart is non-empty and error-free)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "cart",
+          "loyalty"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_add_or_update_cart_products",
+      "title": "Add/Update Cart Products",
+      "description": "Add products to shopping cart or update quantities. Requires productId, companyId, and branchId from product search results.\n\nsuccess:true only means the write request was accepted — it does NOT mean the quantity is valid. This tool cannot check stock itself; a quantity exceeding stock is accepted here and only surfaces later as an error-level entry in silpo_get_shopping_cart_by_id's validations[] (e.g. message \"product.offer.stock.max\" with context.stock). This is why the verification step below is mandatory, not optional.\n\nVERIFICATION (MANDATORY — DO THIS IMMEDIATELY):\nYou MUST call silpo_get_shopping_cart_by_id IMMEDIATELY after this tool, using the same shoppingCartId. Do NOT tell the user the cart is ready until you have done this and confirmed validations[] has no error-level entries for the products you just added — it covers budget checks and error/warning reporting.\n\nSTOCK LIMIT: NEVER add quantity exceeding the product's stock value. Before calling this tool, always check the stock field and inform the user of the maximum available quantity. If user requests more than stock — warn them and cap at stock value.\n\nPLASTIC BAGS: ALWAYS ignore plastic bags (пакет, пакет з пакетів, пакет-майка) — never add them to cart. Skip them silently without asking the user.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "shoppingCartId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Cart ID from silpo_get_my_shopping_cart"
+          },
+          "products": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "Product ID from find-products or get-products"
+                },
+                "companyId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "Company ID from product search response"
+                },
+                "branchId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "Branch ID from product search response"
+                },
+                "quantity": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "description": "Quantity to add. For weight goods, use multiples of addToBasketStep from product data (e.g. 0.5 for 500g step)"
+                },
+                "addQuantity": {
+                  "description": "Add to existing quantity (true) or replace (false)",
+                  "type": "boolean"
+                },
+                "comment": {
+                  "description": "Special instructions",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "productId",
+                "companyId",
+                "branchId",
+                "quantity"
+              ]
+            },
+            "description": "Products to add/update"
+          }
+        },
+        "required": [
+          "shoppingCartId",
+          "products"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "productId",
+                "quantity"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "products"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_remove_cart_products",
+      "title": "Remove Cart Products",
+      "description": "Remove products from shopping cart. IMPORTANT: After this action, ALWAYS call silpo_get_shopping_cart_by_id to verify the cart and report any errors/warnings to the user. Product IDs from silpo_get_shopping_cart_by_id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "shoppingCartId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Cart ID from silpo_get_my_shopping_cart"
+          },
+          "products": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "Product ID from cart"
+                }
+              },
+              "required": [
+                "productId"
+              ]
+            },
+            "description": "Products to remove"
+          }
+        },
+        "required": [
+          "shoppingCartId",
+          "products"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "productId"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "products"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_clear_shopping_cart",
+      "title": "Clear Shopping Cart",
+      "description": "Remove all products from the shopping cart.\n\nVERIFICATION (MANDATORY — DO THIS IMMEDIATELY):\nYou MUST call silpo_get_shopping_cart_by_id IMMEDIATELY after this tool, using the same shoppingCartId. Confirm cart.shipments[].products is empty before telling the user the cart was cleared. Do NOT respond to the user until verification is complete. If products are still present, treat this as a failure and inform the user the clear did not fully succeed — do not report success.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "shoppingCartId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Cart ID from silpo_get_my_shopping_cart"
+          }
+        },
+        "required": [
+          "shoppingCartId"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "summary"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_update_shopping_cart",
+      "title": "Update Shopping Cart",
+      "description": "Update cart delivery settings. IMPORTANT: After this action, ALWAYS call silpo_get_shopping_cart_by_id to verify the cart and report any errors/warnings to the user.\n\nFor DeliveryExpressByPromise deliveryType: Use this to switch to express delivery. Copy address, shipments, timeslot from the current cart response as-is. Only change deliveryType to \"DeliveryExpressByPromise\". The branchId in shipments will be automatically resolved from deliveryExpressByPromise.branchId.\n\nFor NovaPoshta deliveryType: 1) Get settlement via silpo_find_nova_poshta_settlements 2) Get office via silpo_find_nova_poshta_offices 3) Get branchId via silpo_list_branches(hasNP=true). Build address as: { \"addressType\": \"nova-poshta\", \"city\": settlement.title, \"region\": settlement.area, \"latitude\": String(office.latitude), \"longitude\": String(office.longitude), \"officeId\": office.id, \"street\": \"<type> #<number>\" } where type is \"Відділення\" for office or \"Поштомат\" for parcelLocker. Set shipments with the NP branch companyId + branchId.\n\nFor SelfPickup deliveryType: address MUST use data from silpo_list_branches (hasPickup=true). Build address as: { \"addressType\": \"self-pickup\", \"city\": branch.cityFull, \"locality\": branch.addressFull, \"street\": branch.addressFull, \"latitude\": branch.latitude, \"longitude\": branch.longitude }. Set shipments with the branch companyId + branchId.\n\nFor other delivery types: the address object MUST be passed exactly as received from silpo_get_shopping_cart_by_id (requires addressType, latitude, longitude as strings). Do NOT construct the address manually — always copy it from the cart response. The shipments array must also come from the cart response.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "shoppingCartId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Cart ID from silpo_get_my_shopping_cart"
+          },
+          "deliveryType": {
+            "type": "string",
+            "description": "Delivery type"
+          },
+          "timeslot": {
+            "type": "object",
+            "properties": {
+              "start": {
+                "type": "string",
+                "description": "Start time ISO format"
+              },
+              "end": {
+                "type": "string",
+                "description": "End time ISO format"
+              }
+            },
+            "required": [
+              "start",
+              "end"
+            ],
+            "description": "Delivery timeslot"
+          },
+          "address": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {},
+            "description": "Full address object from silpo_get_shopping_cart_by_id response (must include addressType, latitude, longitude)"
+          },
+          "shipments": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "companyId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "Company ID from cart shipment"
+                },
+                "branchId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "Branch ID from cart shipment"
+                }
+              },
+              "required": [
+                "companyId",
+                "branchId"
+              ]
+            },
+            "description": "Shipments array from silpo_get_shopping_cart_by_id response (do NOT construct manually)"
+          },
+          "branchId": {
+            "description": "New branch ID (optional)",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "feedbackChanges": {
+            "description": "Product change preference",
+            "type": "string",
+            "enum": [
+              "approvedChanges",
+              "disapprovedChanges"
+            ]
+          },
+          "feedbackContacts": {
+            "description": "Contact preference",
+            "type": "string",
+            "enum": [
+              "call",
+              "doNotCall"
+            ]
+          },
+          "isAdultConfirmed": {
+            "description": "Confirm adult products",
+            "type": "boolean"
+          },
+          "promoCode": {
+            "description": "Promo code to apply",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bonusRequested": {
+            "description": "Балабонуси to apply: set to bonusAvailable (or less if user specifies an exact amount) from silpo_get_shopping_cart_by_id to pay with bonuses, or null to remove bonus payment",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "shoppingCartId",
+          "deliveryType",
+          "timeslot",
+          "address",
+          "shipments"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "shoppingCartId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "shoppingCartId"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_my_online_orders",
+      "title": "Get My Online Orders",
+      "description": "View online delivery order history with product details. Only shows orders placed via silpo.ua or Silpo mobile apps (not in-store purchases). Product IDs can be used to reorder via silpo_add_or_update_cart_products.\n\nTIMESTAMPS: createdAt and delivery.deliveredAt are UTC (explicit +00:00 offset) — always convert to the user's local timezone before displaying.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "description": "Max orders (default: 10)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "offset": {
+            "description": "Skip for pagination",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "orderId": {
+                  "type": "string"
+                },
+                "number": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "status": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                },
+                "discount": {
+                  "type": "number"
+                },
+                "delivery": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "timeSlot": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "from": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "to": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "from",
+                                "to"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "deliveredAt": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "timeSlot",
+                        "deliveredAt"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "address": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "city": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "street": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "building": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "apartment": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "city",
+                        "street",
+                        "building",
+                        "apartment"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "products": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "price": {
+                        "type": "number"
+                      },
+                      "quantity": {
+                        "type": "number"
+                      },
+                      "subtotal": {
+                        "type": "number"
+                      },
+                      "removed": {
+                        "type": "boolean"
+                      },
+                      "image": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "companyId": {
+                        "type": "string"
+                      },
+                      "branchId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "price",
+                      "quantity",
+                      "subtotal",
+                      "removed",
+                      "image",
+                      "companyId",
+                      "branchId"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "orderId",
+                "number",
+                "status",
+                "createdAt",
+                "amount",
+                "discount",
+                "delivery",
+                "address",
+                "products"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "number"
+              },
+              "offset": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "limit",
+              "offset",
+              "total"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "orders",
+          "meta"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_product_details",
+      "title": "Get Product Details",
+      "description": "Get detailed information about a specific product by branch and slug. Returns product attributes, nutrition info, and image URLs.\n\nCRITICAL: The slug parameter MUST come from the slug field in silpo_find_products_batch or silpo_get_products results. NEVER construct or guess a slug from a product name — slugs are generated by Silpo and cannot be derived from names. If you don't have a slug from a previous search, call silpo_find_products_batch first.\n\nPACKAGE SIZE: displayRatio shows the actual content of one unit (e.g. \"400г\", \"10 шт\") — use it together with step to compute how many units to add for a requested weight/volume/count. step alone only tells you the minimum increment, not what one unit contains.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Product slug — MUST be taken from slug field in silpo_find_products_batch or silpo_get_products results. Never construct from name."
+          },
+          "deliveryType": {
+            "type": "string",
+            "description": "Delivery type from silpo_get_shopping_cart_by_id"
+          },
+          "timeslotStart": {
+            "type": "string",
+            "description": "Timeslot start from silpo_get_shopping_cart_by_id"
+          },
+          "timeslotEnd": {
+            "type": "string",
+            "description": "Timeslot end from silpo_get_shopping_cart_by_id"
+          }
+        },
+        "required": [
+          "branchId",
+          "slug",
+          "deliveryType",
+          "timeslotStart",
+          "timeslotEnd"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "price": {
+                "type": "number"
+              },
+              "oldPrice": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "stock": {
+                "type": "number"
+              },
+              "available": {
+                "type": "boolean"
+              },
+              "weighted": {
+                "type": "boolean"
+              },
+              "step": {
+                "type": "number"
+              },
+              "ratio": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "displayRatio": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "url": {
+                "type": "string"
+              },
+              "images": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "attributes": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "companyId": {
+                "type": "string"
+              },
+              "branchId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "slug",
+              "price",
+              "oldPrice",
+              "stock",
+              "available",
+              "weighted",
+              "step",
+              "ratio",
+              "displayRatio",
+              "url",
+              "images",
+              "attributes",
+              "companyId",
+              "branchId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "product"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_similar_products",
+      "title": "Get Similar Products",
+      "description": "Find products similar to a given product. Use to suggest alternatives.\n\nPACKAGE SIZE: displayRatio shows the actual content of one unit (e.g. \"400г\", \"10 шт\") — use it together with step to compute quantities for a requested weight/volume/count.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Product slug"
+          },
+          "limit": {
+            "description": "Max results",
+            "type": "number"
+          },
+          "offset": {
+            "description": "Offset for pagination",
+            "type": "number"
+          },
+          "deliveryType": {
+            "description": "Delivery type from silpo_get_shopping_cart_by_id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "branchId",
+          "slug"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "oldPrice": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "stock": {
+                  "type": "number"
+                },
+                "available": {
+                  "type": "boolean"
+                },
+                "image": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "weighted": {
+                  "type": "boolean"
+                },
+                "step": {
+                  "type": "number"
+                },
+                "displayRatio": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "specialPrices": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "price": {
+                            "type": "number"
+                          },
+                          "count": {
+                            "type": "number"
+                          },
+                          "type": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "price",
+                          "count",
+                          "type"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "companyId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "branchId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "externalProductId": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "slug",
+                "price",
+                "oldPrice",
+                "stock",
+                "available",
+                "image",
+                "weighted",
+                "step",
+                "displayRatio",
+                "specialPrices",
+                "companyId",
+                "branchId",
+                "externalProductId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "total"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "products",
+          "meta"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_replacements",
+      "title": "Get Replacements",
+      "description": "Find replacement candidates for products at risk of not being fulfilled by the picker/assembler — this is about picking risk, not simple stock:0. A product can have stock > 0 and still be a valid input here if it is at risk of not actually being assembled into the order. Empty results (items:[]) are the normal outcome for most products — treat that as \"no known risk\", not as an error. Some computed candidates may be silently dropped if the underlying catalog data for them is incomplete — replacements[] can be shorter than what the server actually considered.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id"
+          },
+          "companyId": {
+            "type": "string",
+            "description": "Company ID"
+          },
+          "productIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Product IDs to check for assembler/picking risk and get replacement candidates for"
+          },
+          "deliveryType": {
+            "type": "string",
+            "description": "Delivery type from silpo_get_shopping_cart_by_id"
+          }
+        },
+        "required": [
+          "branchId",
+          "companyId",
+          "productIds",
+          "deliveryType"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string"
+                },
+                "replacements": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "slug": {
+                        "type": "string"
+                      },
+                      "price": {
+                        "type": "number"
+                      },
+                      "oldPrice": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "stock": {
+                        "type": "number"
+                      },
+                      "available": {
+                        "type": "boolean"
+                      },
+                      "image": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "weighted": {
+                        "type": "boolean"
+                      },
+                      "step": {
+                        "type": "number"
+                      },
+                      "displayRatio": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "specialPrices": {
+                        "anyOf": [
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "price": {
+                                  "type": "number"
+                                },
+                                "count": {
+                                  "type": "number"
+                                },
+                                "type": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "price",
+                                "count",
+                                "type"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "companyId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "branchId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "externalProductId": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "slug",
+                      "price",
+                      "oldPrice",
+                      "stock",
+                      "available",
+                      "image",
+                      "weighted",
+                      "step",
+                      "displayRatio",
+                      "specialPrices",
+                      "companyId",
+                      "branchId",
+                      "externalProductId"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "productId",
+                "replacements"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "items"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_my_coupons",
+      "title": "Get My Coupons",
+      "description": "List available coupons for the authenticated user.\n\nJOIN TO REWARDS: promoId matches rewards[].promoId in silpo_get_my_offline_orders — use it to check whether a coupon actually paid out. rewardValue's meaning depends on rewardSign/rewardUnit (e.g. sign \"x\" + unit \"балобонусів\" means \"×N bonus points\", not a currency amount). rewardLimit is the payout ceiling (same value referenced in warningText prose, e.g. \"Максимальна сума знижки 100 грн\").",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "coupons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "number"
+                },
+                "active": {
+                  "type": "boolean"
+                },
+                "useWay": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "beginDate": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "endDate": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "endDateTime": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "limitText": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "warningText": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "image": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "promoId": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rewardText": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rewardValue": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rewardUnit": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rewardSign": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rewardLimit": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "active",
+                "useWay",
+                "beginDate",
+                "endDate",
+                "endDateTime",
+                "description",
+                "limitText",
+                "warningText",
+                "image",
+                "promoId",
+                "rewardText",
+                "rewardValue",
+                "rewardUnit",
+                "rewardSign",
+                "rewardLimit"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "coupons"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_loyalty_info",
+      "title": "Get Loyalty Info",
+      "description": "Get loyalty card info and balance for the authenticated user.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "loyalty": {
+            "type": "object",
+            "properties": {
+              "card": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "barcode": {
+                        "type": "string"
+                      },
+                      "typeName": {
+                        "type": "string"
+                      },
+                      "memberId": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "barcode",
+                      "typeName",
+                      "memberId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "balance": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "total": {
+                        "type": "number"
+                      },
+                      "currency": {
+                        "type": "string"
+                      },
+                      "accounts": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string"
+                            },
+                            "amount": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "amount"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "total",
+                      "currency",
+                      "accounts"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "card",
+              "balance"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "loyalty"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_coupon_details",
+      "title": "Get Coupon Details",
+      "description": "Get detailed info about a specific coupon by its ID (from silpo_get_my_coupons).\n\nJOIN TO REWARDS: promoId matches rewards[].promoId in silpo_get_my_offline_orders — use it to check whether this coupon actually paid out. rewardValue's meaning depends on rewardSign/rewardUnit (e.g. sign \"x\" + unit \"балобонусів\" means \"×N bonus points\", not a currency amount). rewardLimit is the payout ceiling (same value referenced in warningText prose, e.g. \"Максимальна сума знижки 100 грн\").",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "businessCouponId": {
+            "type": "number",
+            "description": "Coupon ID from silpo_get_my_coupons"
+          }
+        },
+        "required": [
+          "businessCouponId"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "coupon": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "state": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "useWay": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "beginDate": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "endDate": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "endDateTime": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "usedCount": {
+                "type": "number"
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "limitText": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "warningText": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "rewardText": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "rewardValue": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "image": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "promoId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "rewardUnit": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "rewardSign": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "rewardLimit": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "active",
+              "state",
+              "useWay",
+              "beginDate",
+              "endDate",
+              "endDateTime",
+              "usedCount",
+              "description",
+              "limitText",
+              "warningText",
+              "rewardText",
+              "rewardValue",
+              "image",
+              "promoId",
+              "rewardUnit",
+              "rewardSign",
+              "rewardLimit"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "coupon"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_my_delivery_addresses",
+      "title": "Get My Delivery Addresses",
+      "description": "Get saved delivery addresses for the authenticated user. Use coordinates from an address with silpo_get_available_delivery_types to set up delivery.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "tag": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "city": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "street": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "building": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "apartment": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "floor": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "entrance": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "latitude": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "longitude": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "comment": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "tag",
+                "city",
+                "street",
+                "building",
+                "apartment",
+                "floor",
+                "entrance",
+                "latitude",
+                "longitude",
+                "comment"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "addresses"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_my_food_restrictions",
+      "title": "Get My Food Restrictions",
+      "description": "Get user food restrictions (gluten-free, lactose-free, vegan, etc.). Use to personalize product recommendations.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "restrictions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "slug",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "restrictions"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_my_profile",
+      "title": "Get My Profile",
+      "description": "Get the authenticated user profile info (name, phone, email, birthday).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "profile": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "firstName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "middleName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "phone": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "email": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "birthday": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "gender": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "firstName",
+              "lastName",
+              "middleName",
+              "phone",
+              "email",
+              "birthday",
+              "gender",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "profile"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_my_promos",
+      "title": "Get My Promos",
+      "description": "Get personal promotional offers available for selection. User can choose which promos to activate for bonus rewards.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "promos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "promoId": {
+                  "type": "number"
+                },
+                "selected": {
+                  "type": "boolean"
+                },
+                "beginDate": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "endDate": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rewardText": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rewardValue": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "limitText": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "warningText": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "addressListText": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "image": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "promoId",
+                "selected",
+                "beginDate",
+                "endDate",
+                "description",
+                "rewardText",
+                "rewardValue",
+                "limitText",
+                "warningText",
+                "addressListText",
+                "image"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              },
+              "minSelect": {
+                "type": "number"
+              },
+              "maxSelect": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "total",
+              "minSelect",
+              "maxSelect"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "promos",
+          "meta"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_promo_codes",
+      "title": "Get Promo Codes",
+      "description": "Get promo codes for the authenticated user.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "promoCodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "title": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "active": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "title",
+                "active"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "total"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "promoCodes",
+          "meta"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_list_branches",
+      "title": "List Silpo Branches",
+      "description": "List available Silpo branches with pagination. Use with hasPickup=true when user wants SelfPickup delivery — show 5 nearest branches to their location and let them choose. Branch data (branchId, companyId, latitude, longitude, address, city) is needed to construct the SelfPickup address for silpo_update_shopping_cart.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "description": "Max results to return (default: 50)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "offset": {
+            "description": "Offset for pagination",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "hasPickup": {
+            "description": "Filter branches that support self-pickup",
+            "type": "boolean"
+          },
+          "hasNP": {
+            "description": "Filter branches that support Nova Poshta delivery",
+            "type": "boolean"
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "branchId": {
+                  "type": "string"
+                },
+                "companyId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "externalId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "city": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "address": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "latitude": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "longitude": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "hasPickup": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "open": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "branchId",
+                "companyId",
+                "externalId",
+                "city",
+                "address",
+                "latitude",
+                "longitude",
+                "hasPickup",
+                "open"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "number"
+              },
+              "offset": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "limit",
+              "offset",
+              "total"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "branches",
+          "meta"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_product_sets",
+      "title": "Get Product Sets",
+      "description": "Get curated product collections/sets at a Silpo branch. Use slug with silpo_get_products (set param) to browse products in a set.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id or silpo_get_available_delivery_types"
+          },
+          "deliveryType": {
+            "description": "Filter by delivery type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "branchId"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "link": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "slug",
+                "title",
+                "description",
+                "link"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "sets"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_my_family",
+      "title": "Get My Family",
+      "description": "Get family info: household members, children, and pets. Helps personalize product recommendations.\n\nTIMESTAMPS: members[].profileCreatedAt has no timezone offset in the raw data (unlike other tools) — do not assume UTC. Treat it as an approximate date rather than a precise time when presenting to the user.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "profileId": {
+                  "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "phone": {
+                  "type": "string"
+                },
+                "image": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "profileCreatedAt": {
+                  "type": "string"
+                },
+                "itsMe": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "profileId",
+                "name",
+                "phone",
+                "image",
+                "profileCreatedAt",
+                "itsMe"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "dateOfBirth": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "slug",
+                "dateOfBirth"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "slug": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "slug"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "name",
+          "members",
+          "children",
+          "pets"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_available_delivery_types",
+      "title": "Get Available Delivery Types",
+      "description": "Get all available delivery types for a location. Returns which delivery types are available at given coordinates with branchId for polygon-based options.\n\nUSE: Pass deliveryType + branchId to silpo_update_shopping_cart or silpo_get_time_slots.\n\nNEXT STEPS BY TYPE:\n- DeliveryHome/WideAssortDelivery/B2B: branchId is provided, use directly\n- SelfPickup: branchId is null → call silpo_list_branches(hasPickup=true) to let user pick a branch\n- NovaPoshta: branchId is null → call silpo_find_nova_poshta_settlements → silpo_find_nova_poshta_offices → silpo_list_branches(hasNP=true) for branchId",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "description": "Latitude coordinate"
+          },
+          "longitude": {
+            "type": "number",
+            "description": "Longitude coordinate"
+          }
+        },
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "deliveryType": {
+                  "type": "string"
+                },
+                "branchId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "deliveryType",
+                "branchId",
+                "description"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "options"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_find_nova_poshta_settlements",
+      "title": "Find Nova Poshta Delivery Cities",
+      "description": "Search for cities available for Nova Poshta delivery. Returns settlement IDs needed for silpo_find_nova_poshta_offices.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "City name to search for (e.g. \"Київ\", \"Одеса\")"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "settlements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "area": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "region": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "area",
+                "region"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "settlements"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_find_nova_poshta_offices",
+      "title": "Find Nova Poshta Offices",
+      "description": "Search for Nova Poshta offices/parcel lockers in a settlement.\n\nUSE: After silpo_find_nova_poshta_settlements. Pass offices[].id, offices[].latitude, offices[].longitude, offices[].type, offices[].number to construct NovaPoshta address for silpo_update_shopping_cart.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "settlementId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Settlement ID from silpo_find_nova_poshta_settlements"
+          },
+          "title": {
+            "description": "Filter by office number or address text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "settlementId"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "offices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "address": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "number": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "latitude": {
+                  "type": "number"
+                },
+                "longitude": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "address",
+                "type",
+                "number",
+                "status",
+                "latitude",
+                "longitude"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "total"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "offices",
+          "meta"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_my_offline_orders",
+      "title": "Get My Offline Orders",
+      "description": "View in-store (offline) purchase history from physical Silpo shops.\n\nUnlike silpo_get_my_online_orders (website/app orders), this shows purchases made at physical store checkouts using the loyalty card.\n\nREQUIRES: branchId, deliveryType, timeslotStart, timeslotEnd from silpo_get_shopping_cart_by_id to check product availability.\n\nRESPONSE: Products with catalogProduct !== null can be reordered via silpo_add_or_update_cart_products. Products with catalogProduct === null — use silpo_find_products_batch with product name to find replacements.\n\nREORDER BY ARTICLE: products[].lagerId is the same identifier as externalProductId returned by silpo_find_products_batch and other catalog tools. To reliably reorder an item from this receipt (instead of fuzzy-matching by name), search for its lagerId as a numeric query in silpo_find_products_batch — this is more precise than searching by product name.\n\nHIGHLIGHT FOR USER:\n- accruedBalaBonusesSum — Балабонуси earned for this order. Show this to the user as a benefit of shopping at Silpo.\n- rewards[] — promotions/coupons that were applied to this order and saved money. Highlight these to show how the user benefited.\n\nTIMESTAMPS: orders[].createdAt has no timezone offset in the raw data (unlike other tools that return explicit +00:00 UTC times) — do not assume UTC. Treat it as an approximate date rather than a precise time when presenting to the user.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id"
+          },
+          "deliveryType": {
+            "type": "string",
+            "description": "Delivery type from silpo_get_shopping_cart_by_id"
+          },
+          "timeslotStart": {
+            "type": "string",
+            "description": "Timeslot start from silpo_get_shopping_cart_by_id"
+          },
+          "timeslotEnd": {
+            "type": "string",
+            "description": "Timeslot end from silpo_get_shopping_cart_by_id"
+          },
+          "limit": {
+            "description": "Max orders to return (default: 10, max: 10)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "offset": {
+            "description": "Skip for pagination (default: 0)",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "dateStart": {
+            "description": "Period start in ISO format (default: 6 months ago)",
+            "type": "string"
+          },
+          "dateEnd": {
+            "description": "Period end in ISO format (default: now)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "branchId",
+          "deliveryType",
+          "timeslotStart",
+          "timeslotEnd"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "filId": {
+                  "type": "number"
+                },
+                "filialName": {
+                  "type": "string"
+                },
+                "cityName": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "sumReg": {
+                  "type": "number"
+                },
+                "accruedBalaBonusesSum": {
+                  "type": "number"
+                },
+                "sumDiscount": {
+                  "type": "number"
+                },
+                "receiptUrl": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "chequeMagicName": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "chequePrediction": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rewards": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rewardGroupCodeName": {
+                        "type": "string"
+                      },
+                      "applyText": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "valueText": {
+                        "type": "string"
+                      },
+                      "applyRewardAmount": {
+                        "type": "number"
+                      },
+                      "promoId": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "rewardGroupCodeName",
+                      "applyText",
+                      "valueText",
+                      "applyRewardAmount",
+                      "promoId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "products": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "lagerId": {
+                        "type": "number"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "unit": {
+                        "type": "string"
+                      },
+                      "quantity": {
+                        "type": "number"
+                      },
+                      "price": {
+                        "type": "number"
+                      },
+                      "image": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "catalogProduct": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "slug": {
+                                "type": "string"
+                              },
+                              "price": {
+                                "type": "number"
+                              },
+                              "stock": {
+                                "type": "number"
+                              },
+                              "available": {
+                                "type": "boolean"
+                              },
+                              "image": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "weighted": {
+                                "type": "boolean"
+                              },
+                              "step": {
+                                "type": "number"
+                              },
+                              "companyId": {
+                                "type": "string"
+                              },
+                              "branchId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "slug",
+                              "price",
+                              "stock",
+                              "available",
+                              "image",
+                              "weighted",
+                              "step",
+                              "companyId",
+                              "branchId"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "lagerId",
+                      "name",
+                      "unit",
+                      "quantity",
+                      "price",
+                      "image",
+                      "catalogProduct"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "filId",
+                "filialName",
+                "cityName",
+                "createdAt",
+                "sumReg",
+                "accruedBalaBonusesSum",
+                "sumDiscount",
+                "receiptUrl",
+                "chequeMagicName",
+                "chequePrediction",
+                "rewards",
+                "products"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "number"
+              },
+              "offset": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "limit",
+              "offset",
+              "total"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "orders",
+          "meta"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_my_certificates",
+      "title": "Get My Certificates",
+      "description": "Get user gift certificates that can be applied to the shopping cart. Shows barcode, pincode, expiry date and value.\n\nTIMESTAMPS: createdAt and expireDate have no timezone offset in the raw data (unlike other tools) — do not assume UTC. Treat them as approximate dates rather than precise times when presenting to the user.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "description": "Max certificates to return (default: 50)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "offset": {
+            "description": "Pagination offset (default: 0)",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "certificates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "number"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "totalPrice": {
+                  "type": "number"
+                },
+                "barcode": {
+                  "type": "string"
+                },
+                "pincode": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "expireDate": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "title": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "image": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "createdAt",
+                "totalPrice",
+                "barcode",
+                "pincode",
+                "expireDate",
+                "title",
+                "image"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "certificates"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_my_premium_subscription",
+      "title": "Get My Premium Subscription",
+      "description": "Get premium subscription (Плюхс) details including features, balances, and benefits. Shows active subscription status, available bonuses, and feature cards with links.\n\nIf subscription is NOT active: ALWAYS show BOTH links to the user — webLink labeled \"Оформити на сайті\" and mobileLink labeled \"Оформити в застосунку\".\n\nIf subscription IS active: ALWAYS show BOTH share links — shareWebLink labeled \"Поділитись (сайт)\" and shareMobileLink labeled \"Поділитись (застосунок)\".\n\nTIMESTAMPS: createdAt, dateFrom, and dateTo are UTC (explicit +00:00 offset) — always convert to the user's local timezone before displaying.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "webLink": {
+            "type": "string"
+          },
+          "mobileLink": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "subscriptionId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "dateFrom": {
+            "type": "string"
+          },
+          "dateTo": {
+            "type": "string"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "business": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "checkoutText": {
+                  "type": "string"
+                },
+                "image": {
+                  "type": "string"
+                },
+                "balance": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "string"
+                        },
+                        "available": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "available",
+                        "type"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "webLink": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "mobileLink": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "descriptionHtml": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "business",
+                "name",
+                "checkoutText",
+                "image",
+                "balance",
+                "webLink",
+                "mobileLink",
+                "descriptionHtml"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "bonusesObtainedAmount": {
+            "type": "number"
+          },
+          "shareWebLink": {
+            "type": "string"
+          },
+          "shareMobileLink": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "summary"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_get_my_favorites",
+      "title": "Get My Favorites",
+      "description": "Get the user's favorite products at a Silpo branch. Returns products in the same format as silpo_get_products — use companyId, branchId, id, and step to add items to cart via silpo_add_or_update_cart_products.\n\nPACKAGE SIZE: displayRatio shows the actual content of one unit (e.g. \"400г\", \"10 шт\") — use it together with step to compute quantities for a requested weight/volume/count.\n\nUNRESOLVABLE FAVORITES: a saved favorite may not be available at this branch at all — these are returned with price:0, stock:0, available:false, and no branchId. Do NOT tell the user these are \"temporarily out of stock\" — they are simply not carried at this branch. Never try to add them to cart.\n\nAll inputs must be taken from silpo_get_shopping_cart_by_id: branchId, deliveryType, timeslotStart (slot.start).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "description": "Branch ID from silpo_get_shopping_cart_by_id"
+          },
+          "deliveryType": {
+            "type": "string",
+            "enum": [
+              "Unknown",
+              "SelfPickup",
+              "DeliveryHome",
+              "DeliveryFlat",
+              "DeliveryOffice",
+              "DeliveryGlovo",
+              "DeliveryExpress",
+              "DeliveryExpressFood",
+              "JustIn",
+              "LongDelivery",
+              "JustInPost",
+              "NovaPoshta",
+              "DeliveryExpressByPromise",
+              "WideAssortDelivery",
+              "B2B",
+              "PreOrder"
+            ],
+            "description": "Delivery type from silpo_get_shopping_cart_by_id"
+          },
+          "timeslotStart": {
+            "type": "string",
+            "description": "Timeslot start ISO timestamp from silpo_get_shopping_cart_by_id slot.start"
+          },
+          "limit": {
+            "description": "Max results (default: 25)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "offset": {
+            "description": "Pagination offset (default: 0)",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "branchId",
+          "deliveryType",
+          "timeslotStart"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "oldPrice": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "stock": {
+                  "type": "number"
+                },
+                "available": {
+                  "type": "boolean"
+                },
+                "image": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "weighted": {
+                  "type": "boolean"
+                },
+                "step": {
+                  "type": "number"
+                },
+                "displayRatio": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "specialPrices": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "price": {
+                            "type": "number"
+                          },
+                          "count": {
+                            "type": "number"
+                          },
+                          "type": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "price",
+                          "count",
+                          "type"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "companyId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "branchId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "externalProductId": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "slug",
+                "price",
+                "oldPrice",
+                "stock",
+                "available",
+                "image",
+                "weighted",
+                "step",
+                "displayRatio",
+                "specialPrices",
+                "companyId",
+                "branchId",
+                "externalProductId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "number"
+              },
+              "offset": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "limit",
+              "offset",
+              "total"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "products",
+          "meta"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_add_or_update_favorite_products",
+      "title": "Add/Update Favorite Products",
+      "description": "Add or remove products from the user's favorites list.\n\nUse productId and externalProductId from any product-returning tool (silpo_get_my_favorites, silpo_find_products_batch, silpo_get_products, silpo_get_similar_products, etc).\n\nTo ADD: set toDelete=false.\nTo REMOVE: set toDelete=true. Get productId and externalProductId from silpo_get_my_favorites.\n\nMax 5 actions per call.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "actions": {
+            "minItems": 1,
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "Product id field from any product-returning tool"
+                },
+                "externalProductId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "externalProductId field from any product-returning tool"
+                },
+                "toDelete": {
+                  "type": "boolean",
+                  "description": "true to remove from favorites, false to add"
+                }
+              },
+              "required": [
+                "productId",
+                "externalProductId",
+                "toDelete"
+              ]
+            },
+            "description": "List of add/remove actions (max 5)"
+          }
+        },
+        "required": [
+          "actions"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string"
+                },
+                "toDelete": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "productId",
+                "toDelete"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "actions"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "silpo_add_or_update_certificates",
+      "title": "Add/Remove Cart Certificates",
+      "description": "Add or remove gift certificates from the shopping cart in one call. Adds run before removes.\n\ncertificatesToAdd: get barcode and pincode from silpo_get_my_certificates or from user input. Max 10.\ncertificatesToRemove: get barcode from the certificates array in silpo_get_shopping_cart_by_id response. Max 10.\n\nMANDATORY: After calling this tool, ALWAYS call silpo_get_shopping_cart_by_id to verify the result and check if cart total changed.\n\nVALIDATION ERRORS: If added[].validations is non-empty, show the messages to the user — the certificate was not applied.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "shoppingCartId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Cart ID from silpo_get_my_shopping_cart"
+          },
+          "certificatesToAdd": {
+            "description": "Certificates to add (barcode + optional pincode)",
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "barcode": {
+                  "type": "string",
+                  "description": "Certificate barcode"
+                },
+                "pincode": {
+                  "description": "Certificate PIN (required for gift certificates)",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "barcode"
+              ]
+            }
+          },
+          "certificatesToRemove": {
+            "description": "Certificates to remove (barcode from silpo_get_shopping_cart_by_id certificates)",
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "barcode": {
+                  "type": "string",
+                  "description": "Certificate barcode"
+                },
+                "pincode": {
+                  "description": "Certificate PIN (required for gift certificates)",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "barcode"
+              ]
+            }
+          }
+        },
+        "required": [
+          "shoppingCartId"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "added": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "barcode": {
+                  "type": "string"
+                },
+                "faceValue": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "validations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "level": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "level",
+                      "message"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "barcode",
+                "faceValue",
+                "validations"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "removed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "summary",
+          "added",
+          "removed"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ]
+}

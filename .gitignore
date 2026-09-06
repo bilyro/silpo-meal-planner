@@ -3,6 +3,5 @@ dist/
 .env
 *.sqlite
 data.sqlite
-docs/tools.json
 .DS_Store
 npm-debug.log*
