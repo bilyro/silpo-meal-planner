@@ -8,6 +8,13 @@
       "when": 1788617611993,
       "tag": "0000_spotty_wrecker",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788689776595,
+      "tag": "0001_parallel_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }

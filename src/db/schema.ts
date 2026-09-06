@@ -46,6 +46,22 @@ export const sessions = pgTable('sessions', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Rolling conversation history (spec §6.5 "last N messages", §9.4's recentMessages/appendMessages).
+ * Only user/assistant prose is kept — tool calls and their results are deliberately not replayed,
+ * since the authoritative view of what the agent has established lives in `sessions.state_json`
+ * and is injected into the system prompt each turn.
+ */
+export const messages = pgTable('messages', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+  role: text('role').notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const plans = pgTable('plans', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')

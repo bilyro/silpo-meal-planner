@@ -102,6 +102,9 @@ export function registerCommands(bot: Bot) {
     const chatId = String(ctx.chat.id);
     const user = await repo.getOrCreateUser(chatId);
     await repo.deleteTokens(user.id);
+    // Drop the conversation too: whoever links this chat next must not inherit the previous
+    // account's history, which can name their family, restrictions and addresses.
+    await repo.deleteMessages(user.id);
     await ctx.reply('Відʼєднано. Напишіть /start, щоб підʼєднати акаунт знову.');
   });
 

@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { OAuthClientInformationFull, OAuthTokens } from '@modelcontextprotocol/sdk/shared/auth.js';
 import { db } from './client.js';
-import { oauthClients, oauthPending, oauthTokens, sessions, toolCallLog, users } from './schema.js';
+import { messages, oauthClients, oauthPending, oauthTokens, sessions, toolCallLog, users } from './schema.js';
 
 export async function getOrCreateUser(telegramChatId: string) {
   const existing = await db.query.users.findFirst({ where: eq(users.telegramChatId, telegramChatId) });
@@ -117,6 +117,31 @@ export async function saveSessionState(userId: number, state: unknown): Promise<
     .insert(sessions)
     .values({ userId, ...values })
     .onConflictDoUpdate({ target: sessions.userId, set: values });
+}
+
+export type ChatRole = 'user' | 'assistant';
+
+/** Oldest-first, so the result can be spread straight into a model `messages` array. */
+export async function getRecentMessages(userId: number, limit = 12): Promise<{ role: ChatRole; content: string }[]> {
+  const rows = await db.query.messages.findMany({
+    where: eq(messages.userId, userId),
+    orderBy: (m, { desc }) => [desc(m.createdAt), desc(m.id)],
+    limit,
+  });
+  return rows.reverse().map((r) => ({ role: r.role as ChatRole, content: r.content }));
+}
+
+export async function appendMessages(
+  userId: number,
+  entries: { role: ChatRole; content: string }[],
+): Promise<void> {
+  const rows = entries.filter((e) => e.content.trim().length > 0);
+  if (rows.length === 0) return;
+  await db.insert(messages).values(rows.map((e) => ({ userId, role: e.role, content: e.content })));
+}
+
+export async function deleteMessages(userId: number): Promise<void> {
+  await db.delete(messages).where(eq(messages.userId, userId));
 }
 
 export async function logToolCall(entry: {
