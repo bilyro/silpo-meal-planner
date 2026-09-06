@@ -24,7 +24,7 @@ export async function runAgentTurn(userId: number, userMessage: string): Promise
   try {
     await mcp.connect();
 
-    const tools = { ...localTools(userId, state), ...(await mcp.toolsForAiSdk()) };
+    const tools = { ...localTools(userId, state, mcp), ...(await mcp.toolsForAiSdk()) };
     const result = await generateText({
       model: anthropic(config.AGENT_MODEL),
       system: `${SYSTEM_PROMPT}\n\n<session_state>${JSON.stringify(state)}</session_state>`,

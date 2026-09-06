@@ -1,5 +1,7 @@
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
+import type { SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
+import { ensureCartContext } from './cartContext.js';
 import { saveSession, type SessionState } from './session.js';
 
 const proposeMenuInput = z.object({
@@ -14,11 +16,11 @@ const proposeMenuInput = z.object({
 });
 
 /**
- * Local (non-MCP) tools, spec §6.3. Only `propose_menu` exists so far — `ensure_cart_context`
- * (Phase 4) and `record_resolution`/`finish_with_checkout` (Phase 5) land later. `state` is
- * mutated in place; the caller (runAgentTurn) persists it and reads `state.stage` afterwards.
+ * Local (non-MCP) tools, spec §6.3. `record_resolution`/`finish_with_checkout` (Phase 5) land
+ * later. `state` is mutated in place; the caller (runAgentTurn) persists it and reads
+ * `state.stage` afterwards.
  */
-export function localTools(userId: number, state: SessionState): Record<string, Tool> {
+export function localTools(userId: number, state: SessionState, mcp: SilpoMcpClient): Record<string, Tool> {
   return {
     propose_menu: tool({
       description:
@@ -29,6 +31,18 @@ export function localTools(userId: number, state: SessionState): Record<string, 
         state.stage = 'menu_proposed';
         await saveSession(userId, state);
         return { ok: true };
+      },
+    }),
+
+    ensure_cart_context: tool({
+      description:
+        'Встановлює контекст кошика (адреса, філія, тип доставки, часовий слот). Виклич це ПЕРЕД ' +
+        'будь-яким пошуком чи додаванням товарів, якщо контексту ще немає.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        const result = await ensureCartContext(mcp, state);
+        await saveSession(userId, state);
+        return result;
       },
     }),
   };
