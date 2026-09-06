@@ -1,7 +1,5 @@
 import { InlineKeyboard } from 'grammy';
 
-export const connectSilpoKeyboard = new InlineKeyboard().text('🔐 Під’єднати Сільпо', 'connect_silpo');
-
 export const confirmMenuKeyboard = new InlineKeyboard()
   .text('✅ Так', 'menu_confirm')
   .text('✏️ Змінити', 'menu_edit');

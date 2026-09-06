@@ -11,7 +11,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js';
 import { config } from '../src/config.js';
-import { SilpoAuthProvider } from '../src/mcp/SilpoAuthProvider.js';
+import { InMemorySilpoAuthProvider } from '../src/mcp/InMemorySilpoAuthProvider.js';
 import { dumpTools } from './dump-tools.js';
 
 function waitForCallback(port: number): Promise<string> {
@@ -50,7 +50,7 @@ async function main() {
   const redirectUri = new URL('/auth/callback', config.PUBLIC_BASE_URL);
   const callbackPort = Number(redirectUri.port || 80);
 
-  const auth = new SilpoAuthProvider(redirectUri.toString(), openInBrowser);
+  const auth = new InMemorySilpoAuthProvider(redirectUri.toString(), openInBrowser);
   const makeClient = () => new Client({ name: 'silpo-meal-planner-spike', version: '0.1.0' }, { capabilities: {} });
   const makeTransport = () =>
     new StreamableHTTPClientTransport(new URL(config.SILPO_MCP_URL), { authProvider: auth });

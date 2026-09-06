@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
 import type {
   OAuthClientInformationFull,
@@ -5,20 +6,26 @@ import type {
   OAuthClientMetadata,
   OAuthTokens,
 } from '@modelcontextprotocol/sdk/shared/auth.js';
+import * as repo from '../db/repo.js';
 
 /**
- * In-memory OAuthClientProvider for the Phase 1 spike only (spec §8 Phase 1, §9.1).
- * Phase 2 replaces this with a DB-backed provider (oauth_clients/oauth_tokens/oauth_pending
- * tables) so registration and tokens survive process restarts and are keyed per Telegram user.
+ * DB-backed OAuthClientProvider (spec §5.3, §9.1). One instance is created per operation
+ * (starting a link, or completing one) rather than kept alive across requests — all state
+ * that needs to survive lives in oauth_clients/oauth_tokens/oauth_pending, keyed by userId.
+ *
+ * No `state()` method: Silpo's authorization server does not reliably echo the OAuth `state`
+ * param back on redirect (confirmed empirically — with or without one, the callback arrives
+ * with only `code`), so /auth/callback falls back to the most recent oauth_pending row instead
+ * of matching by state. Fine for this hackathon's scale; a real multi-tenant deployment would
+ * need Silpo to fix state echoing, or a different correlation channel.
  */
 export class SilpoAuthProvider implements OAuthClientProvider {
-  private clientInfo: OAuthClientInformationFull | undefined;
-  private tokenSet: OAuthTokens | undefined;
-  private verifier: string | undefined;
-
   constructor(
+    private readonly userId: number,
     private readonly redirectUri: string,
-    private readonly onAuthorizationUrl: (url: URL) => void,
+    private readonly onAuthorizationUrl: (url: URL) => void = () => {},
+    /** Pre-loaded verifier for the callback flow, where we already fetched the oauth_pending row. */
+    private readonly injectedCodeVerifier?: string,
   ) {}
 
   get redirectUrl(): string {
@@ -27,7 +34,7 @@ export class SilpoAuthProvider implements OAuthClientProvider {
 
   get clientMetadata(): OAuthClientMetadata {
     return {
-      client_name: 'silpo-meal-planner (spike)',
+      client_name: 'silpo-meal-planner',
       redirect_uris: [this.redirectUri],
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
@@ -35,43 +42,35 @@ export class SilpoAuthProvider implements OAuthClientProvider {
     };
   }
 
-  clientInformation(): OAuthClientInformationMixed | undefined {
-    return this.clientInfo;
+  async clientInformation(): Promise<OAuthClientInformationMixed | undefined> {
+    return repo.getOauthClient();
   }
 
-  saveClientInformation(info: OAuthClientInformationFull): void {
-    this.clientInfo = info;
+  async saveClientInformation(info: OAuthClientInformationFull): Promise<void> {
+    await repo.saveOauthClient(info);
   }
 
-  tokens(): OAuthTokens | undefined {
-    return this.tokenSet;
+  async tokens(): Promise<OAuthTokens | undefined> {
+    return repo.getTokens(this.userId);
   }
 
-  saveTokens(tokens: OAuthTokens): void {
-    this.tokenSet = tokens;
-  }
-
-  /** Redacted token metadata for spec §8 Phase 1 step 5 — never exposes the raw tokens. */
-  describeTokens(): { tokenType: string; expiresInSeconds?: number; hasRefreshToken: boolean; scope?: string } | undefined {
-    if (!this.tokenSet) return undefined;
-    return {
-      tokenType: this.tokenSet.token_type,
-      expiresInSeconds: this.tokenSet.expires_in,
-      hasRefreshToken: Boolean(this.tokenSet.refresh_token),
-      scope: this.tokenSet.scope,
-    };
+  async saveTokens(tokens: OAuthTokens): Promise<void> {
+    await repo.saveTokens(this.userId, tokens);
   }
 
   redirectToAuthorization(authorizationUrl: URL): void {
     this.onAuthorizationUrl(authorizationUrl);
   }
 
-  saveCodeVerifier(codeVerifier: string): void {
-    this.verifier = codeVerifier;
+  async saveCodeVerifier(codeVerifier: string): Promise<void> {
+    // oauth_pending.state is just our own internal row id here, never sent to Silpo.
+    await repo.savePendingAuth(randomBytes(16).toString('hex'), this.userId, codeVerifier);
   }
 
   codeVerifier(): string {
-    if (!this.verifier) throw new Error('No PKCE code verifier saved yet');
-    return this.verifier;
+    if (!this.injectedCodeVerifier) {
+      throw new Error('No code verifier available on this provider instance');
+    }
+    return this.injectedCodeVerifier;
   }
 }

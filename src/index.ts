@@ -4,11 +4,12 @@ import { buildServer } from './web/server.js';
 import { createBot } from './bot/bot.js';
 
 async function main() {
-  const server = buildServer();
+  const bot = createBot();
+
+  const server = buildServer(bot);
   await server.listen({ port: config.PORT, host: '0.0.0.0' });
   logger.info({ port: config.PORT }, 'Web server listening');
 
-  const bot = createBot();
   bot
     .start({
       onStart: (botInfo) => logger.info({ username: botInfo.username }, 'Bot started (long polling)'),
