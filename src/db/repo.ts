@@ -62,7 +62,15 @@ export async function deleteTokens(userId: number): Promise<void> {
   await db.delete(oauthTokens).where(eq(oauthTokens.userId, userId));
 }
 
+/**
+ * Only ONE link attempt may be pending per user at a time: each /authorize generates a fresh PKCE
+ * challenge, and because Silpo never echoes our `state` back (see SilpoAuthProvider), the callback
+ * cannot tell which attempt a returning code belongs to. Keeping several rows meant a user tapping
+ * an older /start button got matched against the newest verifier — a silent PKCE mismatch. Pruning
+ * makes the newest row unambiguous, so a stale button fails loudly ("press /start again") instead.
+ */
 export async function savePendingAuth(state: string, userId: number, codeVerifier: string): Promise<void> {
+  await db.delete(oauthPending).where(eq(oauthPending.userId, userId));
   await db.insert(oauthPending).values({ state, userId, codeVerifier });
 }
 
@@ -70,7 +78,14 @@ export async function getPendingAuth(state: string) {
   return db.query.oauthPending.findFirst({ where: eq(oauthPending.state, state) });
 }
 
-/** Fallback when the callback carries no state — see SilpoAuthProvider's class doc. */
+/**
+ * Fallback when the callback carries no state — see SilpoAuthProvider's class doc.
+ *
+ * ⚠ Not user-scoped, because a stateless callback carries nothing to scope it BY. With two users
+ * linking concurrently this can attach the wrong Silpo account to the wrong Telegram chat. That is
+ * acceptable only at this project's demo scale (one developer account, a couple of testers) and
+ * MUST NOT ship to real multi-tenant use without Silpo fixing `state` echoing first.
+ */
 export async function getMostRecentPendingAuth() {
   return db.query.oauthPending.findFirst({
     orderBy: (row, { desc }) => [desc(row.createdAt)],
