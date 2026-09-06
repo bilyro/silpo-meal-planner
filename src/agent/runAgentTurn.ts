@@ -17,21 +17,13 @@ export async function runAgentTurn(userId: number, userMessage: string): Promise
   const state = await loadSession(userId);
   const mcp = new SilpoMcpClient(userId);
 
+  // Single try/catch around connect() *and* generateText(): a connect() failure that is not
+  // NeedsAuthError (network blip, Silpo 5xx, etc.) must still produce a friendly reply instead
+  // of propagating out of runAgentTurn — bot.ts has no catch around this call, only a `finally`,
+  // so an uncaught rejection here would leave the user's message unanswered.
   try {
     await mcp.connect();
-  } catch (err) {
-    if (err instanceof NeedsAuthError) {
-      state.stage = 'need_auth';
-      await saveSession(userId, state);
-      return {
-        text: `Потрібно підʼєднати акаунт Сільпо: ${err.authorizationUrl.toString()}`,
-        stage: state.stage,
-      };
-    }
-    throw err;
-  }
 
-  try {
     const tools = { ...localTools(userId, state), ...(await mcp.toolsForAiSdk()) };
     const result = await generateText({
       model: anthropic(config.AGENT_MODEL),
@@ -46,6 +38,14 @@ export async function runAgentTurn(userId: number, userMessage: string): Promise
     await saveSession(userId, state);
     return { text: result.text || 'Готово.', stage: state.stage };
   } catch (err) {
+    if (err instanceof NeedsAuthError) {
+      state.stage = 'need_auth';
+      await saveSession(userId, state);
+      return {
+        text: `Потрібно підʼєднати акаунт Сільпо: ${err.authorizationUrl.toString()}`,
+        stage: state.stage,
+      };
+    }
     logger.error({ err, userId }, 'Agent turn failed');
     return { text: 'Сталася помилка під час обробки запиту. Спробуйте ще раз.', stage: state.stage };
   } finally {
