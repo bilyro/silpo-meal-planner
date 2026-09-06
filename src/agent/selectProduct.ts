@@ -62,9 +62,14 @@ export function matchesQuery(query: string, name: string): boolean {
     .split(/[^\p{L}\p{N}]+/u)
     .filter((w) => w.length >= 4);
   if (words.length === 0) return true;
-  // Ukrainian inflects heavily («куряче» vs «курячий»), so compare on a truncated stem rather
-  // than requiring an exact word match.
-  return words.some((w) => haystack.includes(w.slice(0, Math.max(4, w.length - 2))));
+  // EVERY distinguishing word must appear, not merely one: «куряче філе» vs «Качине філе домашнє»
+  // shares «філе», so an `.some()` check passed duck for a chicken query — the exact failure this
+  // filter exists to prevent. Requiring all words can reject a valid oddly-named product, and that
+  // asymmetry is deliberate: a miss surfaces to the user as «не знайшли», whereas a false match
+  // silently orders the wrong meat and can violate a stated dietary restriction.
+  //
+  // Ukrainian inflects heavily («куряче» vs «курячий»), so compare on a truncated stem.
+  return words.every((w) => haystack.includes(w.slice(0, Math.max(4, w.length - 2))));
 }
 
 export function violatesRestrictions(name: string, restrictions: string[] = []): boolean {
@@ -126,21 +131,27 @@ export function selectProduct(
  */
 export function computeQuantity(qtyText: string, p: ProductCandidate): number {
   const step = typeof p.step === 'number' && p.step > 0 ? p.step : undefined;
-  const m = /([\d.,]+)\s*(кг|г|мл|л|шт)?/i.exec(qtyText.trim());
+  const m = /([\d.,]+)\s*([\p{L}.]+)?/u.exec(qtyText.trim());
   const amount = m?.[1] ? Number(m[1].replace(',', '.')) : NaN;
-  const unit = m?.[2]?.toLowerCase();
+  const unit = m?.[2]?.toLowerCase().replace(/\./g, '') ?? '';
+
+  const isMass = ['кг', 'г', 'мл', 'л'].includes(unit);
+  // A bare number means packages («2» tomatoes); an explicit «шт» says so outright. Anything else
+  // («зубчики», «пучок», «гілочки», «ст.л.», «щіпка») counts PORTIONS OF one package, so the
+  // number must not become a package count — «3 зубчики» is 3 cloves, i.e. one head of garlic,
+  // not three of them.
+  const isPieces = unit === '' || unit.startsWith('шт');
 
   if (p.weighted) {
     let kg = 0.5;
-    if (Number.isFinite(amount)) {
-      if (unit === 'кг' || unit === 'л') kg = amount;
-      else if (unit === 'г' || unit === 'мл') kg = amount / 1000;
+    if (Number.isFinite(amount) && isMass) {
+      kg = unit === 'кг' || unit === 'л' ? amount : amount / 1000;
     }
     if (!step) return Math.max(kg, 0.1);
     return Math.max(Math.ceil(kg / step) * step, step);
   }
 
-  if (Number.isFinite(amount) && (unit === 'шт' || unit === undefined)) {
+  if (Number.isFinite(amount) && isPieces) {
     return Math.max(Math.ceil(amount), 1);
   }
   return 1;
