@@ -75,6 +75,14 @@ See `.env.example`. Notably:
 Schema lives in `src/db/schema.ts` (Drizzle ORM). Migrations are generated with
 `npx drizzle-kit generate` and applied with `npm run migrate`.
 
+Two tables carry the agent's memory and are easy to confuse:
+
+- `sessions` — one row per user, the authoritative `SessionState` (stage, cart context, menu,
+  resolved items). Injected into the system prompt every turn.
+- `messages` — rolling user/assistant prose, last 12 replayed into the model each turn so
+  follow-ups like «зроби дешевше» have context. Tool calls are *not* replayed; `sessions` is the
+  record of what actually happened. Cleared on `/logout`.
+
 ## Testing
 
 ```bash
