@@ -108,7 +108,16 @@ export type EnsureCartContextResult = { needsAddress: true } | { cartContext: No
  * unverified against real data (blocked on the Phase 2 OAuth issue) and should be corrected the
  * first time a real account with an existing cart exercises this path.
  */
-export async function ensureCartContext(mcp: SilpoMcpClient, state: SessionState): Promise<EnsureCartContextResult> {
+export async function ensureCartContext(
+  mcp: SilpoMcpClient,
+  state: SessionState,
+  /**
+   * Free-text address supplied by the user, used when the account has no saved delivery address
+   * (spec §8 Phase 4 step 2). Verified necessary against a real account: `silpo_get_my_delivery_addresses`
+   * returned an empty list, so without this the flow could only ever report `needsAddress`.
+   */
+  addressText?: string,
+): Promise<EnsureCartContextResult> {
   if (state.cartContext) return { cartContext: state.cartContext };
 
   const existing = await mcp.callTool<GetMyShoppingCartResult>('silpo_get_my_shopping_cart');
@@ -135,17 +144,22 @@ export async function ensureCartContext(mcp: SilpoMcpClient, state: SessionState
 
   const { addresses } = await mcp.callTool<GetMyDeliveryAddressesResult>('silpo_get_my_delivery_addresses');
   const savedAddress = addresses[0];
-  if (!savedAddress) return { needsAddress: true };
+  if (!savedAddress && !addressText) return { needsAddress: true };
 
-  let latitude = savedAddress.latitude;
-  let longitude = savedAddress.longitude;
-  let city = savedAddress.city;
-  let street = savedAddress.street;
-  let house = savedAddress.building;
+  let latitude = savedAddress?.latitude ?? null;
+  let longitude = savedAddress?.longitude ?? null;
+  let city = savedAddress?.city ?? null;
+  let street = savedAddress?.street ?? null;
+  let house = savedAddress?.building ?? null;
+  const hasApartment = Boolean(savedAddress?.apartment);
 
-  if (latitude == null || longitude == null) {
-    const addressText = [savedAddress.city, savedAddress.street, savedAddress.building].filter(Boolean).join(', ');
-    const found = await mcp.callTool<FindAddressResult>('silpo_find_address', { address: addressText });
+  // Geocode when we have only text: either the user supplied an address (no saved one exists), or
+  // the saved address is missing coordinates. A user-supplied address takes precedence, since the
+  // user is answering a direct question about where to deliver right now.
+  if (addressText || latitude == null || longitude == null) {
+    const query =
+      addressText ?? [savedAddress?.city, savedAddress?.street, savedAddress?.building].filter(Boolean).join(', ');
+    const found = await mcp.callTool<FindAddressResult>('silpo_find_address', { address: query });
     const geocoded = found.addresses[0];
     if (!geocoded) return { needsAddress: true };
     latitude = geocoded.latitude;
@@ -180,7 +194,7 @@ export async function ensureCartContext(mcp: SilpoMcpClient, state: SessionState
   if (!slot) return { needsAddress: true };
 
   const created = await mcp.callTool<CreateShoppingCartResult>('silpo_create_shopping_cart', {
-    addressType: savedAddress.apartment ? 'flat' : 'house',
+    addressType: hasApartment ? 'flat' : 'house',
     latitude,
     longitude,
     city: city ?? undefined,

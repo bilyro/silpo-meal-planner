@@ -10,6 +10,8 @@ import { SYSTEM_PROMPT } from './systemPrompt.js';
 export interface AgentTurnResult {
   text: string;
   stage: SessionState['stage'];
+  /** Carried out so the bot can render the menu from tool data rather than the model's prose. */
+  menu?: SessionState['menu'];
 }
 
 /** spec §6.5: one function per user turn — loads session, runs the tool-calling loop, persists. */
@@ -36,7 +38,7 @@ export async function runAgentTurn(userId: number, userMessage: string): Promise
     // Local tools already mutate `state` and save it themselves; this covers any leftover
     // mutation (e.g. stage changes not yet persisted) so the DB always reflects the latest turn.
     await saveSession(userId, state);
-    return { text: result.text || 'Готово.', stage: state.stage };
+    return { text: result.text || 'Готово.', stage: state.stage, menu: state.menu };
   } catch (err) {
     if (err instanceof NeedsAuthError) {
       state.stage = 'need_auth';

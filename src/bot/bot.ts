@@ -7,6 +7,7 @@ import { NeedsAuthError, SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import * as repo from '../db/repo.js';
 import { registerCommands } from './commands.js';
 import { confirmMenuKeyboard } from './keyboards.js';
+import { formatMenu } from './format.js';
 
 export function createBot() {
   const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
@@ -23,8 +24,11 @@ export function createBot() {
     }, 4000);
 
     try {
-      const { text, stage } = await runAgentTurn(user.id, ctx.message.text);
-      await ctx.reply(text, {
+      const { text, stage, menu } = await runAgentTurn(user.id, ctx.message.text);
+      // The model reliably calls propose_menu but often does not restate the menu in its reply,
+      // so render it from tool data and let the model's text serve as the follow-up prompt.
+      const body = stage === 'menu_proposed' && menu?.length ? `${formatMenu(menu)}\n\n${text}` : text;
+      await ctx.reply(body, {
         parse_mode: 'HTML',
         reply_markup: stage === 'menu_proposed' ? confirmMenuKeyboard : undefined,
       });

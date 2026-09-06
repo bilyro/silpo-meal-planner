@@ -37,10 +37,17 @@ export function localTools(userId: number, state: SessionState, mcp: SilpoMcpCli
     ensure_cart_context: tool({
       description:
         'Встановлює контекст кошика (адреса, філія, тип доставки, часовий слот). Виклич це ПЕРЕД ' +
-        'будь-яким пошуком чи додаванням товарів, якщо контексту ще немає.',
-      inputSchema: z.object({}),
-      execute: async () => {
-        const result = await ensureCartContext(mcp, state);
+        'будь-яким пошуком чи додаванням товарів, якщо контексту ще немає. Якщо повернулось ' +
+        '{needsAddress:true} — запитай у користувача адресу доставки текстом і виклич ще раз із ' +
+        'параметром address.',
+      inputSchema: z.object({
+        address: z
+          .string()
+          .optional()
+          .describe('Адреса доставки текстом, напр. «Київ, вулиця Хрещатик, 1». Лише якщо користувач її назвав.'),
+      }),
+      execute: async ({ address }) => {
+        const result = await ensureCartContext(mcp, state, address);
         await saveSession(userId, state);
         return result;
       },
