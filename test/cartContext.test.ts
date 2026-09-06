@@ -39,10 +39,15 @@ describe('ensureCartContext', () => {
         silpo_get_my_shopping_cart: { success: true, exists: true, shoppingCartId: 'abc-123' },
         silpo_get_shopping_cart_by_id: {
           success: true,
+          // Mirrors a REAL cart captured 6 Sept 2026: there is no top-level `branchId` — it lives
+          // on the shipment. An earlier version of this file asserted a guessed `cart.branchId`,
+          // which passed against the guess while silently producing '' against live data.
           cart: {
-            branchId: 'branch-9',
+            id: 'abc-123',
             deliveryType: 'DeliveryHome',
             timeslot: { start: '2026-01-01T10:00:00Z', end: '2026-01-01T12:00:00Z' },
+            shipments: [{ id: 'ship-1', companyId: 'company-1', branchId: 'branch-9', products: [] }],
+            calculation: { validations: [] },
           },
         },
       });
@@ -60,6 +65,53 @@ describe('ensureCartContext', () => {
       expect(callsTo(callTool, 'silpo_get_shopping_cart_by_id')).toEqual([
         ['silpo_get_shopping_cart_by_id', { shoppingCartId: 'abc-123' }],
       ]);
+    });
+
+    it('rebooks the slot when the existing cart reports a timeslot validation error', async () => {
+      // A cart outlives its slot: reopening one made earlier the same day returns
+      // validations: [{level:'error', type:'timeslot', message:'timeslot.not_found'}] — observed
+      // live. Without rebooking, every 🔒 cart-context tool rejects the stale slot.
+      const state = makeState();
+      const { mcp, callTool } = makeMockMcp({
+        silpo_get_my_shopping_cart: { success: true, exists: true, shoppingCartId: 'abc-123' },
+        silpo_get_shopping_cart_by_id: {
+          success: true,
+          cart: {
+            deliveryType: 'DeliveryHome',
+            timeslot: { start: 'stale-start', end: 'stale-end' },
+            address: { city: 'Київ' },
+            shipments: [{ branchId: 'branch-9', products: [] }],
+            calculation: { validations: [{ level: 'error', type: 'timeslot', message: 'timeslot.not_found' }] },
+          },
+        },
+        silpo_get_time_slots: {
+          success: true,
+          slots: [
+            { start: 'gone', end: 'gone', available: false, deliveryType: 'DeliveryHome' },
+            { start: 'fresh-start', end: 'fresh-end', available: true, deliveryType: 'DeliveryHome' },
+          ],
+        },
+        silpo_update_shopping_cart: { success: true },
+      });
+
+      const result = await ensureCartContext(mcp, state);
+
+      expect(result).toEqual({
+        cartContext: {
+          cartId: 'abc-123',
+          branchId: 'branch-9',
+          deliveryType: 'DeliveryHome',
+          timeslot: { start: 'fresh-start', end: 'fresh-end' },
+        },
+      });
+      // The update must echo the cart's own address and shipments back — the tool requires them.
+      const update = callsTo(callTool, 'silpo_update_shopping_cart')[0];
+      expect(update?.[1]).toMatchObject({
+        shoppingCartId: 'abc-123',
+        branchId: 'branch-9',
+        timeslot: { start: 'fresh-start', end: 'fresh-end' },
+        address: { city: 'Київ' },
+      });
     });
 
     it('degrades gracefully when the undocumented cart object has none of the guessed field names', async () => {

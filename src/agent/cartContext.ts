@@ -95,6 +95,64 @@ function pickDeliveryType(options: DeliveryTypeOption[]): DeliveryTypeOption | u
 export type EnsureCartContextResult = { needsAddress: true } | { cartContext: NonNullable<SessionState['cartContext']> };
 
 /**
+ * Pulls the branch id out of a fetched cart. Confirmed against a real cart (6 Sept 2026): there
+ * is NO top-level `branchId` — it lives on each shipment, with a secondary copy inside the
+ * delivery calculation. An earlier guess at `cart.branchId` silently produced '' and broke every
+ * downstream 🔒 tool call, so both known locations are read explicitly.
+ */
+export function extractBranchId(cart: Record<string, unknown>): string {
+  const shipment = (cart.shipments as { branchId?: string }[] | undefined)?.[0];
+  if (shipment?.branchId) return shipment.branchId;
+  const delivery = (cart.calculation as { delivery?: Record<string, { branchId?: string }> } | undefined)?.delivery;
+  for (const option of Object.values(delivery ?? {})) {
+    if (option && typeof option === 'object' && option.branchId) return option.branchId;
+  }
+  return '';
+}
+
+interface CartValidation {
+  level?: string;
+  type?: string;
+  message?: string;
+}
+
+/** True when Silpo reports the cart's delivery slot as no longer bookable. */
+export function hasTimeslotError(cart: Record<string, unknown>): boolean {
+  const validations = (cart.calculation as { validations?: CartValidation[] } | undefined)?.validations ?? [];
+  return validations.some((v) => v.level === 'error' && v.type === 'timeslot');
+}
+
+/**
+ * Books the next available slot on an existing cart. `silpo_update_shopping_cart` requires the
+ * cart's current `address` and `shipments` to be echoed back alongside the new slot, so they are
+ * taken from the fetched cart rather than reconstructed.
+ */
+async function rebookTimeslot(
+  mcp: SilpoMcpClient,
+  cart: Record<string, unknown>,
+  cartId: string,
+  branchId: string,
+  deliveryType: string,
+): Promise<{ start: string; end: string } | undefined> {
+  const { slots } = await mcp.callTool<GetTimeSlotsResult>('silpo_get_time_slots', {
+    branchId,
+    ...(deliveryType ? { deliveryTypes: [deliveryType] } : {}),
+  });
+  const slot = slots.find((s) => s.available);
+  if (!slot) return undefined;
+
+  await mcp.callTool('silpo_update_shopping_cart', {
+    shoppingCartId: cartId,
+    deliveryType,
+    timeslot: { start: slot.start, end: slot.end },
+    address: cart.address,
+    shipments: cart.shipments,
+    branchId,
+  });
+  return { start: slot.start, end: slot.end };
+}
+
+/**
  * Deterministic cart bootstrap (spec §4.3, §9.5): get cart → if none, resolve an address → pick
  * delivery type → pick a branch → pick a time slot → create the cart. Done in code rather than
  * left to the LLM because chaining ~6 dependent tool calls correctly is exactly the kind of thing
@@ -126,17 +184,23 @@ export async function ensureCartContext(
     const { cart } = await mcp.callTool<GetShoppingCartByIdResult>('silpo_get_shopping_cart_by_id', {
       shoppingCartId: existing.shoppingCartId,
     });
-    // Best-effort extraction from the undocumented `cart` shape — see the ⚠ DISCOVER note above.
-    const branchId = String(cart.branchId ?? cart.branch_id ?? (cart.branch as { id?: string } | undefined)?.id ?? '');
-    const deliveryType = String(cart.deliveryType ?? cart.delivery_type ?? '');
-    const rawTimeslot = (cart.timeslot ?? cart.timeSlot) as { start?: string; end?: string } | undefined;
+    const branchId = extractBranchId(cart);
+    const deliveryType = String(cart.deliveryType ?? '');
+    const rawTimeslot = cart.timeslot as { start?: string; end?: string } | undefined;
+
+    // A cart outlives its delivery slot: reopening one created earlier in the day yields
+    // `validations: [{level:'error', type:'timeslot', message:'timeslot.not_found'}]`, and every
+    // 🔒 cart-context tool then rejects the stale slot. Book the next open one before returning.
+    let timeslot = rawTimeslot?.start && rawTimeslot?.end ? { start: rawTimeslot.start, end: rawTimeslot.end } : undefined;
+    if (branchId && hasTimeslotError(cart)) {
+      timeslot = await rebookTimeslot(mcp, cart, existing.shoppingCartId, branchId, deliveryType);
+    }
+
     const cartContext: NonNullable<SessionState['cartContext']> = {
       cartId: existing.shoppingCartId,
       branchId,
       deliveryType,
-      ...(rawTimeslot?.start && rawTimeslot?.end
-        ? { timeslot: { start: rawTimeslot.start, end: rawTimeslot.end } }
-        : {}),
+      ...(timeslot ? { timeslot } : {}),
     };
     state.cartContext = cartContext;
     return { cartContext };

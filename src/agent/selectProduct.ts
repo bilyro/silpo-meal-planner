@@ -55,6 +55,31 @@ export function isAvailable(p: ProductCandidate): boolean {
  * anticipated this). Require at least one meaningful word of the query to appear in the product
  * name, so an unrelated top hit cannot be selected silently.
  */
+/**
+ * Ukrainian food synonyms where the shopper's word and Silpo's catalogue word share no stem, so
+ * stem matching alone rejects the right product. Verified live: searching «помідори» returns only
+ * «Томат …» listings, which the filter then discarded, losing the ingredient entirely.
+ *
+ * Deliberately tiny. This is not a general thesaurus — it covers pairs actually observed in the
+ * catalogue, and each entry should be added only after seeing the mismatch in real results.
+ */
+const SYNONYMS: Record<string, string[]> = {
+  помідор: ['томат'],
+  томат: ['помідор'],
+  буряк: ['бурак'],
+  квасоля: ['фасол'],
+  олія: ['олив'],
+};
+
+/** Query stems to try for one word: the word's own stem plus any synonym stems. */
+function stemsFor(word: string): string[] {
+  const stem = word.slice(0, Math.max(4, word.length - 2));
+  const synonyms = Object.entries(SYNONYMS)
+    .filter(([key]) => word.startsWith(key.slice(0, Math.max(4, key.length - 1))))
+    .flatMap(([, values]) => values);
+  return [stem, ...synonyms];
+}
+
 export function matchesQuery(query: string, name: string): boolean {
   const haystack = name.toLowerCase();
   const words = query
@@ -69,7 +94,25 @@ export function matchesQuery(query: string, name: string): boolean {
   // silently orders the wrong meat and can violate a stated dietary restriction.
   //
   // Ukrainian inflects heavily («куряче» vs «курячий»), so compare on a truncated stem.
-  return words.every((w) => haystack.includes(w.slice(0, Math.max(4, w.length - 2))));
+  return words.every((w) => stemsFor(w).some((stem) => haystack.includes(stem)));
+}
+
+/**
+ * True when a query word heads the product name. Silpo names products head-noun-first
+ * («Морква мита», «Цибуля ріпчаста жовта»), so a query term appearing among the first two words
+ * signals the product IS that thing, rather than merely containing it: «Сік Galicia Baby
+ * яблуко-морква-гарбуз» is carrot juice, and passed the substring filter while being the wrong
+ * food entirely. Used for ranking, not exclusion — a genuine product with an unusual name still
+ * competes, just behind exact head matches.
+ */
+export function matchesHeadNoun(query: string, name: string): boolean {
+  const head = name.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean).slice(0, 2).join(' ');
+  const words = query
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w.length >= 4);
+  if (words.length === 0) return false;
+  return words.some((w) => head.includes(w.slice(0, Math.max(4, w.length - 2))));
 }
 
 export function violatesRestrictions(name: string, restrictions: string[] = []): boolean {
@@ -78,20 +121,21 @@ export function violatesRestrictions(name: string, restrictions: string[] = []):
 }
 
 /**
- * Normalises price so different package sizes are comparable. `price` on a weighted product is
- * quoted per `displayRatio` (e.g. "100г"), so scale it to a full kg/litre; piece goods compare
- * as-is. Falls back to the raw price whenever the ratio can't be parsed — a wrong-but-consistent
- * comparison beats discarding the candidate.
+ * The price to multiply `computeQuantity`'s result by.
+ *
+ * Verified against live data (6 Sept 2026): for weighted goods `price` is already **per kilogram**
+ * — «Часник» price=274 / «Цибуля ріпчаста жовта» price=39.99, both `displayRatio: "100г"`. Reading
+ * that ratio as the price basis (an earlier version divided by it) inflated every weighted item
+ * tenfold and quoted 1370 грн for garlic. `displayRatio` describes the STEP unit instead, which
+ * `step` already states numerically (garlic step=0.1 ⇒ 100 г).
+ *
+ * So the price needs no normalisation: weighted `qty` is in kg against a per-kg price, and piece
+ * `qty` is a package count against a per-package price. Kept as a named function because it is
+ * the single place this reasoning lives, and because a future per-unit comparison across package
+ * sizes would slot in here.
  */
 export function unitPrice(p: ProductCandidate): number {
-  if (!p.weighted || !p.displayRatio) return p.price;
-  const m = /([\d.,]+)\s*(кг|г|мл|л)/i.exec(p.displayRatio);
-  if (!m?.[1] || !m[2]) return p.price;
-  const amount = Number(m[1].replace(',', '.'));
-  if (!Number.isFinite(amount) || amount <= 0) return p.price;
-  const unit = m[2].toLowerCase();
-  const perBase = unit === 'г' || unit === 'мл' ? amount / 1000 : amount;
-  return p.price / perBase;
+  return p.price;
 }
 
 /**
@@ -114,8 +158,17 @@ export function selectProduct(
   if (viable.length === 0) return undefined;
 
   const ranked = viable
-    .map((product) => ({ product, isPromo: isPromo(product), unitPrice: unitPrice(product) }))
+    .map((product) => ({
+      product,
+      isPromo: isPromo(product),
+      unitPrice: unitPrice(product),
+      headMatch: matchesHeadNoun(query, product.name),
+    }))
     .sort((a, b) => {
+      // Head-noun match outranks even a promo: «морква» matched «Сік ... яблуко-морква-гарбуз»
+      // (carrot JUICE) and, being on promo, beat actual carrots. Buying the wrong food is worse
+      // than missing a discount.
+      if (a.headMatch !== b.headMatch) return a.headMatch ? -1 : 1;
       if (a.isPromo !== b.isPromo) return a.isPromo ? -1 : 1;
       return a.unitPrice - b.unitPrice;
     });
@@ -129,6 +182,11 @@ export function selectProduct(
  * rejects off-step quantities); everything else is ordered as a whole number of packages, with
  * an unparseable or non-mass amount falling back to 1.
  */
+/** Binary floating point makes 3 × 0.2 = 0.6000000000000001; weights need no more than grams. */
+function round3(n: number): number {
+  return Math.round(n * 1000) / 1000;
+}
+
 export function computeQuantity(qtyText: string, p: ProductCandidate): number {
   const step = typeof p.step === 'number' && p.step > 0 ? p.step : undefined;
   const m = /([\d.,]+)\s*([\p{L}.]+)?/u.exec(qtyText.trim());
@@ -143,12 +201,15 @@ export function computeQuantity(qtyText: string, p: ProductCandidate): number {
   const isPieces = unit === '' || unit.startsWith('шт');
 
   if (p.weighted) {
-    let kg = 0.5;
-    if (Number.isFinite(amount) && isMass) {
-      kg = unit === 'кг' || unit === 'л' ? amount : amount / 1000;
-    }
-    if (!step) return Math.max(kg, 0.1);
-    return Math.max(Math.ceil(kg / step) * step, step);
+    // Only a stated mass gives a real target. For anything else («3 зубчики», «2 шт», «за смаком»)
+    // buy the smallest purchasable increment: one step is a head of garlic or a couple of carrots,
+    // whereas the old 0.5 kg default bought half a kilo of garlic for three cloves.
+    if (!Number.isFinite(amount) || !isMass) return step ?? 0.1;
+    const kg = unit === 'кг' || unit === 'л' ? amount : amount / 1000;
+    if (!step) return Math.max(round3(kg), 0.1);
+    // Round the multiplication too: 3 × 0.2 lands on 0.6000000000000001 in binary floating point,
+    // which reaches the user as «× 0.60» and Silpo as an off-step quantity.
+    return round3(Math.max(Math.ceil(kg / step) * step, step));
   }
 
   if (Number.isFinite(amount) && isPieces) {

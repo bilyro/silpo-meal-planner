@@ -49,37 +49,41 @@ describe('isAvailable', () => {
 });
 
 describe('unitPrice', () => {
-  it('scales a weighted product quoted per 100г up to a per-kg figure', () => {
-    // Real shape from silpo_find_products_batch: price 80.9 quoted per "100г" is 809 UAH/kg.
-    const per100g = product({ name: 'Філе куряче', price: 80.9, weighted: true, displayRatio: '100г' });
-    expect(unitPrice(per100g)).toBeCloseTo(809, 6);
-  });
-
-  it('makes differently-quoted weighted products comparable', () => {
-    const per100g = product({ name: 'Філе А', price: 80.9, weighted: true, displayRatio: '100г' }); // 809/kg
-    const perKg = product({ name: 'Філе Б', price: 250, weighted: true, displayRatio: '1кг' }); // 250/kg
-    // Raw price would rank А cheaper (80.9 < 250); normalised, Б is far cheaper per kg.
-    expect(unitPrice(per100g)).toBeGreaterThan(unitPrice(perKg));
-    expect(unitPrice(perKg)).toBeCloseTo(250, 6);
+  // These tests originally asserted that `price` was quoted per `displayRatio` and had to be
+  // scaled up to a per-kg figure. That model was WRONG, and verifying against live data proved
+  // it: «Часник» comes back as price=274 / displayRatio="100г", and 274 per 100 г would be
+  // 2740 UAH/kg for garlic. Scaling quoted 1370 грн for a single line. `price` on a weighted
+  // product is already per kilogram, and `displayRatio` describes the step unit (garlic
+  // step=0.1 ⇒ 100 г). Rewritten as regression guards against reintroducing the scaling.
+  it('returns the price unchanged for weighted goods — it is already per kg', () => {
+    const garlic = product({ name: 'Часник', price: 274, weighted: true, step: 0.1, displayRatio: '100г' });
+    expect(unitPrice(garlic)).toBe(274);
+    const onion = product({ name: 'Цибуля', price: 39.99, weighted: true, step: 0.2, displayRatio: '100г' });
+    expect(unitPrice(onion)).toBe(39.99);
   });
 
   it('returns price unchanged for non-weighted goods', () => {
     expect(unitPrice(product({ name: 'Кетчуп', price: 62, weighted: false, displayRatio: '100г' }))).toBe(62);
   });
 
-  it('falls back to price when displayRatio is missing or unparseable, never NaN', () => {
-    const noRatio = product({ name: 'Сир', price: 120, weighted: true });
-    const badRatio = product({ name: 'Сир', price: 120, weighted: true, displayRatio: 'шт' });
-    const nullRatio = product({ name: 'Сир', price: 120, weighted: true, displayRatio: null });
-    for (const p of [noRatio, badRatio, nullRatio]) {
-      expect(unitPrice(p)).toBe(120);
+  it('never returns NaN regardless of displayRatio', () => {
+    const cases = [
+      product({ name: 'Сир', price: 120, weighted: true }),
+      product({ name: 'Сир', price: 120, weighted: true, displayRatio: 'шт' }),
+      product({ name: 'Сир', price: 120, weighted: true, displayRatio: null }),
+      product({ name: 'Олія', price: 90, weighted: true, displayRatio: '1л' }),
+    ];
+    for (const p of cases) {
+      expect(unitPrice(p)).toBe(120 === p.price ? 120 : p.price);
       expect(Number.isFinite(unitPrice(p))).toBe(true);
     }
   });
 
-  it('handles millilitre and litre ratios', () => {
-    expect(unitPrice(product({ name: 'Олія', price: 5, weighted: true, displayRatio: '100мл' }))).toBeCloseTo(50, 6);
-    expect(unitPrice(product({ name: 'Олія', price: 90, weighted: true, displayRatio: '1л' }))).toBeCloseTo(90, 6);
+  it('multiplied by computeQuantity gives a believable line total for real produce', () => {
+    // The end-to-end property that actually matters: 100 г of garlic is ~27 грн, not 1370.
+    const garlic = product({ name: 'Часник', price: 274, weighted: true, step: 0.1, displayRatio: '100г' });
+    const qty = computeQuantity('3 зубчики', garlic);
+    expect(unitPrice(garlic) * qty).toBeCloseTo(27.4, 2);
   });
 });
 
@@ -110,6 +114,21 @@ describe('matchesQuery', () => {
   it('rejects a product sharing no query stem', () => {
     expect(matchesQuery('куряче філе', 'Кетчуп томатний')).toBe(false);
     expect(matchesQuery('гречка', 'Олія соняшникова')).toBe(false);
+  });
+
+  it('bridges Ukrainian catalogue synonyms that share no stem', () => {
+    // Live: searching «помідори» returns only «Томат …» listings, so stem matching alone lost the
+    // ingredient. Regression guard for the small curated synonym map.
+    expect(matchesQuery('помідори', 'Томат на гілці рожевий')).toBe(true);
+    // The bridge is narrow — an unrelated product still fails.
+    expect(matchesQuery('помідори', 'Олія соняшникова')).toBe(false);
+  });
+
+  it('rejects cheeses that are not the requested kind', () => {
+    // Live: «сир пармезан» returns Gouda and truffle cheese at 1699 грн — Silpo matched «сир»
+    // and ignored «пармезан». Rejecting them is correct; a miss beats buying the wrong cheese.
+    expect(matchesQuery('сир пармезан', 'Сир Veldhuyzen Kaas Гауда Блек Лейбл')).toBe(false);
+    expect(matchesQuery('сир пармезан', 'Сир Пармезан витриманий')).toBe(true);
   });
 
   it('rejects duck for a chicken query — the case this filter exists for', () => {
@@ -143,12 +162,16 @@ describe('selectProduct', () => {
     expect(selectProduct('куряче філе', [a, b, c])?.product.name).toBe('Філе куряче Б');
   });
 
-  it('compares on normalised unit price, not raw price', () => {
-    // Raw price favours the 100г listing; per-kg it is the more expensive one.
-    const per100g = product({ name: 'Філе куряче А', price: 80.9, weighted: true, displayRatio: '100г' });
-    const perKg = product({ name: 'Філе куряче Б', price: 250, weighted: true, displayRatio: '1кг' });
+  it('ranks a head-noun match above a promo on a merely-related product', () => {
+    // The live failure this guards: «морква» matched «Сік Galicia Baby яблуко-морква-гарбуз»
+    // (carrot JUICE) which, being on promo, outranked actual carrots. Buying the wrong food is
+    // worse than missing a discount, so a head-noun match now wins first.
+    const juice = product({ name: 'Сік Galicia яблуко-морква-гарбуз', price: 20.99, oldPrice: 30 });
+    const carrots = product({ name: 'Морква мита', price: 54.99, weighted: true, step: 0.2 });
 
-    expect(selectProduct('куряче філе', [per100g, perKg])?.product.name).toBe('Філе куряче Б');
+    const picked = selectProduct('морква', [juice, carrots]);
+
+    expect(picked?.product.name).toBe('Морква мита');
   });
 
   it('excludes a restricted product even when it is cheapest and on promo', () => {
