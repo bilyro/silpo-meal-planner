@@ -65,3 +65,24 @@ There are no product ids anywhere in the response. **Detect promos per-product i
 is cheaper anyway (no extra call, no 1401-item cross-reference) and is what should populate
 `resolvedItems[].isPromo`. Treat `silpo_get_promotions` as display-only context for the user
 ("6 акцій зараз"), not as a selection input.
+
+## 4. Checkout is withheld until the cart passes validation
+
+`checkoutWebLink` / `checkoutMobileLink` are absent — not empty, absent — whenever
+`cart.calculation.validations` contains a `level: "error"` entry. Two seen live:
+
+- `{type:'order', message:'order.cost.min', context:{orderCostMin:799}}` — **Silpo enforces a
+  minimum order value of 799 грн.** A 359 грн cart returns no link at all.
+- `{type:'product', message:'product.offer.stock.max', context:{stock:0.2}}` — a line asked for
+  more than the branch has. Filtering on `stock > 0` is not enough: the requested quantity must
+  also fit, and for weighted goods stock must cover at least one `step`.
+
+`level: 'info'` entries (e.g. `order.payment_types.disabled`, `promotion.available`) do **not**
+block checkout and should not be shown as errors.
+
+**Demo implication:** a menu whose basket lands under 799 грн produces no checkout link, so the
+final beat of the demo simply will not happen. Plan the demo menu to clear 799 грн comfortably —
+a 2-day dinner plan for two lands around 300–500 грн and is *not* enough on its own.
+
+`cart.calculation.total` is Silpo's own total including delivery, and is the figure the user
+actually pays; the products-only sum from `computeTotals` understates it.
