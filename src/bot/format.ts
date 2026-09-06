@@ -21,14 +21,32 @@ export function stripHtml(text: string): string {
     .replace(/&amp;/g, '&');
 }
 
-/** Ukrainian plural for «день»: 1 день · 2–4 дні · 5–20 днів (and the same pattern per hundred). */
-export function pluralDays(n: number): string {
+/**
+ * Ukrainian plural selection: `one` for 1/21/31…, `few` for 2–4/22–24…, `many` otherwise —
+ * with the 11–14 teens taking `many` despite their final digit.
+ */
+export function pluralUa(n: number, one: string, few: string, many: string): string {
   const mod100 = n % 100;
   const mod10 = n % 10;
-  if (mod100 >= 11 && mod100 <= 14) return 'днів';
-  if (mod10 === 1) return 'день';
-  if (mod10 >= 2 && mod10 <= 4) return 'дні';
-  return 'днів';
+  if (mod100 >= 11 && mod100 <= 14) return many;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
+}
+
+/** Ukrainian plural for «день»: 1 день · 2–4 дні · 5–20 днів (and the same pattern per hundred). */
+export function pluralDays(n: number): string {
+  return pluralUa(n, 'день', 'дні', 'днів');
+}
+
+/**
+ * UAH amounts for display. Prices arrive as floats and `unitPrice × qty` on weighted goods
+ * routinely lands on values like 189.49999999999997, so round to kopiykas and drop a trailing
+ * `.00` — «189 грн», never «189.4999999 грн».
+ */
+export function formatUah(amount: number): string {
+  const rounded = Math.round(amount * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
 }
 
 /**
@@ -60,5 +78,70 @@ export function formatMenu(menu: NonNullable<SessionState['menu']>): string {
       }
     }
   }
+  return lines.join('\n');
+}
+
+type ResolvedItems = NonNullable<SessionState['resolvedItems']>;
+type Totals = NonNullable<SessionState['totals']>;
+
+/** A line's cost. `unitPrice` is per kg/l for weighted goods and per package otherwise, and `qty`
+ * is expressed in the matching unit, so the product is correct for both — see selectProduct.ts. */
+export function lineTotal(item: ResolvedItems[number]): number {
+  return item.unitPrice * item.qty;
+}
+
+/**
+ * Telegram hard-caps a message at 4096 characters. Stop well short: the caller may append a
+ * «не знайшли» line, and an over-long message is rejected outright rather than truncated, which
+ * would lose the whole list.
+ */
+const ITEM_LIST_CHAR_BUDGET = 3400;
+
+/**
+ * Renders the resolved shopping list (spec §9.6) purely from tool data — spec §11 requires
+ * user-visible product names and prices to come from `resolvedItems`, never from model prose,
+ * so nothing here can be hallucinated.
+ *
+ * Pure and I/O-free so it can be unit-tested.
+ */
+export function formatResolvedItems(items: ResolvedItems, totals: Totals): string {
+  const promoCount = items.filter((i) => i.isPromo).length;
+  const substitutedCount = items.filter((i) => i.wasSubstituted).length;
+
+  const header =
+    `🧾 <b>Список: ${items.length} ${pluralUa(items.length, 'позиція', 'позиції', 'позицій')} — ` +
+    `${formatUah(totals.sum)} грн</b>`;
+  // The budget clause is omitted entirely when the user never named one — showing "(бюджет —)"
+  // would imply a constraint that does not exist.
+  const budgetClause =
+    totals.budget === undefined
+      ? ''
+      : ` (бюджет ${formatUah(totals.budget)} ${totals.sum <= totals.budget ? '✅' : '⚠️'})`;
+
+  const lines = [header + budgetClause];
+
+  const badges: string[] = [];
+  if (promoCount > 0) badges.push(`🔥 ${promoCount} ${pluralUa(promoCount, 'акційна', 'акційні', 'акційних')}`);
+  if (substitutedCount > 0) {
+    badges.push(`🔄 ${substitutedCount} ${pluralUa(substitutedCount, 'заміна', 'заміни', 'замін')}`);
+  }
+  if (badges.length > 0) lines.push(badges.join(' · '));
+  lines.push('');
+
+  let used = lines.join('\n').length;
+  let shown = 0;
+  for (const item of items) {
+    const qtySuffix = item.qty === 1 ? '' : ` × ${formatUah(item.qty)}`;
+    const itemBadges = `${item.isPromo ? ' 🔥' : ''}${item.wasSubstituted ? ' 🔄' : ''}`;
+    const line = `• ${escapeHtml(item.title)}${qtySuffix} — ${formatUah(lineTotal(item))} грн${itemBadges}`;
+    if (used + line.length + 1 > ITEM_LIST_CHAR_BUDGET) break;
+    lines.push(line);
+    used += line.length + 1;
+    shown++;
+  }
+
+  const hidden = items.length - shown;
+  if (hidden > 0) lines.push(`…та ще ${hidden} ${pluralUa(hidden, 'позиція', 'позиції', 'позицій')}`);
+
   return lines.join('\n');
 }
