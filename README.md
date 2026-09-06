@@ -10,7 +10,7 @@ see the original spec (`silpo-meal-planner-agent-spec.md`) this repo implements.
 
 ## Status
 
-Currently **Phase 3 — code complete, live verification pending**. See `docs/` and the phase list below.
+Currently **Phase 4 — code complete, live verification pending**. See `docs/` and the phase list below.
 
 - [x] Phase 0 — project skeleton
 - [x] Phase 1 — MCP spike (login + `tools/list`) — see `docs/tools.json` (40 tools, real account)
@@ -21,7 +21,13 @@ Currently **Phase 3 — code complete, live verification pending**. See `docs/` 
       retry/backoff + tool_call_log, system prompt, session state, `propose_menu`); live
       verification of the acceptance scenarios in Telegram is blocked on the same Phase 2 login
       issue (need a linked account to exercise the tool-calling loop for real).
-- [ ] Phase 4 — Deterministic cart context
+- [x] Phase 4 — Deterministic cart context — `ensure_cart_context` local tool, `/cart` and
+      `/clear` commands (with confirmation) all code-complete and unit-tested against a mocked
+      MCP client (`test/cartContext.test.ts`, 6/6 passing). One real gap: `silpo_get_shopping_cart_by_id`'s
+      `cart` field has no documented shape at all, so the "pre-existing cart" branch extracts
+      fields defensively and needs correcting against real data once a live account is available
+      — see the code comment in `src/agent/cartContext.ts`.
+- [ ] Phase 5 — Ingredient → product resolution and cart build
 - [ ] Phase 5 — Ingredient → product resolution and cart build
 - [ ] Phase 6 — Loyalty, polish, robustness
 - [ ] Phase 7 — Demo, validation, submission
