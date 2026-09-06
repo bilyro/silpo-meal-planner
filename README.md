@@ -80,44 +80,63 @@ npm test
 
 ## Known issues
 
-**Silpo's OAuth login intermittently fails with "Invalid or expired state" before ever
-redirecting back to our `/auth/callback`** (observed ~1-in-8 attempts succeeding in Phase 2
-testing on 6 Sept 2026). Root cause, confirmed by direct HTTP probing (not our code):
-`mcp.silpo.ua/authorize` is a broker in front of the real IdP, not the IdP itself. It ignores
-our request's `client_id`/`code_challenge`/`state` and redirects to `auth.silpo.ua` using
-*Silpo's own* internal client id and a freshly generated internal state UUID. After login,
-`auth.silpo.ua` redirects back to `mcp.silpo.ua/callback?code=...&state=<their-uuid>`, which
-looks up that UUID server-side to reconstruct the original request — and this lookup expires
-quickly enough that a normal phone+OTP login (SMS delivery + typing) often outlasts it:
+**Silpo login fails with `400 Invalid or expired state` (observed ~7 of 8 attempts, 6 Sept 2026).**
+
+`mcp.silpo.ua/authorize` is a broker in front of the real IdP. It discards our `client_id`,
+`code_challenge` and `state`, and redirects to `auth.silpo.ua` using *Silpo's own* internal client
+id, its own `redirect_uri=https://mcp.silpo.ua/callback`, and a freshly minted internal state UUID.
+After login, `auth.silpo.ua` returns to `mcp.silpo.ua/callback?code=…&state=<their-uuid>`, and the
+broker looks that UUID up to reconstruct our original request and redirect onward to *our*
+`redirect_uri`.
+
+**Broker states are single-use — consumed by the first `/callback` hit, even one that then fails.**
+Mint a real state (any `/authorize` 302's with one in its `Location`), then hit `/callback` twice:
 
 ```
-curl "https://mcp.silpo.ua/callback?code=test123&state=00000000-0000-0000-0000-000000000000"
-→ Invalid or expired state
+# 1st hit, real unconsumed state (dummy code) → state WAS found, fails later:
+→ 502  Token exchange failed
+# 2nd hit, same state → already consumed:
+→ 400  Invalid or expired state
+# never-issued garbage UUID → never existed:
+→ 400  Invalid or expired state
 ```
 
-That's the exact error text users see, reproduced with a dummy UUID — proof it's Silpo's broker
-rejecting its own expired internal state, unrelated to anything this project sends. Nothing in
-`SilpoAuthProvider`/`SilpoMcpClient` can influence this (also ruled out: our OAuth `state` param,
-reusing one DCR client vs. registering fresh each time, cookies — only one `set-cookie` was
-present, `__cf_bm`, Cloudflare bot-management, not an app session — and OAuth `scope`, checked
-against a real captured failing request that included `scope=openid offline_access
-silpo--mcp-server`).
+So a `400` means the state was **already consumed** — i.e. `/callback` got hit twice — not that it
+expired. Ruled out by experiment: no TTL (states survived 600s warm and 240s of total silence;
+20/20 immediate mint→redeem round-trips succeeded), DCR client staleness (a stale and a fresh
+client behave identically; `/authorize` validates `client_id` and ours passes), and `scope`.
 
-**Stronger confirmation (7 Sept 2026):** reproduced the exact URL from a real, fresh login
-attempt's browser network log minutes after capture — identical `400 Invalid or expired state`,
-plain text. Critically, a **garbage `state` value that was never issued by anyone** produces the
-*byte-identical* response to a **genuinely real one from a completed login**, and the response
-doesn't change based on whether `code` is real, garbage, or the request's `scope` param is
-present at all. This means `mcp.silpo.ua/callback` fails at state lookup before it ever
-examines the code — the failure is entirely inside Silpo's broker's own internal
-request-correlation store. `docs/mcp` documents no scope requirements, no TTL, and Silpo's
-`/.well-known/oauth-authorization-server` has no `scopes_supported` field to cross-check against.
-Diffed `SilpoAuthProvider` against the Phase 1 spike's `InMemorySilpoAuthProvider` (which worked
-reliably) field-by-field — no difference in anything that reaches the wire.
+> ⚠️ An earlier revision of this section claimed the opposite — that the broker had a short state
+> TTL and nothing was fixable on our side. That was **wrong**, and worth recording as a
+> methodological warning: it compared a garbage UUID against a state captured from an
+> *already-completed* login. That state had already been consumed, so both returned `400` for
+> *different* reasons and the match looked like proof. Always compare against a **freshly minted,
+> unconsumed** state — the `502`-vs-`400` split is the only real discriminator.
 
-**Workaround:** have the OTP ready to enter the instant you tap the Telegram link; retry on
-failure. **Worth reporting** to `mcp@silpo.club` (contact given in the MCP docs) since it likely
-affects every hackathon participant equally.
+**Most likely remaining cause — our config, not Silpo's:** `.env` ships
+`PUBLIC_BASE_URL=http://localhost:3000`, and the Telegram link is an inline URL button, which on a
+phone opens Telegram's in-app WebView. The first `/callback` hit succeeds and 302's the browser to
+`http://localhost:3000/auth/callback` — dead on a phone — so the user reloads or hands off to the
+system browser, re-requesting the `mcp.silpo.ua` URL whose state is now spent → `400`. The ~1-in-8
+successes fit desktop attempts, where `localhost:3000` genuinely resolves.
+
+**Fix:** point `PUBLIC_BASE_URL` at an internet-reachable HTTPS origin (`cloudflared tunnel --url
+http://localhost:3000`, ngrok, or a deployed host) as the spec always required, then **re-register
+the DCR client** — a registration bakes in its `redirect_uris`, so the localhost-registered client
+must be discarded or `/authorize` will reject the new redirect_uri:
+
+```sql
+DELETE FROM oauth_clients; DELETE FROM oauth_pending;
+```
+
+`saveOauthClient` now replaces rather than accumulates, and `getOauthClient` returns the newest, so
+re-registration happens automatically once `PUBLIC_BASE_URL` changes.
+
+**Zero-OTP way to confirm:** on the desktop running the server, open the `/authorize` URL in a
+browser already signed in to `auth.silpo.ua` (no SMS needed — Duende SSO session), with DevTools →
+Network → *Preserve log*. If `mcp.silpo.ua/callback` appears once and 302's to localhost, the
+theory holds and the tunnel fixes it. If it appears once and 400's, the theory is wrong and it is
+genuinely Silpo's bug — report to `mcp@silpo.club`.
 
 ## Tools used (Silpo MCP)
 

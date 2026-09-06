@@ -15,12 +15,21 @@ export async function getUserById(userId: number) {
   return db.query.users.findFirst({ where: eq(users.id, userId) });
 }
 
+/**
+ * Newest registration wins. A DCR client bakes in the `redirect_uris` it was registered with, so
+ * changing PUBLIC_BASE_URL (e.g. localhost → an HTTPS tunnel) requires re-registering; an
+ * unordered findFirst() could keep handing back the stale client, whose redirect_uri no longer
+ * matches what we send and which Silpo's /authorize then rejects with a 400.
+ */
 export async function getOauthClient(): Promise<OAuthClientInformationFull | undefined> {
-  const row = await db.query.oauthClients.findFirst();
+  const row = await db.query.oauthClients.findFirst({
+    orderBy: (r, { desc }) => [desc(r.createdAt)],
+  });
   return row ? (row.registrationJson as OAuthClientInformationFull) : undefined;
 }
 
 export async function saveOauthClient(info: OAuthClientInformationFull): Promise<void> {
+  await db.delete(oauthClients);
   await db.insert(oauthClients).values({
     clientId: info.client_id,
     clientSecret: info.client_secret ?? null,
