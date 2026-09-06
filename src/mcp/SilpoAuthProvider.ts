@@ -51,6 +51,17 @@ export class SilpoAuthProvider implements OAuthClientProvider {
     this.tokenSet = tokens;
   }
 
+  /** Redacted token metadata for spec §8 Phase 1 step 5 — never exposes the raw tokens. */
+  describeTokens(): { tokenType: string; expiresInSeconds?: number; hasRefreshToken: boolean; scope?: string } | undefined {
+    if (!this.tokenSet) return undefined;
+    return {
+      tokenType: this.tokenSet.token_type,
+      expiresInSeconds: this.tokenSet.expires_in,
+      hasRefreshToken: Boolean(this.tokenSet.refresh_token),
+      scope: this.tokenSet.scope,
+    };
+  }
+
   redirectToAuthorization(authorizationUrl: URL): void {
     this.onAuthorizationUrl(authorizationUrl);
   }

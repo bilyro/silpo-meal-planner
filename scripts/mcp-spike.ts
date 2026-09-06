@@ -72,7 +72,9 @@ async function main() {
   }
 
   console.log('\n✅ Автентифіковано. Отримую tools/list...');
-  const tools = await dumpTools(client);
+  const tokenMeta = auth.describeTokens();
+  console.log('Token metadata (redacted):', tokenMeta);
+  const tools = await dumpTools(client, tokenMeta);
   console.log(`Збережено ${tools.length} інструментів у docs/tools.json`);
 
   console.log('\n--- silpo_get_my_profile ---');

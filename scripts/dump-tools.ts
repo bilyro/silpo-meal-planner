@@ -6,7 +6,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 
-export async function dumpTools(client: Client) {
+export async function dumpTools(client: Client, tokenMeta?: Record<string, unknown>) {
   const { tools } = await client.listTools();
   const outPath = path.resolve(import.meta.dirname, '../docs/tools.json');
   await mkdir(path.dirname(outPath), { recursive: true });
@@ -16,6 +16,7 @@ export async function dumpTools(client: Client) {
       {
         fetchedAt: new Date().toISOString(),
         toolCount: tools.length,
+        tokenMeta: tokenMeta ?? null,
         tools,
       },
       null,
