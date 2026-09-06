@@ -10,14 +10,17 @@ see the original spec (`silpo-meal-planner-agent-spec.md`) this repo implements.
 
 ## Status
 
-Currently **Phase 2 — code complete, live verification pending**. See `docs/` and the phase list below.
+Currently **Phase 3 — code complete, live verification pending**. See `docs/` and the phase list below.
 
 - [x] Phase 0 — project skeleton
 - [x] Phase 1 — MCP spike (login + `tools/list`) — see `docs/tools.json` (40 tools, real account)
 - [x] Phase 2 — OAuth linking through Telegram — code complete; live end-to-end confirmation
       blocked on a Silpo-side issue, see "Known issues" below. Retry with a fast single attempt;
       see git log for `feat: Phase 2 OAuth linking` for implementation details.
-- [ ] Phase 3 — Agent loop with MCP tools
+- [x] Phase 3 — Agent loop with MCP tools — code complete (all ~40 tools exposed to the model,
+      retry/backoff + tool_call_log, system prompt, session state, `propose_menu`); live
+      verification of the acceptance scenarios in Telegram is blocked on the same Phase 2 login
+      issue (need a linked account to exercise the tool-calling loop for real).
 - [ ] Phase 4 — Deterministic cart context
 - [ ] Phase 5 — Ingredient → product resolution and cart build
 - [ ] Phase 6 — Loyalty, polish, robustness
