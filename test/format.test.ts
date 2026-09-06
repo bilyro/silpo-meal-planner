@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { escapeHtml, formatMenu, pluralDays } from '../src/bot/format.js';
+import { escapeHtml, formatMenu, pluralDays, stripHtml } from '../src/bot/format.js';
 import type { SessionState } from '../src/agent/session.js';
 
 type Menu = NonNullable<SessionState['menu']>;
@@ -61,5 +61,13 @@ describe('formatMenu', () => {
 describe('escapeHtml', () => {
   it('escapes the three characters Telegram HTML mode cares about', () => {
     expect(escapeHtml('a & b < c > d')).toBe('a &amp; b &lt; c &gt; d');
+  });
+});
+
+describe('stripHtml', () => {
+  it('drops unsupported tags and decodes escaped entities', () => {
+    // The <ul>/<li> shape claude-haiku-4-5 was observed emitting, which Telegram rejects outright.
+    expect(stripHtml('<ul><li><b>Обід</b></li></ul>')).toBe('Обід');
+    expect(stripHtml('сіль &amp; перець &lt;1&gt;')).toBe('сіль & перець <1>');
   });
 });

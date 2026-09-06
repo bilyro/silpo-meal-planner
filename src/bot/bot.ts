@@ -7,7 +7,7 @@ import { NeedsAuthError, SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import * as repo from '../db/repo.js';
 import { registerCommands } from './commands.js';
 import { confirmMenuKeyboard } from './keyboards.js';
-import { formatMenu } from './format.js';
+import { formatMenu, stripHtml } from './format.js';
 
 export function createBot() {
   const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
@@ -33,10 +33,18 @@ export function createBot() {
         stage === 'menu_proposed' && menu?.length
           ? `${formatMenu(menu)}\n\nПідтверджуєте меню?`
           : text;
-      await ctx.reply(body, {
-        parse_mode: 'HTML',
-        reply_markup: stage === 'menu_proposed' ? confirmMenuKeyboard : undefined,
-      });
+      const keyboard = stage === 'menu_proposed' ? confirmMenuKeyboard : undefined;
+      try {
+        await ctx.reply(body, { parse_mode: 'HTML', reply_markup: keyboard });
+      } catch (err) {
+        // Telegram's HTML mode accepts only a small tag set (b, i, u, s, code, pre, a,
+        // blockquote, tg-spoiler) and rejects the whole message otherwise — observed with
+        // claude-haiku-4-5 emitting <ul>/<li>. Without this fallback the send throws, grammY's
+        // global catch only logs, and the user is left staring at nothing. Retry unformatted so
+        // the content still lands; stripping tags is better than losing the reply.
+        logger.warn({ err, userId: user.id }, 'HTML reply rejected; retrying as plain text');
+        await ctx.reply(stripHtml(body), { reply_markup: keyboard });
+      }
     } finally {
       clearInterval(typingTimer);
     }

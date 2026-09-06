@@ -15,7 +15,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   MAX_TOOL_CALLS_PER_TURN: z.coerce.number().int().positive().default(25),
   PORT: z.coerce.number().int().positive().default(3000),
-  AGENT_MODEL: z.string().default('claude-sonnet-4-5'),
+  AGENT_MODEL: z.string().default('claude-haiku-4-5'),
 });
 
 export type Config = z.infer<typeof envSchema>;

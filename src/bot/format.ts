@@ -9,6 +9,18 @@ export function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;');
 }
 
+/**
+ * Last-resort de-formatting for a message Telegram rejected in HTML mode: drops every tag and
+ * decodes the entities `escapeHtml` produces, so the text still reaches the user unformatted.
+ */
+export function stripHtml(text: string): string {
+  return text
+    .replace(/<[^>]*>/g, '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
 /** Ukrainian plural for «день»: 1 день · 2–4 дні · 5–20 днів (and the same pattern per hundred). */
 export function pluralDays(n: number): string {
   const mod100 = n % 100;
