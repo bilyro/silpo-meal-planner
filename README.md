@@ -92,8 +92,22 @@ curl "https://mcp.silpo.ua/callback?code=test123&state=00000000-0000-0000-0000-0
 That's the exact error text users see, reproduced with a dummy UUID — proof it's Silpo's broker
 rejecting its own expired internal state, unrelated to anything this project sends. Nothing in
 `SilpoAuthProvider`/`SilpoMcpClient` can influence this (also ruled out: our OAuth `state` param,
-reusing one DCR client vs. registering fresh each time, and cookies — only one `set-cookie` was
-present, `__cf_bm`, Cloudflare bot-management, not an app session).
+reusing one DCR client vs. registering fresh each time, cookies — only one `set-cookie` was
+present, `__cf_bm`, Cloudflare bot-management, not an app session — and OAuth `scope`, checked
+against a real captured failing request that included `scope=openid offline_access
+silpo--mcp-server`).
+
+**Stronger confirmation (7 Sept 2026):** reproduced the exact URL from a real, fresh login
+attempt's browser network log minutes after capture — identical `400 Invalid or expired state`,
+plain text. Critically, a **garbage `state` value that was never issued by anyone** produces the
+*byte-identical* response to a **genuinely real one from a completed login**, and the response
+doesn't change based on whether `code` is real, garbage, or the request's `scope` param is
+present at all. This means `mcp.silpo.ua/callback` fails at state lookup before it ever
+examines the code — the failure is entirely inside Silpo's broker's own internal
+request-correlation store. `docs/mcp` documents no scope requirements, no TTL, and Silpo's
+`/.well-known/oauth-authorization-server` has no `scopes_supported` field to cross-check against.
+Diffed `SilpoAuthProvider` against the Phase 1 spike's `InMemorySilpoAuthProvider` (which worked
+reliably) field-by-field — no difference in anything that reaches the wire.
 
 **Workaround:** have the OTP ready to enter the instant you tap the Telegram link; retry on
 failure. **Worth reporting** to `mcp@silpo.club` (contact given in the MCP docs) since it likely
