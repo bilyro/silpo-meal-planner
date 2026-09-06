@@ -4,6 +4,7 @@ import { logger } from '../logger.js';
 import * as repo from '../db/repo.js';
 import { completeAuthorization } from '../mcp/SilpoMcpClient.js';
 import { sendWelcomeMessage } from '../bot/welcome.js';
+import { escapeHtml } from '../bot/format.js';
 
 interface AuthCallbackQuery {
   code?: string;
@@ -20,7 +21,10 @@ export function buildServer(bot: Bot) {
     const { code, state, error } = req.query;
 
     if (error) {
-      return reply.type('text/html').send(`<h1>Помилка авторизації Сільпо: ${error}</h1>`);
+      // Escaped: `error` is an unauthenticated query parameter reflected straight into the page,
+      // so interpolating it raw is a reflected XSS on an origin that also serves the OAuth
+      // callback. Anyone can hand a user a crafted /auth/callback?error=… link.
+      return reply.type('text/html').send(`<h1>Помилка авторизації Сільпо: ${escapeHtml(error)}</h1>`);
     }
     if (!code) {
       return reply.code(400).type('text/html').send('<h1>Відсутній code.</h1>');

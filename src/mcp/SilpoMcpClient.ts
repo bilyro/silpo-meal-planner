@@ -44,6 +44,39 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Stable fingerprint of a tool call. Key order is normalised because the model re-emits its
+ * arguments as free-form JSON, so the *same* call can arrive with the keys shuffled.
+ */
+function fingerprint(name: string, args: Record<string, unknown>): string {
+  const stable = JSON.stringify(args, (_key, value: unknown) =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : 1)))
+      : value,
+  );
+  return `${name}:${stable}`;
+}
+
+/** Written to `tool_call_log.error` so a suppressed call is auditable rather than invisible. */
+const DUPLICATE_CALL_LOG = 'duplicate_tool_call: identical to the immediately preceding call, not sent to Silpo';
+
+const DUPLICATE_CALL_RESULT = {
+  error: 'duplicate_tool_call',
+  message:
+    'Ти щойно викликав цей самий інструмент з тими самими аргументами — результат не змінився, ' +
+    'тому запит не відправлено. Не повторюй його: зміни аргументи, візьми інший інструмент або ' +
+    'відповідай користувачеві тим, що вже маєш.',
+} as const;
+
+const BUDGET_EXHAUSTED_LOG = 'tool_call_budget_exhausted: MAX_TOOL_CALLS_PER_TURN reached, not sent to Silpo';
+
+const BUDGET_EXHAUSTED_RESULT = {
+  error: 'tool_call_budget_exhausted',
+  message:
+    'Ліміт викликів інструментів на цей хід вичерпано. Більше запитів до Сільпо не буде — ' +
+    'відповідай користувачеві тим, що вже маєш, і запропонуй продовжити наступним повідомленням.',
+} as const;
+
 function parseToolResult<T>(res: Awaited<ReturnType<Client['callTool']>>): T {
   if (res.structuredContent) return res.structuredContent as T;
   const first = Array.isArray(res.content) ? res.content[0] : undefined;
@@ -58,6 +91,25 @@ function parseToolResult<T>(res: Awaited<ReturnType<Client['callTool']>>): T {
  */
 export class SilpoMcpClient {
   private client: Client | undefined;
+
+  /**
+   * Fingerprint of the last call that actually reached Silpo. runAgentTurn builds one client per
+   * turn, so this is turn-scoped without any extra plumbing; see callModelTool() for how it is used.
+   */
+  private lastCall: string | undefined;
+
+  /**
+   * Model-issued calls made this turn (spec §4.5: "cap tool calls at 25 per agent turn").
+   *
+   * `stopWhen: stepCountIs(...)` in runAgentTurn caps STEPS — LLM round-trips — not tool calls, and
+   * Claude emits several parallel `tool_use` blocks in a single step, so 25 steps can be many more
+   * than 25 calls against a real, rate-limited account. This counter is the literal cap.
+   *
+   * Deterministic calls from our own code are deliberately not counted: `resolveIngredients` alone
+   * legitimately makes a batch call per 30 ingredients plus a replacement lookup per miss, and it
+   * runs on its own client outside any agent turn. The cap exists to stop the model looping.
+   */
+  private modelCalls = 0;
 
   constructor(private readonly userId: number) {}
 
@@ -77,14 +129,24 @@ export class SilpoMcpClient {
   }
 
   /** Retry/backoff + tool_call_log wrapper shared by callTool() and every generated AI SDK tool. */
-  private async callToolWithLogging<T>(name: string, args: Record<string, unknown>): Promise<T> {
+  private async callToolWithLogging<T>(
+    name: string,
+    args: Record<string, unknown>,
+    signal?: AbortSignal,
+  ): Promise<T> {
     if (!this.client) throw new Error('SilpoMcpClient.connect() must succeed before calling tools');
     const client = this.client;
+    // Recorded for every call, model-issued or not: our own deterministic code (cartContext,
+    // resolveIngredients) is trusted to repeat a call on purpose, but its calls still count as
+    // "the previous call" when deciding whether the model's next one is a pointless repeat.
+    this.lastCall = fingerprint(name, args);
     const t0 = Date.now();
     let lastErr: unknown;
     for (let attempt = 0; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
       try {
-        const res = await client.callTool({ name, arguments: args });
+        // The signal comes from the turn deadline in runAgentTurn, so a timed-out turn actually
+        // cancels its in-flight HTTP request instead of leaving it running against the real API.
+        const res = await client.callTool({ name, arguments: args }, undefined, signal ? { signal } : undefined);
         if (res.isError) throw new Error(`Tool ${name} failed: ${JSON.stringify(res.content)}`);
         const result = parseToolResult<T>(res);
         await repo.logToolCall({ userId: this.userId, tool: name, args, ok: true, ms: Date.now() - t0 });
@@ -115,6 +177,40 @@ export class SilpoMcpClient {
   }
 
   /**
+   * Entry point for calls the *model* improvises, with the consecutive-duplicate guard from spec
+   * §8 Phase 6 item 4. A tool-calling model that dislikes a result sometimes reissues the identical
+   * call in a loop, burning the step budget and hammering a real (rate-limited, unsandboxed) API.
+   *
+   * Only *consecutive* duplicates are blocked, deliberately. Repeating a call later in the turn is
+   * routine and correct — `silpo_get_shopping_cart_by_id` before and after
+   * `silpo_add_or_update_cart_products` genuinely returns different data — and any such re-read is
+   * separated by the call that changed the data, so it is never consecutive. A "no repeats at all
+   * this turn" rule would break exactly the read-after-write pattern the cart flow is built on.
+   *
+   * The duplicate gets an error back rather than a replay of the earlier result: a silent replay is
+   * indistinguishable from a fresh answer, so a model stuck on a dead end would keep asking and
+   * still exhaust the step budget, just without the network traffic. An error is a signal to change
+   * course. `lastCall` is intentionally left in place here, so the same call stays blocked until the
+   * model actually does something different.
+   */
+  private async callModelTool(name: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
+    if (this.modelCalls >= config.MAX_TOOL_CALLS_PER_TURN) {
+      await repo.logToolCall({ userId: this.userId, tool: name, args, ok: false, ms: 0, error: BUDGET_EXHAUSTED_LOG });
+      return BUDGET_EXHAUSTED_RESULT;
+    }
+    if (this.lastCall === fingerprint(name, args)) {
+      // Logged like any other call (ms: 0, ok: false) — tool_call_log is a submission deliverable,
+      // so a suppressed call has to be visible as suppressed rather than simply missing.
+      await repo.logToolCall({ userId: this.userId, tool: name, args, ok: false, ms: 0, error: DUPLICATE_CALL_LOG });
+      return DUPLICATE_CALL_RESULT;
+    }
+    // Counted only for calls that actually reach Silpo: a suppressed duplicate cost nothing, and
+    // charging the budget for it would let a looping model exhaust the turn without a single request.
+    this.modelCalls += 1;
+    return this.callToolWithLogging(name, args, signal);
+  }
+
+  /**
    * Exposes every Silpo MCP tool (spec §6.2 — all ~40, not a hand-picked subset) as an AI SDK
    * tool, routed through the same retry/backoff + tool_call_log path as callTool(). Must be
    * called after connect() has succeeded.
@@ -128,7 +224,8 @@ export class SilpoMcpClient {
         tool({
           description: t.description ?? t.name,
           inputSchema: jsonSchema(t.inputSchema as JSONSchema7),
-          execute: (args) => this.callToolWithLogging(t.name, args as Record<string, unknown>),
+          execute: (args, { abortSignal }) =>
+            this.callModelTool(t.name, args as Record<string, unknown>, abortSignal),
         }),
       ]),
     );

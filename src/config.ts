@@ -14,6 +14,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   MAX_TOOL_CALLS_PER_TURN: z.coerce.number().int().positive().default(25),
+  // Hard wall-clock budget for one agent turn (spec §8 Phase 6 item 4). The step cap alone cannot
+  // bound a turn: a single MCP call that never answers would keep the user on a "typing" indicator
+  // indefinitely, so runAgentTurn abandons the turn after this and replies with an apology.
+  TURN_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   PORT: z.coerce.number().int().positive().default(3000),
   AGENT_MODEL: z.string().default('claude-haiku-4-5'),
 });

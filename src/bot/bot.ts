@@ -4,12 +4,15 @@ import { logger } from '../logger.js';
 import { runAgentTurn } from '../agent/runAgentTurn.js';
 import { ensureCartContext } from '../agent/cartContext.js';
 import { applyResolution, finishWithCheckout } from '../agent/localTools.js';
+import { applyPromoCode, fetchLoyalty, fetchOffers, firstApplicableCode, formatLoyaltyBlock } from '../agent/loyalty.js';
+import { loadLastPlanIntoState, savePlanFromState } from '../agent/plans.js';
 import { resolveIngredients } from '../agent/resolveIngredients.js';
 import { loadSession, saveSession } from '../agent/session.js';
 import { NeedsAuthError, SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import * as repo from '../db/repo.js';
 import { registerCommands } from './commands.js';
-import { cartActionsKeyboard, confirmMenuKeyboard } from './keyboards.js';
+import { cartActionsKeyboard, confirmMenuKeyboard, promoKeyboard } from './keyboards.js';
+import { RELINK_MESSAGE } from './messages.js';
 import { escapeHtml, formatResolvedItems, formatMenu, formatUah, stripHtml } from './format.js';
 
 /**
@@ -29,6 +32,38 @@ async function replyHtml(ctx: Context, body: string, keyboard?: InlineKeyboard):
   }
 }
 
+/**
+ * Backstop so no update can fail silently (spec §8 Phase 6 item 3: never a stack trace, always a
+ * short Ukrainian message with a suggested action).
+ *
+ * Individual handlers already catch around their own MCP calls with specific wording, and that
+ * stays — it says more than this can. What this adds is coverage for everything OUTSIDE those
+ * blocks: `getOrCreateUser` and `loadSession` run BEFORE the try in every callback handler, so a
+ * Postgres hiccup threw straight past them into grammY's `bot.catch`, which only logs. The user
+ * pressed a button and got nothing back at all.
+ *
+ * Registered as middleware rather than a per-handler wrapper so it covers commands, callbacks and
+ * free text alike, including handlers added later that forget to catch anything.
+ */
+function errorBoundary(): (ctx: Context, next: () => Promise<void>) => Promise<void> {
+  return async (ctx, next) => {
+    try {
+      await next();
+    } catch (err) {
+      if (err instanceof NeedsAuthError) {
+        await ctx.reply(RELINK_MESSAGE).catch(() => {});
+        return;
+      }
+      logger.error({ err, chatId: ctx.chat?.id }, 'Handler failed');
+      // .catch: if Telegram itself is what failed, the apology cannot be delivered either, and
+      // rethrowing would just re-enter bot.catch with a less informative error.
+      await ctx
+        .reply('Щось пішло не так. Спробуйте ще раз за хвилину або напишіть /start.')
+        .catch(() => {});
+    }
+  };
+}
+
 /** Telegram stops showing "typing" after ~5s, so refresh it while a long tool chain runs. */
 function keepTyping(ctx: Context): () => void {
   void ctx.replyWithChatAction('typing').catch(() => {});
@@ -40,6 +75,9 @@ function keepTyping(ctx: Context): () => void {
 
 export function createBot() {
   const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
+
+  // First, so it wraps every handler registered below.
+  bot.use(errorBoundary());
 
   registerCommands(bot);
 
@@ -110,7 +148,7 @@ export function createBot() {
       await replyHtml(ctx, body, cartActionsKeyboard);
     } catch (err) {
       if (err instanceof NeedsAuthError) {
-        await ctx.reply('Ваш звʼязок із Сільпо застарів. Напишіть /start, щоб підʼєднатися знову.');
+        await ctx.reply(RELINK_MESSAGE);
         return;
       }
       logger.error({ err, userId: user.id }, 'Failed to resolve ingredients');
@@ -164,11 +202,13 @@ export function createBot() {
       });
 
       const summary = await finishWithCheckout(user.id, state, mcp);
+      // Decorative extras, fetched together. Both swallow their own errors: a loyalty lookup must
+      // never turn a cart that WAS built into an error message.
+      const [loyaltyInfo, offers] = await Promise.all([fetchLoyalty(mcp), fetchOffers(mcp)]);
       // Prefer Silpo's own total: it includes delivery, so it is what the user will actually pay.
       const total = summary.cartTotal ?? state.totals?.sum ?? 0;
       const lines = [`🛒 <b>Кошик зібрано</b> — ${products.length} поз., ${formatUah(total)} грн`];
       if (skipped.length > 0) lines.push(`⚠️ Не додано: ${skipped.map((s) => escapeHtml(s)).join(', ')}`);
-      if (summary.loyalty?.isEnabled) lines.push(`💳 Бонусів доступно: ${formatUah(summary.loyalty.bonusAvailable)}`);
       const link = summary.checkoutWebLink ?? summary.checkoutMobileLink;
       if (link) {
         lines.push(`\n👉 <a href="${escapeHtml(link)}">Оформити замовлення</a>`);
@@ -180,10 +220,26 @@ export function createBot() {
       } else {
         lines.push('\nПосилання на оформлення зʼявиться, коли кошик пройде перевірку в Сільпо.');
       }
-      await replyHtml(ctx, lines.join('\n'));
+
+      // Bonuses and coupons last, so they never push the checkout link out of sight.
+      const loyaltyBlock = formatLoyaltyBlock({
+        cartLoyalty: summary.loyalty ?? null,
+        info: loyaltyInfo,
+        offers,
+      });
+      if (loyaltyBlock) lines.push('', loyaltyBlock);
+
+      const promoCode = firstApplicableCode(offers);
+      await replyHtml(ctx, lines.join('\n'), promoCode ? promoKeyboard(promoCode) : undefined);
+
+      // Bookkeeping, deliberately after the reply and with its own catch: a failure to archive the
+      // plan must not reach the handler's catch and tell the user the cart failed when it did not.
+      await savePlanFromState(user.id, state).catch((err) =>
+        logger.error({ err, userId: user.id }, 'Failed to save plan'),
+      );
     } catch (err) {
       if (err instanceof NeedsAuthError) {
-        await ctx.reply('Ваш звʼязок із Сільпо застарів. Напишіть /start, щоб підʼєднатися знову.');
+        await ctx.reply(RELINK_MESSAGE);
         return;
       }
       logger.error({ err, userId: user.id }, 'Failed to build cart');
@@ -205,6 +261,63 @@ export function createBot() {
   bot.callbackQuery('cart_remove_item', async (ctx) => {
     await ctx.answerCallbackQuery();
     await ctx.reply('Напишіть, яку позицію прибрати — напр. «прибери лосось».');
+  });
+
+  /**
+   * 🏷 — pushes a promo code into the real cart. Mutating, so it is gated behind an explicit tap,
+   * same rule as 🛒 (spec §4.6).
+   */
+  bot.callbackQuery(/^apply_promo:(.+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const code = ctx.match?.[1];
+    if (!code) return;
+    const user = await repo.getOrCreateUser(String(ctx.chat?.id ?? ''));
+    const state = await loadSession(user.id);
+
+    if (!state.cartContext) {
+      await ctx.reply('Спочатку потрібно зібрати кошик.');
+      return;
+    }
+
+    const stopTyping = keepTyping(ctx);
+    const mcp = new SilpoMcpClient(user.id);
+    try {
+      await mcp.connect();
+      const result = await applyPromoCode(mcp, state.cartContext.cartId, code);
+      await replyHtml(ctx, result.message);
+    } catch (err) {
+      if (err instanceof NeedsAuthError) {
+        await ctx.reply(RELINK_MESSAGE);
+        return;
+      }
+      logger.error({ err, userId: user.id }, 'Failed to apply promo code');
+      await ctx.reply('Не вдалося застосувати промокод. Спробуйте ще раз пізніше.');
+    } finally {
+      stopTyping();
+      await mcp.close();
+    }
+  });
+
+  /**
+   * 🔁 — restores a previous plan's MENU and rewinds to the confirm step, so ✅ re-resolves every
+   * ingredient against today's catalog. The stored products are deliberately NOT replayed; see the
+   * header of agent/plans.ts for why.
+   */
+  bot.callbackQuery('plan_repeat', async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const user = await repo.getOrCreateUser(String(ctx.chat?.id ?? ''));
+    const state = await loadSession(user.id);
+
+    const result = await loadLastPlanIntoState(user.id, state);
+    if (!result.ok) {
+      await ctx.reply(result.message);
+      return;
+    }
+    await replyHtml(
+      ctx,
+      `${formatMenu(result.plan.menu)}\n\nПовторюємо це меню? Ціни та наявність перевірю заново.`,
+      confirmMenuKeyboard,
+    );
   });
 
   bot.callbackQuery('menu_edit', async (ctx) => {
@@ -233,7 +346,7 @@ export function createBot() {
       await ctx.reply('Кошик очищено.');
     } catch (err) {
       if (err instanceof NeedsAuthError) {
-        await ctx.reply('Ваш звʼязок із Сільпо застарів. Напишіть /start, щоб підʼєднатися знову.');
+        await ctx.reply(RELINK_MESSAGE);
         return;
       }
       logger.error({ err, userId: user.id }, 'Failed to clear cart');

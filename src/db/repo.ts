@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { OAuthClientInformationFull, OAuthTokens } from '@modelcontextprotocol/sdk/shared/auth.js';
 import { db } from './client.js';
-import { messages, oauthClients, oauthPending, oauthTokens, sessions, toolCallLog, users } from './schema.js';
+import { messages, oauthClients, oauthPending, oauthTokens, plans, sessions, toolCallLog, users } from './schema.js';
 
 export async function getOrCreateUser(telegramChatId: string) {
   const existing = await db.query.users.findFirst({ where: eq(users.telegramChatId, telegramChatId) });
@@ -159,5 +159,47 @@ export async function logToolCall(entry: {
     ok: entry.ok,
     ms: entry.ms,
     error: entry.error ?? null,
+  });
+}
+
+// ── Saved plans (spec §8 Phase 6 item 2) ────────────────────────────────────────────────────────
+
+/**
+ * Raw JSON in/out, same house rule as `getSessionState`: `agent/plans.ts` owns the typed shapes
+ * and does all validation, the repo only moves opaque JSON across the DB boundary.
+ */
+export async function savePlan(
+  userId: number,
+  plan: { menu: unknown; resolved?: unknown; totals?: unknown },
+): Promise<number> {
+  const [row] = await db
+    .insert(plans)
+    .values({
+      userId,
+      menuJson: plan.menu,
+      resolvedJson: plan.resolved ?? null,
+      totalsJson: plan.totals ?? null,
+    })
+    .returning({ id: plans.id });
+  if (!row) throw new Error('Failed to insert plan row');
+  return row.id;
+}
+
+/**
+ * Newest first, with `id` breaking ties: `createdAt` defaults to `now()`, which in Postgres is the
+ * transaction start time, so two plans saved in one transaction would otherwise be unordered.
+ */
+export async function getLastPlan(userId: number) {
+  return db.query.plans.findFirst({
+    where: eq(plans.userId, userId),
+    orderBy: (p, { desc }) => [desc(p.createdAt), desc(p.id)],
+  });
+}
+
+export async function listRecentPlans(userId: number, limit = 5) {
+  return db.query.plans.findMany({
+    where: eq(plans.userId, userId),
+    orderBy: (p, { desc }) => [desc(p.createdAt), desc(p.id)],
+    limit,
   });
 }

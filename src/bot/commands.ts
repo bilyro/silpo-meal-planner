@@ -3,7 +3,9 @@ import * as repo from '../db/repo.js';
 import { logger } from '../logger.js';
 import { NeedsAuthError, SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import { loadSession } from '../agent/session.js';
-import { clearCartKeyboard } from './keyboards.js';
+import { formatPlanSummary, parsePlanRow } from '../agent/plans.js';
+import { clearCartKeyboard, repeatPlanKeyboard } from './keyboards.js';
+import { RELINK_MESSAGE } from './messages.js';
 
 interface GetShoppingCartByIdResult {
   success: boolean;
@@ -75,7 +77,7 @@ export function registerCommands(bot: Bot) {
       await ctx.reply(lines.join('\n'));
     } catch (err) {
       if (err instanceof NeedsAuthError) {
-        await ctx.reply('Ваш звʼязок із Сільпо застарів. Напишіть /start, щоб підʼєднатися знову.');
+        await ctx.reply(RELINK_MESSAGE);
         return;
       }
       logger.error({ err, userId: user.id }, 'Failed to fetch cart');
@@ -98,6 +100,23 @@ export function registerCommands(bot: Bot) {
     await ctx.reply('Очистити кошик? Цю дію не можна скасувати.', { reply_markup: clearCartKeyboard });
   });
 
+  bot.command('plans', async (ctx) => {
+    const user = await repo.getOrCreateUser(String(ctx.chat.id));
+    const saved = (await repo.listRecentPlans(user.id, 5))
+      .map(parsePlanRow)
+      .filter((p): p is NonNullable<typeof p> => p !== undefined);
+
+    if (saved.length === 0) {
+      await ctx.reply('У вас ще немає збережених планів. Складіть меню і зберіть кошик — тоді я його запамʼятаю.');
+      return;
+    }
+
+    await ctx.reply(saved.map(formatPlanSummary).join('\n\n'), {
+      parse_mode: 'HTML',
+      reply_markup: repeatPlanKeyboard,
+    });
+  });
+
   bot.command('logout', async (ctx) => {
     const chatId = String(ctx.chat.id);
     const user = await repo.getOrCreateUser(chatId);
@@ -110,7 +129,7 @@ export function registerCommands(bot: Bot) {
 
   bot.command('help', async (ctx) => {
     await ctx.reply(
-      'Команди:\n/start — підʼєднати акаунт\n/plan — спланувати меню\n/cart — переглянути кошик\n/clear — очистити кошик\n/logout — відʼєднати акаунт',
+      'Команди:\n/start — підʼєднати акаунт\n/plan — спланувати меню\n/plans — минулі плани\n/cart — переглянути кошик\n/clear — очистити кошик\n/logout — відʼєднати акаунт',
     );
   });
 }

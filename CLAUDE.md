@@ -44,16 +44,18 @@ back without checking for the same conflict.
 Telegram ⇄ bot/ (grammY)  ⇄  agent/ (Vercel AI SDK tool-calling loop)  ⇄  mcp/ (SilpoMcpClient)  ⇄  https://mcp.silpo.ua/mcp
                                           │
                                        db/ (Postgres via Drizzle)
-web/ (Fastify) exposes /auth/start, /auth/callback (OAuth redirect), /healthz
+web/ (Fastify) exposes /auth/callback (OAuth redirect), /healthz
 ```
 
 - **`src/bot/`** — grammY only. Commands, inline keyboards, HTML message formatting, typing
-  indicators. Delegates all "thinking" to `agent/` (not yet implemented — Phase 3). Free-text
-  messages and callback actions are currently stubs that say which phase implements them.
-- **`src/agent/`** (Phase 3+) — will hold `runAgentTurn(userId, text)`, the Ukrainian system
-  prompt, and a small set of **local (non-MCP) tools** that encode multi-step recipes
-  deterministically in code rather than letting the LLM improvise them: `ensure_cart_context`,
-  `propose_menu`, `record_resolution`, `finish_with_checkout`. See spec §6.
+  indicators. Delegates free-text "thinking" to `agent/runAgentTurn`, but drives the ✅ / 🛒
+  button paths **deterministically** in code rather than through the model. `💸 Дешевше` and
+  `✏️ Прибрати позицію` are still stubs that route the user to free text.
+- **`src/agent/`** — `runAgentTurn(userId, text)`, the Ukrainian system prompt, and the **local
+  (non-MCP) tools** that encode multi-step recipes deterministically instead of letting the LLM
+  improvise them: `ensure_cart_context`, `propose_menu`, `record_resolution`,
+  `finish_with_checkout`, `repeat_last_plan`. Also `selectProduct` / `resolveIngredients`
+  (ingredient → product), `cartContext`, `loyalty`, `plans`. See spec §6.
 - **`src/mcp/`** (Phase 1+) — `SilpoMcpClient`: one MCP `Client` + `StreamableHTTPClientTransport`
   per user, OAuth (Authorization Code + PKCE) via a DB-backed `OAuthClientProvider`, retry/backoff
   wrapper around every tool call, and structured logging to `tool_call_log` (every call logged
@@ -61,11 +63,12 @@ web/ (Fastify) exposes /auth/start, /auth/callback (OAuth redirect), /healthz
   returns ~40 tools; **never hard-code argument shapes** — they must be read at runtime from
   `tools/list` (dumped to `docs/tools.json` once Phase 1 lands) since the docs explicitly say the
   server is the only source of truth for schemas.
-- **`src/web/`** — Fastify. `/healthz` for liveness; `/auth/start` and `/auth/callback` are 501
-  stubs until Phase 2 (OAuth redirect target, must be reachable from the internet — ngrok/
-  cloudflared in dev).
-- **`src/db/`** — Drizzle ORM over Postgres. `schema.ts` defines the 7 tables (`users`,
-  `oauth_clients`, `oauth_tokens`, `oauth_pending`, `sessions`, `plans`, `tool_call_log`); generate
+- **`src/web/`** — Fastify. `/healthz` for liveness and `/auth/callback` (the OAuth redirect
+  target, must be reachable from the internet — ngrok/cloudflared in dev). There is no
+  `/auth/start`: `/start` hands the authorize URL straight to the user as an inline button.
+- **`src/db/`** — Drizzle ORM over Postgres. `schema.ts` defines the 8 tables (`users`,
+  `oauth_clients`, `oauth_tokens`, `oauth_pending`, `sessions`, `messages`, `plans`,
+  `tool_call_log`); generate
   migrations with `drizzle-kit generate` (writes to `drizzle/`), apply with `npm run migrate`
   (`src/db/migrate.ts`, using `drizzle-orm/node-postgres/migrator`).
 - **`src/config.ts`** — zod-validated env parsing; loads `.env` via `process.loadEnvFile()` (not
