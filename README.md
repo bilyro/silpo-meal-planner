@@ -10,25 +10,28 @@ see the original spec (`silpo-meal-planner-agent-spec.md`) this repo implements.
 
 ## Status
 
-Currently **Phase 4 — code complete, live verification pending**. See `docs/` and the phase list below.
+Phases 0–4 complete and **verified live against a real Silpo account** (6 Sept 2026).
 
 - [x] Phase 0 — project skeleton
 - [x] Phase 1 — MCP spike (login + `tools/list`) — see `docs/tools.json` (40 tools, real account)
-- [x] Phase 2 — OAuth linking through Telegram — code complete; live end-to-end confirmation
-      blocked on a Silpo-side issue, see "Known issues" below. Retry with a fast single attempt;
-      see git log for `feat: Phase 2 OAuth linking` for implementation details.
-- [x] Phase 3 — Agent loop with MCP tools — code complete (all ~40 tools exposed to the model,
-      retry/backoff + tool_call_log, system prompt, session state, `propose_menu`); live
-      verification of the acceptance scenarios in Telegram is blocked on the same Phase 2 login
-      issue (need a linked account to exercise the tool-calling loop for real).
-- [x] Phase 4 — Deterministic cart context — `ensure_cart_context` local tool, `/cart` and
-      `/clear` commands (with confirmation) all code-complete and unit-tested against a mocked
-      MCP client (`test/cartContext.test.ts`, 6/6 passing). One real gap: `silpo_get_shopping_cart_by_id`'s
-      `cart` field has no documented shape at all, so the "pre-existing cart" branch extracts
-      fields defensively and needs correcting against real data once a live account is available
-      — see the code comment in `src/agent/cartContext.ts`.
-- [ ] Phase 5 — Ingredient → product resolution and cart build
-- [ ] Phase 5 — Ingredient → product resolution and cart build
+- [x] Phase 2 — OAuth linking through Telegram — **verified live**: tokens stored, valid 30 days.
+      Getting there required fixing our own `PUBLIC_BASE_URL`/redirect handling; see "Known issues"
+      for the diagnosis and the tunnel requirement before any non-desktop use.
+- [x] Phase 3 — Agent loop with MCP tools — **verified live**: «Хто я і що в мене за сім'я?»
+      returns real profile/family/restrictions sourced from tools, and «Сплануй вечері на 2 дні»
+      calls `propose_menu` and reaches `stage=menu_proposed` with a full menu in session state.
+      All ~40 tools exposed, retry/backoff + `tool_call_log` on every call.
+- [x] Phase 4 — Deterministic cart context — **verified live**: `ensureCartContext` created a real
+      cart (branch + `DeliveryHome` + same-day slot) from a text address, and the 🔒 cart-gated
+      tools `silpo_get_promotions` and `silpo_find_products_batch` both succeed afterwards — the
+      spec's actual acceptance test. `/cart` and `/clear` (with confirmation) implemented;
+      6/6 unit tests against a mocked client.
+      Still unverified: the *pre-existing cart* branch, since `silpo_get_shopping_cart_by_id`'s
+      `cart` field has no documented shape — see the ⚠ DISCOVER comment in `src/agent/cartContext.ts`.
+- [ ] Phase 5 — Ingredient → product resolution and cart build — **read `docs/phase5-findings.md`
+      first**: live probing showed two spec assumptions are wrong (`silpo_get_promotions` returns
+      campaigns, not product IDs; `find_products_batch` takes flat context args and `products`,
+      not `queries`).
 - [ ] Phase 6 — Loyalty, polish, robustness
 - [ ] Phase 7 — Demo, validation, submission
 
@@ -132,11 +135,15 @@ DELETE FROM oauth_clients; DELETE FROM oauth_pending;
 `saveOauthClient` now replaces rather than accumulates, and `getOauthClient` returns the newest, so
 re-registration happens automatically once `PUBLIC_BASE_URL` changes.
 
-**Zero-OTP way to confirm:** on the desktop running the server, open the `/authorize` URL in a
-browser already signed in to `auth.silpo.ua` (no SMS needed — Duende SSO session), with DevTools →
-Network → *Preserve log*. If `mcp.silpo.ua/callback` appears once and 302's to localhost, the
-theory holds and the tunnel fixes it. If it appears once and 400's, the theory is wrong and it is
-genuinely Silpo's bug — report to `mcp@silpo.club`.
+**✅ CONFIRMED (6 Sept 2026).** Opening that same `/authorize` URL in a **desktop** browser on the
+machine running the server — where `localhost:3000` genuinely resolves — completed the flow first
+try, with no SMS (existing `auth.silpo.ua` SSO session). Tokens were stored and live MCP calls
+succeed. The failures were never Silpo's bug: they were `PUBLIC_BASE_URL=http://localhost:3000`
+being unreachable from the phone the link was opened on.
+
+**So: linking works today from the desktop running the server.** For any other device (i.e. the
+real Telegram demo flow), `PUBLIC_BASE_URL` must first point at an internet-reachable HTTPS origin
+and the DCR client must be re-registered, as above.
 
 ## Tools used (Silpo MCP)
 
