@@ -9,20 +9,43 @@ export function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;');
 }
 
+/** Ukrainian plural for «день»: 1 день · 2–4 дні · 5–20 днів (and the same pattern per hundred). */
+export function pluralDays(n: number): string {
+  const mod100 = n % 100;
+  const mod10 = n % 10;
+  if (mod100 >= 11 && mod100 <= 14) return 'днів';
+  if (mod10 === 1) return 'день';
+  if (mod10 >= 2 && mod10 <= 4) return 'дні';
+  return 'днів';
+}
+
 /**
- * Renders the proposed menu from session state (spec §9.6), NOT from the model's prose. Verified
- * necessary against a live run: the model called propose_menu and then replied only "Підтверди,
- * будь ласка, це меню" — the menu itself lived in tool data and would never have reached the user.
- * Rendering from state also upholds spec §11's rule that user-visible content comes from tool
- * data rather than free text the model could hallucinate.
+ * Renders the proposed menu from session state (spec §9.6), NOT from the model's prose — spec §11
+ * requires user-visible content to come from tool data, and a live run showed the model sometimes
+ * stores the menu via propose_menu without restating it at all.
+ *
+ * Groups by `day` because one day can hold several meals: a «обід і вечеря» request produces two
+ * entries both with day=1, which naively counted reads as "Меню на 2 дні".
  */
 export function formatMenu(menu: NonNullable<SessionState['menu']>): string {
-  const lines = [`🍽 <b>Меню на ${menu.length} ${menu.length === 1 ? 'день' : 'дні'}</b>`];
-  for (const day of menu) {
+  const byDay = new Map<number, typeof menu>();
+  for (const entry of menu) {
+    const bucket = byDay.get(entry.day);
+    if (bucket) bucket.push(entry);
+    else byDay.set(entry.day, [entry]);
+  }
+
+  const dayNumbers = [...byDay.keys()].sort((a, b) => a - b);
+  const lines = [`🍽 <b>Меню на ${dayNumbers.length} ${pluralDays(dayNumbers.length)}</b>`];
+
+  for (const dayNumber of dayNumbers) {
     lines.push('');
-    lines.push(`<b>День ${day.day}</b> — ${escapeHtml(day.dish)}`);
-    for (const ing of day.ingredients) {
-      lines.push(`• ${escapeHtml(ing.name)} — ${escapeHtml(ing.qty)}`);
+    lines.push(`<b>День ${dayNumber}</b>`);
+    for (const meal of byDay.get(dayNumber) ?? []) {
+      lines.push(`<i>${escapeHtml(meal.dish)}</i>`);
+      for (const ing of meal.ingredients) {
+        lines.push(`• ${escapeHtml(ing.name)} — ${escapeHtml(ing.qty)}`);
+      }
     }
   }
   return lines.join('\n');

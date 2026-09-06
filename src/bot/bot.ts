@@ -25,9 +25,14 @@ export function createBot() {
 
     try {
       const { text, stage, menu } = await runAgentTurn(user.id, ctx.message.text);
-      // The model reliably calls propose_menu but often does not restate the menu in its reply,
-      // so render it from tool data and let the model's text serve as the follow-up prompt.
-      const body = stage === 'menu_proposed' && menu?.length ? `${formatMenu(menu)}\n\n${text}` : text;
+      // On a proposed menu the reply is rendered purely from tool data and the model's prose is
+      // dropped: whether it restates the menu varies run to run, and appending it produced a
+      // visibly duplicated menu. The system prompt also tells the model not to restate it, but
+      // that is only a token-saving hint — this is what actually guarantees no duplication.
+      const body =
+        stage === 'menu_proposed' && menu?.length
+          ? `${formatMenu(menu)}\n\nПідтверджуєте меню?`
+          : text;
       await ctx.reply(body, {
         parse_mode: 'HTML',
         reply_markup: stage === 'menu_proposed' ? confirmMenuKeyboard : undefined,
