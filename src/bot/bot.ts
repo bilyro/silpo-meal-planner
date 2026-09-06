@@ -2,6 +2,8 @@ import { Bot } from 'grammy';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { runAgentTurn } from '../agent/runAgentTurn.js';
+import { loadSession, saveSession } from '../agent/session.js';
+import { NeedsAuthError, SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import * as repo from '../db/repo.js';
 import { registerCommands } from './commands.js';
 import { confirmMenuKeyboard } from './keyboards.js';
@@ -39,6 +41,42 @@ export function createBot() {
   bot.callbackQuery('menu_edit', async (ctx) => {
     await ctx.answerCallbackQuery();
     await ctx.reply('Напишіть, що змінити в меню.');
+  });
+
+  bot.callbackQuery('clear_confirm', async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const chatId = String(ctx.chat?.id ?? '');
+    const user = await repo.getOrCreateUser(chatId);
+    const state = await loadSession(user.id);
+
+    if (!state.cartContext) {
+      await ctx.reply('Кошика вже немає.');
+      return;
+    }
+
+    const mcp = new SilpoMcpClient(user.id);
+    try {
+      await mcp.connect();
+      await mcp.callTool('silpo_clear_shopping_cart', { shoppingCartId: state.cartContext.cartId });
+      state.cartContext = undefined;
+      state.stage = 'idle';
+      await saveSession(user.id, state);
+      await ctx.reply('Кошик очищено.');
+    } catch (err) {
+      if (err instanceof NeedsAuthError) {
+        await ctx.reply('Ваш звʼязок із Сільпо застарів. Напишіть /start, щоб підʼєднатися знову.');
+        return;
+      }
+      logger.error({ err, userId: user.id }, 'Failed to clear cart');
+      await ctx.reply('Не вдалося очистити кошик. Спробуйте ще раз пізніше.');
+    } finally {
+      await mcp.close();
+    }
+  });
+
+  bot.callbackQuery('clear_cancel', async (ctx) => {
+    await ctx.answerCallbackQuery();
+    await ctx.reply('Гаразд, кошик залишається.');
   });
 
   bot.catch((err) => {

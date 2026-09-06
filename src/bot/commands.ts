@@ -2,6 +2,15 @@ import { InlineKeyboard, type Bot } from 'grammy';
 import * as repo from '../db/repo.js';
 import { logger } from '../logger.js';
 import { NeedsAuthError, SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
+import { loadSession } from '../agent/session.js';
+import { clearCartKeyboard } from './keyboards.js';
+
+interface GetShoppingCartByIdResult {
+  success: boolean;
+  cart: Record<string, unknown>;
+  checkoutWebLink?: string;
+  checkoutMobileLink?: string;
+}
 
 export function registerCommands(bot: Bot) {
   bot.command('start', async (ctx) => {
@@ -40,11 +49,53 @@ export function registerCommands(bot: Bot) {
   });
 
   bot.command('cart', async (ctx) => {
-    await ctx.reply('Перегляд кошика буде доступний у Фазі 4.');
+    const chatId = String(ctx.chat.id);
+    const user = await repo.getOrCreateUser(chatId);
+    const state = await loadSession(user.id);
+
+    if (!state.cartContext) {
+      await ctx.reply('У вас ще немає кошика. Попросіть мене спланувати меню, і я його створю.');
+      return;
+    }
+
+    const mcp = new SilpoMcpClient(user.id);
+    try {
+      await mcp.connect();
+      const cart = await mcp.callTool<GetShoppingCartByIdResult>('silpo_get_shopping_cart_by_id', {
+        shoppingCartId: state.cartContext.cartId,
+      });
+      const lines = [
+        `🧾 Кошик: філія ${state.cartContext.branchId}, доставка ${state.cartContext.deliveryType}.`,
+      ];
+      if (state.cartContext.timeslot) {
+        lines.push(`Слот: ${state.cartContext.timeslot.start} — ${state.cartContext.timeslot.end}.`);
+      }
+      const checkoutLink = cart.checkoutWebLink ?? cart.checkoutMobileLink;
+      if (checkoutLink) lines.push(`Оформлення: ${checkoutLink}`);
+      await ctx.reply(lines.join('\n'));
+    } catch (err) {
+      if (err instanceof NeedsAuthError) {
+        await ctx.reply('Ваш звʼязок із Сільпо застарів. Напишіть /start, щоб підʼєднатися знову.');
+        return;
+      }
+      logger.error({ err, userId: user.id }, 'Failed to fetch cart');
+      await ctx.reply('Не вдалося отримати кошик. Спробуйте ще раз пізніше.');
+    } finally {
+      await mcp.close();
+    }
   });
 
   bot.command('clear', async (ctx) => {
-    await ctx.reply('Очищення кошика буде доступне у Фазі 4.');
+    const chatId = String(ctx.chat.id);
+    const user = await repo.getOrCreateUser(chatId);
+    const state = await loadSession(user.id);
+
+    if (!state.cartContext) {
+      await ctx.reply('Кошика ще немає — нічого очищати.');
+      return;
+    }
+
+    await ctx.reply('Очистити кошик? Цю дію не можна скасувати.', { reply_markup: clearCartKeyboard });
   });
 
   bot.command('logout', async (ctx) => {
