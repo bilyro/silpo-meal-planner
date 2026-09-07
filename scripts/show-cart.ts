@@ -8,12 +8,7 @@
  *   npx tsx scripts/show-cart.ts
  */
 
-import { pool } from '../src/db/client.js';
-import { loadSession } from '../src/agent/session.js';
-import { SilpoMcpClient } from '../src/mcp/SilpoMcpClient.js';
-import { users } from '../src/db/schema.js';
-import { db } from '../src/db/client.js';
-import { desc } from 'drizzle-orm';
+import { newestUserSession, runProbe, withMcp } from './lib/probe.js';
 
 interface CartResult {
   cart?: Record<string, unknown>;
@@ -22,10 +17,7 @@ interface CartResult {
 }
 
 async function main() {
-  const [user] = await db.select().from(users).orderBy(desc(users.id)).limit(1);
-  if (!user) throw new Error('No user rows — nobody has linked an account yet.');
-
-  const state = await loadSession(user.id);
+  const { user, state } = await newestUserSession();
   if (!state.cartContext) throw new Error('No cart context in session state — no cart has been built.');
 
   console.log(`user #${user.id} · stage=${state.stage} · cart ${state.cartContext.cartId}`);
@@ -38,11 +30,9 @@ async function main() {
     );
   }
 
-  const mcp = new SilpoMcpClient(user.id);
-  try {
-    await mcp.connect();
+  await withMcp(user.id, async (mcp) => {
     const res = await mcp.callTool<CartResult>('silpo_get_shopping_cart_by_id', {
-      shoppingCartId: state.cartContext.cartId,
+      shoppingCartId: state.cartContext!.cartId,
     });
     const cart = (res.cart ?? {}) as Record<string, unknown>;
 
@@ -75,16 +65,7 @@ async function main() {
 
     const link = res.checkoutWebLink ?? res.checkoutMobileLink;
     console.log(`\ncheckout link: ${link ?? 'ABSENT — see validations above'}`);
-  } finally {
-    await mcp.close();
-  }
+  });
 }
 
-main()
-  .catch((err: unknown) => {
-    console.error(err instanceof Error ? err.message : err);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await pool.end();
-  });
+runProbe(main);

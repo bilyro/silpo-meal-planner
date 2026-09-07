@@ -9,12 +9,8 @@
  * Read-only.
  */
 
-import { desc } from 'drizzle-orm';
-import { db, pool } from '../src/db/client.js';
-import { users } from '../src/db/schema.js';
-import { SilpoMcpClient } from '../src/mcp/SilpoMcpClient.js';
-import { loadSession } from '../src/agent/session.js';
-import { ensureCartContext } from '../src/agent/cartContext.js';
+import type { SilpoMcpClient } from '../src/mcp/SilpoMcpClient.js';
+import { newestUserSession, runProbe, withCartContext } from './lib/probe.js';
 
 async function dump(mcp: SilpoMcpClient, tool: string, args: Record<string, unknown> = {}) {
   console.log(`\n${'='.repeat(70)}\n${tool}\n${'='.repeat(70)}`);
@@ -53,19 +49,12 @@ async function dump(mcp: SilpoMcpClient, tool: string, args: Record<string, unkn
 }
 
 async function main() {
-  const [user] = await db.select().from(users).orderBy(desc(users.id)).limit(1);
-  if (!user) throw new Error('no linked user');
+  const { user, state } = await newestUserSession();
 
-  const state = await loadSession(user.id);
-
-  const mcp = new SilpoMcpClient(user.id);
-  await mcp.connect();
-  try {
+  await withCartContext(user.id, state, async (mcp, ctx) => {
     await dump(mcp, 'silpo_get_my_online_orders');
 
     // Offline orders are 🔒: they need a live cart context like any product search does.
-    await ensureCartContext(mcp, state);
-    const ctx = state.cartContext!;
     await dump(mcp, 'silpo_get_my_offline_orders', {
       branchId: ctx.branchId,
       deliveryType: ctx.deliveryType,
@@ -74,14 +63,7 @@ async function main() {
     });
 
     await dump(mcp, 'silpo_get_my_food_restrictions');
-  } finally {
-    await mcp.close();
-  }
+  });
 }
 
-main()
-  .catch((err: unknown) => {
-    console.error('FAILED:', err instanceof Error ? err.message : err);
-    process.exitCode = 1;
-  })
-  .finally(() => pool.end());
+runProbe(main);

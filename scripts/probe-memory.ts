@@ -7,17 +7,15 @@
  *   npx tsx scripts/probe-memory.ts
  */
 
-import { desc, eq } from 'drizzle-orm';
-import { db, pool } from '../src/db/client.js';
-import { plans, users } from '../src/db/schema.js';
+import { eq } from 'drizzle-orm';
+import { db } from '../src/db/client.js';
+import { plans } from '../src/db/schema.js';
 import * as repo from '../src/db/repo.js';
-import { loadSession } from '../src/agent/session.js';
 import { formatMemoryBlock, hardRestrictions, recallMemory } from '../src/agent/memory.js';
+import { newestUserSession, runProbe } from './lib/probe.js';
 
 async function main() {
-  const [user] = await db.select().from(users).orderBy(desc(users.id)).limit(1);
-  if (!user) throw new Error('no linked user');
-  const state = await loadSession(user.id);
+  const { user, state } = await newestUserSession();
 
   const before = await repo.listUserFacts(user.id);
   console.log(`existing facts: ${before.length}`);
@@ -72,9 +70,4 @@ async function main() {
   console.log(`deleted seeded plan #${seededPlanId}`);
 }
 
-main()
-  .catch((err: unknown) => {
-    console.error('FAILED:', err instanceof Error ? err.message : err);
-    process.exitCode = 1;
-  })
-  .finally(() => pool.end());
+runProbe(main);

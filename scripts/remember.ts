@@ -7,15 +7,12 @@
  *   npx tsx scripts/remember.ts allergy арахіс
  */
 
-import { desc } from 'drizzle-orm';
-import { db, pool } from '../src/db/client.js';
-import { users } from '../src/db/schema.js';
 import * as repo from '../src/db/repo.js';
 import { FACT_KINDS, kindLabel } from '../src/agent/memory.js';
+import { newestUser, runProbe } from './lib/probe.js';
 
 async function main() {
-  const [user] = await db.select().from(users).orderBy(desc(users.id)).limit(1);
-  if (!user) throw new Error('no linked user');
+  const user = await newestUser();
 
   // Same thing /forget does, for resetting between demo runs.
   if (process.argv.includes('--forget')) {
@@ -36,9 +33,4 @@ async function main() {
   console.log(`facts now: ${all.map((f) => `${f.kind}:${f.text}`).join(', ') || '(none)'}`);
 }
 
-main()
-  .catch((err: unknown) => {
-    console.error('FAILED:', err instanceof Error ? err.message : err);
-    process.exitCode = 1;
-  })
-  .finally(() => pool.end());
+runProbe(main);

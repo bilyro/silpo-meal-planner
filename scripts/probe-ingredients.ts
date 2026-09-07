@@ -6,13 +6,8 @@
  *   npx tsx scripts/probe-ingredients.ts "кабачок" "цукіні" "часник свіжий"
  */
 
-import { desc } from 'drizzle-orm';
-import { db, pool } from '../src/db/client.js';
-import { users } from '../src/db/schema.js';
-import { loadSession } from '../src/agent/session.js';
-import { SilpoMcpClient } from '../src/mcp/SilpoMcpClient.js';
-import { ensureCartContext } from '../src/agent/cartContext.js';
 import { resolveIngredients } from '../src/agent/resolveIngredients.js';
+import { newestUserSession, runProbe, withCartContext } from './lib/probe.js';
 
 const CHEAPEST = process.argv.includes('--cheapest');
 const CANDIDATES = process.argv.slice(2).filter((a) => a !== '--cheapest');
@@ -20,15 +15,9 @@ const CANDIDATES = process.argv.slice(2).filter((a) => a !== '--cheapest');
 async function main() {
   if (CANDIDATES.length === 0) throw new Error('pass candidate ingredient names as arguments');
 
-  const [user] = await db.select().from(users).orderBy(desc(users.id)).limit(1);
-  if (!user) throw new Error('no linked user');
-  const state = await loadSession(user.id);
+  const { user, state } = await newestUserSession();
 
-  const mcp = new SilpoMcpClient(user.id);
-  await mcp.connect();
-  try {
-    await ensureCartContext(mcp, state);
-
+  await withCartContext(user.id, state, async (mcp, ctx) => {
     // One synthetic day holding every candidate; qty is irrelevant here, only the match matters.
     const menu = [
       {
@@ -38,7 +27,7 @@ async function main() {
       },
     ];
 
-    const { items, misses } = await resolveIngredients(mcp, state.cartContext!, menu, {
+    const { items, misses } = await resolveIngredients(mcp, ctx, menu, {
       restrictions: state.profile?.restrictions,
       preferCheapest: CHEAPEST,
     });
@@ -53,14 +42,7 @@ async function main() {
       );
     }
     if (misses.length) console.log(`\nmisses: ${misses.join(', ')}`);
-  } finally {
-    await mcp.close();
-  }
+  });
 }
 
-main()
-  .catch((err: unknown) => {
-    console.error('FAILED:', err instanceof Error ? err.message : err);
-    process.exitCode = 1;
-  })
-  .finally(() => pool.end());
+runProbe(main);
