@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ensureCartContext } from '../src/agent/cartContext.js';
 import type { SessionState } from '../src/agent/session.js';
 import type { SilpoMcpClient } from '../src/mcp/SilpoMcpClient.js';
@@ -33,7 +33,17 @@ describe('ensureCartContext', () => {
   });
 
   describe('when a cart already exists on the account', () => {
+    // The fixture's slot is a fixed date, and ensureCartContext now re-books any slot that has
+    // passed by the wall clock (see test/timeslotExpiry.test.ts). Freeze the clock inside that slot
+    // so this test keeps testing field extraction rather than expiry — and so it does not quietly
+    // start re-booking as real time moves on.
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('extracts recognizable fields from the cart object when present', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T10:30:00Z'));
       const state = makeState();
       const { mcp, callTool } = makeMockMcp({
         silpo_get_my_shopping_cart: { success: true, exists: true, shoppingCartId: 'abc-123' },

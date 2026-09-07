@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 import type { SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import type { SessionState } from './session.js';
 
@@ -123,6 +124,31 @@ export function hasTimeslotError(cart: Record<string, unknown>): boolean {
 }
 
 /**
+ * A slot this close to ending is treated as already gone: resolving ingredients takes several
+ * batched searches, so a slot expiring mid-run is as useless as one that expired an hour ago.
+ */
+const TIMESLOT_EXPIRY_MARGIN_MS = 5 * 60_000;
+
+/**
+ * True when the slot has passed (or is about to) by the wall clock, regardless of what Silpo says.
+ *
+ * `hasTimeslotError` alone is not enough, and the gap is not theoretical: an *empty* cart reports
+ * no timeslot validation at all, so after a `/clear` the stale slot survived `ensureCartContext`
+ * and every 🔒 search then ran against a dead slot. Observed 7 Sept 2026 — «картопля» came back as
+ * «Картопляні зрази з капустою», three of six ingredients missed entirely, and the cart came back
+ * with `product.offer.status.not_available`. The results looked like a bad search heuristic; the
+ * real cause was the expired slot upstream of it.
+ */
+export function isTimeslotExpired(
+  timeslot: { start?: string; end?: string } | undefined,
+  now: number = Date.now(),
+): boolean {
+  const end = timeslot?.end ? Date.parse(timeslot.end) : NaN;
+  if (!Number.isFinite(end)) return false; // no parseable slot: leave it to hasTimeslotError
+  return end - TIMESLOT_EXPIRY_MARGIN_MS <= now;
+}
+
+/**
  * Books the next available slot on an existing cart. `silpo_update_shopping_cart` requires the
  * cart's current `address` and `shipments` to be echoed back alongside the new slot, so they are
  * taken from the fetched cart rather than reconstructed.
@@ -176,7 +202,21 @@ export async function ensureCartContext(
    */
   addressText?: string,
 ): Promise<EnsureCartContextResult> {
-  if (state.cartContext) return { cartContext: state.cartContext };
+  // The cached context is trusted for everything EXCEPT the slot, which expires on a wall clock we
+  // do not control. Returning it unconditionally meant a session that crossed a slot boundary kept
+  // a dead slot for as long as it lived — and every 🔒 search then ran against it, returning
+  // nonsense that looked like a bad search heuristic. Dropping the slot here sends us down the
+  // path below, which re-reads the cart and books the next open one.
+  if (state.cartContext && !isTimeslotExpired(state.cartContext.timeslot)) {
+    return { cartContext: state.cartContext };
+  }
+  if (state.cartContext) {
+    logger.info(
+      { cartId: state.cartContext.cartId, timeslot: state.cartContext.timeslot },
+      'Cached cart context has an expired delivery slot; re-establishing',
+    );
+    delete state.cartContext;
+  }
 
   const existing = await mcp.callTool<GetMyShoppingCartResult>('silpo_get_my_shopping_cart');
 
@@ -192,7 +232,7 @@ export async function ensureCartContext(
     // `validations: [{level:'error', type:'timeslot', message:'timeslot.not_found'}]`, and every
     // 🔒 cart-context tool then rejects the stale slot. Book the next open one before returning.
     let timeslot = rawTimeslot?.start && rawTimeslot?.end ? { start: rawTimeslot.start, end: rawTimeslot.end } : undefined;
-    if (branchId && hasTimeslotError(cart)) {
+    if (branchId && (hasTimeslotError(cart) || isTimeslotExpired(rawTimeslot))) {
       timeslot = await rebookTimeslot(mcp, cart, existing.shoppingCartId, branchId, deliveryType);
     }
 
