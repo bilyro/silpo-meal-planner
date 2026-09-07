@@ -64,6 +64,9 @@ export async function applyResolution(
   state.resolvedItems = items;
   state.totals = totals;
   state.stage = 'list_resolved';
+  // A fresh list has not been written anywhere yet — a stale `true` from an earlier resolution
+  // must not let finishWithCheckout() read the (unrelated) old cart as if it answered for this one.
+  state.cartWritten = false;
   await saveSession(userId, state);
   return totals;
 }
@@ -125,6 +128,15 @@ export function describeBlockers(cart: Record<string, unknown>): string[] {
  *
  * Shared by the local tool and bot.ts's 🛒 handler. Returns `{error}` rather than throwing so
  * either caller can surface it as a plain message.
+ *
+ * The `cartWritten` check exists because the model can call this (a read tool) at any time, but
+ * has no write tool — so calling it before the button has actually run
+ * `silpo_add_or_update_cart_products` reads whatever is ALREADY in the real Silpo cart (stale, or
+ * empty) and has nothing to do with the resolution just discussed. Verified live: asked to "Збери
+ * кошик" in free text with nothing written yet, the model composed a fabricated cart status
+ * ("мінімум 599 грн, у кошику 188 грн") matching neither the real (empty) cart nor session state —
+ * a stated system-prompt rule against this did not stop it on retest, so the read itself is
+ * refused here instead, before there is any real number for the model to embellish.
  */
 export async function finishWithCheckout(
   userId: number,
@@ -132,6 +144,9 @@ export async function finishWithCheckout(
   mcp: SilpoMcpClient,
 ): Promise<CheckoutSummary> {
   if (!state.cartContext) return { error: 'Немає контексту кошика — спочатку потрібно його створити.' };
+  if (!state.cartWritten) {
+    return { error: 'Кошик ще не зібрано — товари додає лише кнопка 🛒 «Зібрати кошик».' };
+  }
 
   const cart = await mcp.callTool<CartByIdResult>('silpo_get_shopping_cart_by_id', {
     shoppingCartId: state.cartContext.cartId,

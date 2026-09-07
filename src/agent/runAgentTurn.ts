@@ -48,6 +48,9 @@ export interface AgentTurnResult {
   stage: SessionState['stage'];
   /** Carried out so the bot can render the menu from tool data rather than the model's prose. */
   menu?: SessionState['menu'];
+  /** Same reason, for the list-resolved stage: totals must come from record_resolution's maths. */
+  resolvedItems?: SessionState['resolvedItems'];
+  totals?: SessionState['totals'];
 }
 
 /** spec §6.5: one function per user turn — loads session, runs the tool-calling loop, persists. */
@@ -108,7 +111,7 @@ export async function runAgentTurn(userId: number, userMessage: string): Promise
         { role: 'user', content: userMessage },
         { role: 'assistant', content: text },
       ]);
-      return { text, stage: state.stage, menu: state.menu };
+      return { text, stage: state.stage, menu: state.menu, resolvedItems: state.resolvedItems, totals: state.totals };
     });
   } catch (err) {
     if (err instanceof TurnTimeoutError) {

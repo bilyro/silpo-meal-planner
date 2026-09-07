@@ -88,16 +88,29 @@ export function createBot() {
 
     const stopTyping = keepTyping(ctx);
     try {
-      const { text, stage, menu } = await runAgentTurn(user.id, ctx.message.text);
+      const { text, stage, menu, resolvedItems, totals } = await runAgentTurn(user.id, ctx.message.text);
       // On a proposed menu the reply is rendered purely from tool data and the model's prose is
       // dropped: whether it restates the menu varies run to run, and appending it produced a
       // visibly duplicated menu. The system prompt also tells the model not to restate it, but
       // that is only a token-saving hint — this is what actually guarantees no duplication.
-      const body =
-        stage === 'menu_proposed' && menu?.length
-          ? `${formatMenu(menu)}\n\nПідтверджуєте меню?`
-          : text;
-      await replyHtml(ctx, body, stage === 'menu_proposed' ? confirmMenuKeyboard : undefined);
+      //
+      // list_resolved gets the same treatment, for a reason that was live and reproducible rather
+      // than theoretical: the model can drive the WHOLE pipeline itself (ensure_cart_context →
+      // search → record_resolution) inside one free-text turn, end at stage='list_resolved', and
+      // tell the user in its own prose to press 🛒 — while this handler, which only ever checked
+      // for 'menu_proposed', rendered no keyboard at all. The button the model just told the user
+      // to press then didn't exist. Confirmed against a real conversation in the messages table
+      // where exactly that happened.
+      let body = text;
+      let keyboard: InlineKeyboard | undefined;
+      if (stage === 'menu_proposed' && menu?.length) {
+        body = `${formatMenu(menu)}\n\nПідтверджуєте меню?`;
+        keyboard = confirmMenuKeyboard;
+      } else if (stage === 'list_resolved' && resolvedItems?.length && totals) {
+        body = formatResolvedItems(resolvedItems, totals);
+        keyboard = cartActionsKeyboard;
+      }
+      await replyHtml(ctx, body, keyboard);
     } finally {
       stopTyping();
     }
@@ -208,6 +221,10 @@ export function createBot() {
         shoppingCartId: state.cartContext.cartId,
         products,
       });
+      // The one place this becomes true: finishWithCheckout() below refuses to read the cart at
+      // all until this is set, so the model calling it prematurely can't narrate a stale/empty
+      // cart as if it answered for a resolution nothing has actually been written for yet.
+      state.cartWritten = true;
 
       const summary = await finishWithCheckout(user.id, state, mcp);
       // Decorative extras, fetched together. Both swallow their own errors: a loyalty lookup must
