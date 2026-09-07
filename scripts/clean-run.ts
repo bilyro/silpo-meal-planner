@@ -14,6 +14,7 @@ import { SilpoMcpClient } from '../src/mcp/SilpoMcpClient.js';
 import { ensureCartContext } from '../src/agent/cartContext.js';
 import { resolveIngredients } from '../src/agent/resolveIngredients.js';
 import { applyResolution, finishWithCheckout } from '../src/agent/localTools.js';
+import { hardRestrictions } from '../src/agent/memory.js';
 import { savePlanFromState } from '../src/agent/plans.js';
 
 /**
@@ -166,9 +167,14 @@ async function main() {
     console.log(`  slot   ${state.cartContext?.timeslot?.start} → ${state.cartContext?.timeslot?.end}`);
     if ((ctx as { needsAddress?: boolean }).needsAddress) throw new Error('cart context needs an address');
 
-    console.log('\nresolving ingredients against the live catalogue ...');
+    // Same merged source the 🛒 handler uses: Silpo's own restrictions plus the allergies and
+    // diets the user told the bot. Reading only the profile here would quietly skip stored facts.
+    const restrictions = await hardRestrictions(user.id, state);
+    console.log(`\nhard restrictions in force: ${restrictions.length ? JSON.stringify(restrictions) : '(none)'}`);
+
+    console.log('resolving ingredients against the live catalogue ...');
     const { items, misses } = await resolveIngredients(mcp, state.cartContext!, MENU, {
-      restrictions: state.profile?.restrictions,
+      restrictions,
       preferCheapest: CHEAPEST,
     });
 

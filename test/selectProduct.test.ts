@@ -98,6 +98,49 @@ describe('violatesRestrictions', () => {
     expect(violatesRestrictions('Філе куряче', [])).toBe(false);
     expect(violatesRestrictions('Філе куряче')).toBe(false);
   });
+
+  /**
+   * A plain substring match asks whether a product is NAMED after the forbidden thing, not whether
+   * it IS the forbidden thing. Live check with «свинина» stored as a diet: «Сало Крафтяр», «Шинка
+   * Елітна» and «Бекон Алан» were all selected happily, because pork reaches the catalogue under
+   * every name except «свинина».
+   */
+  it('excludes pork sold under its other names', () => {
+    for (const name of [
+      'Сало Крафтяр подрібнене з часником та кропом',
+      'Шинка «Родинна ковбаска» «Елітна» на дровах к/в в/ґ',
+      'Бекон Алан с/к в/ґ, нарізка',
+      'Буженина запечена',
+      'Підчеревина копчена',
+    ]) {
+      expect(violatesRestrictions(name, ['свинина'])).toBe(true);
+    }
+  });
+
+  it('reads the restriction out of a sentence, not just a bare word', () => {
+    // The model stores what the user said, which is often «без свинини» rather than «свинина».
+    expect(violatesRestrictions('Сало Крафтяр', ['без свинини'])).toBe(true);
+  });
+
+  it('does not exclude other meats when pork is the restriction', () => {
+    // Over-exclusion is the safer error, but it still must not eat the whole catalogue.
+    expect(violatesRestrictions('Курячий фарш із філе подрібнений', ['свинина'])).toBe(false);
+    expect(violatesRestrictions('Фарш яловичий охолоджений', ['свинина'])).toBe(false);
+    expect(violatesRestrictions('Молоко «Галичина» 1%', ['свинина'])).toBe(false);
+  });
+
+  it('expands nut and fish restrictions to the specific foods', () => {
+    expect(violatesRestrictions('Арахісова паста', ['горіхи'])).toBe(true);
+    expect(violatesRestrictions('Мигдаль смажений', ['горіхи'])).toBe(true);
+    expect(violatesRestrictions('Оселедець філе слабосолений', ['риба'])).toBe(true);
+    expect(violatesRestrictions('Картопля молода', ['риба'])).toBe(false);
+  });
+
+  it('leaves an unknown restriction as a literal match rather than ignoring it', () => {
+    // Nothing in the synonym table covers this, so it must still behave like the old matcher.
+    expect(violatesRestrictions('Кабачок цукіні', ['кабачок'])).toBe(true);
+    expect(violatesRestrictions('Морква', ['кабачок'])).toBe(false);
+  });
 });
 
 describe('matchesQuery', () => {

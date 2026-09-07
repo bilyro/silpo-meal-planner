@@ -210,9 +210,55 @@ export function hasStockHeadroom(p: ProductCandidate): boolean {
   return p.stock >= minimum * 2;
 }
 
+/**
+ * Words that mean a restriction is present even though the restriction's own word is absent.
+ *
+ * Found by testing: with «свинина» stored as a diet, «Сало Крафтяр» and «Ковбаса Українська» were
+ * both selected happily, because a plain substring match asks whether the product is *named* after
+ * the forbidden thing rather than whether it *is* the forbidden thing. Pork appears in the
+ * catalogue mostly as сало, шинка, бекон and буженина — never as the word «свинина».
+ *
+ * Keys are matched as prefixes of the user's phrase, so «без свинини», «свинина» and «свиняче»
+ * all reach the same expansion. Values are matched as substrings of the product name, and are
+ * stems rather than whole words because Ukrainian inflects heavily («шинка», «шинки», «шинкою»).
+ *
+ * Deliberately conservative. Over-exclusion costs the user a miss they can see and correct;
+ * under-exclusion serves them the thing they cannot eat, silently. Where a term is genuinely
+ * ambiguous it is left OUT rather than guessed: «ковбаса» is usually but not always pork, and
+ * «ребра» are as often beef, so neither is expanded — see the known gap in the module doc.
+ */
+const RESTRICTION_SYNONYMS: Record<string, string[]> = {
+  свин: ['свин', 'сало', 'шинк', 'бекон', 'буженин', 'підчерев', 'карбонад', 'шпик', 'корейк', 'грудинк'],
+  ялович: ['ялович', 'телятин', 'яловичин'],
+  курк: ['курк', 'куряч', 'курин', 'філе куряче'],
+  риб: ['риб', 'оселедець', 'лосось', 'тунец', 'скумбрі', 'форел', 'хек', 'мінтай', 'кільк', 'шпрот'],
+  горіх: ['горіх', 'арахіс', 'мигдал', 'фундук', 'кешʼю', "кеш'ю", 'кешю', 'фісташк'],
+  арахіс: ['арахіс', 'арахісов'],
+  лактоз: ['молок', 'вершк', 'сметан', 'кефір', 'йогурт', 'ряжанк', 'сир '],
+  глютен: ['пшенич', 'борошн', 'макарон', 'хліб', 'булк', 'манк', 'висівк'],
+  гриб: ['гриб', 'печериц', 'глив'],
+};
+
+/**
+ * Every stem a single restriction phrase should exclude: the phrase itself, plus the synonyms of
+ * any key it starts with.
+ */
+export function expandRestriction(restriction: string): string[] {
+  const phrase = restriction.toLowerCase().trim();
+  if (phrase.length === 0) return [];
+
+  const stems = new Set<string>([phrase]);
+  for (const [key, synonyms] of Object.entries(RESTRICTION_SYNONYMS)) {
+    // The phrase may be a bare term («свинина») or a sentence («без свинини»), so look for the
+    // key anywhere in it rather than only at the start.
+    if (phrase.includes(key)) for (const s of synonyms) stems.add(s);
+  }
+  return [...stems];
+}
+
 export function violatesRestrictions(name: string, restrictions: string[] = []): boolean {
   const haystack = name.toLowerCase();
-  return restrictions.some((r) => r.trim().length > 0 && haystack.includes(r.toLowerCase().trim()));
+  return restrictions.some((r) => expandRestriction(r).some((stem) => haystack.includes(stem)));
 }
 
 /**
