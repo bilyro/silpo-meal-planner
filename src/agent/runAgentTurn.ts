@@ -4,6 +4,7 @@ import { config } from '../config.js';
 import { logger } from '../logger.js';
 import * as repo from '../db/repo.js';
 import { NeedsAuthError, SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
+import { RELINK_MESSAGE } from '../bot/messages.js';
 import { localTools } from './localTools.js';
 import { repeatLastPlanTool } from './plans.js';
 import { loadSession, saveSession, type SessionState } from './session.js';
@@ -78,6 +79,13 @@ export async function runAgentTurn(userId: number, userMessage: string): Promise
         abortSignal: signal,
       });
 
+      // A 401 raised inside a model-issued tool call never reaches the catch below: the AI SDK
+      // catches a throwing `execute` and turns it into a tool-error fed back to the model, which
+      // then writes some apology of its own. So the flag is checked here, and its reply wins over
+      // whatever the model produced — otherwise a user whose token expired mid-turn is told
+      // something vague and is left with no way to re-link.
+      if (mcp.needsAuth) throw mcp.needsAuth;
+
       // Local tools already mutate `state` and save it themselves; this covers any leftover
       // mutation (e.g. stage changes not yet persisted) so the DB always reflects the latest turn.
       await saveSession(userId, state);
@@ -105,7 +113,11 @@ export async function runAgentTurn(userId: number, userMessage: string): Promise
       state.stage = 'need_auth';
       await saveSession(userId, state);
       return {
-        text: `Потрібно підʼєднати акаунт Сільпо: ${err.authorizationUrl.toString()}`,
+        // Telegram auto-links a bare URL, so this is tappable without a keyboard — which matters
+        // because the caller renders this as plain text rather than through relinkReply().
+        text: err.authorizationUrl
+          ? `Потрібно підʼєднати акаунт Сільпо: ${err.authorizationUrl.toString()}`
+          : RELINK_MESSAGE,
         stage: state.stage,
       };
     }

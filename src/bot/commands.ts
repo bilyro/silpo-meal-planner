@@ -5,7 +5,7 @@ import { NeedsAuthError, SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import { loadSession } from '../agent/session.js';
 import { formatPlanSummary, parsePlanRow } from '../agent/plans.js';
 import { clearCartKeyboard, repeatPlanKeyboard } from './keyboards.js';
-import { RELINK_MESSAGE } from './messages.js';
+import { relinkReply } from './messages.js';
 
 interface GetShoppingCartByIdResult {
   success: boolean;
@@ -33,6 +33,13 @@ export function registerCommands(bot: Bot) {
       if (!(err instanceof NeedsAuthError)) {
         logger.error({ err, userId: user.id }, 'Failed to start Silpo authorization');
         await ctx.reply('Не вдалося розпочати підʼєднання. Спробуйте ще раз пізніше.');
+        return;
+      }
+      if (!err.authorizationUrl) {
+        // Only reachable if the SDK reported a 401 without minting an authorize URL; there is no
+        // button to offer, and repeating "напишіть /start" to someone who just did would be absurd.
+        logger.error({ userId: user.id }, 'Silpo returned 401 without an authorization URL');
+        await ctx.reply('Сільпо зараз не приймає підʼєднання. Спробуйте ще раз за кілька хвилин.');
         return;
       }
       const keyboard = new InlineKeyboard().url('🔐 Підʼєднати Сільпо', err.authorizationUrl.toString());
@@ -77,7 +84,7 @@ export function registerCommands(bot: Bot) {
       await ctx.reply(lines.join('\n'));
     } catch (err) {
       if (err instanceof NeedsAuthError) {
-        await ctx.reply(RELINK_MESSAGE);
+        await ctx.reply(...relinkReply(err));
         return;
       }
       logger.error({ err, userId: user.id }, 'Failed to fetch cart');

@@ -7,7 +7,12 @@ import * as repo from '../db/repo.js';
 import { SilpoAuthProvider } from './SilpoAuthProvider.js';
 
 export class NeedsAuthError extends Error {
-  constructor(public readonly authorizationUrl: URL) {
+  /**
+   * Undefined when the SDK reported a 401 without getting far enough to mint an authorize URL —
+   * e.g. its own "Server returned 401 after successful authentication" guard. Callers then fall
+   * back to asking the user for /start instead of offering a button.
+   */
+  constructor(public readonly authorizationUrl?: URL) {
     super('Silpo account not linked, or the link expired; user must (re-)authorize');
   }
 }
@@ -111,18 +116,47 @@ export class SilpoMcpClient {
    */
   private modelCalls = 0;
 
+  /**
+   * Authorize URL captured from the auth provider's redirectToAuthorization callback.
+   *
+   * Instance state rather than a local inside connect(), because the transport keeps the same
+   * provider for the life of the client: when an access token expires *mid-turn* the SDK refreshes
+   * (streamableHttp.js handles 401 by calling auth() and retrying once), and if that refresh fails
+   * it starts a fresh authorization and invokes this callback again. Held in a local, that URL was
+   * written to a dead closure and the user got a generic error instead of a way to re-link.
+   */
+  private pendingAuthUrl: URL | undefined;
+
+  /**
+   * Set when a call failed with 401 that could not be refreshed (spec §4: "handle 401 by refreshing
+   * once, then falling back to a re-link prompt").
+   *
+   * Needed *in addition to* throwing, because the two call paths surface errors differently: a
+   * throw from our own deterministic code propagates to the bot's error boundary, but a throw
+   * inside a model-issued tool call is caught by the AI SDK and turned into a `tool-error` fed back
+   * to the model (verified in ai@7's executeToolCall), so it never reaches runAgentTurn's catch.
+   * runAgentTurn reads this flag after the loop to override the reply.
+   */
+  needsAuth: NeedsAuthError | undefined;
+
   constructor(private readonly userId: number) {}
 
+  /** Records the 401 so runAgentTurn can see it, and returns the error to throw. */
+  private authFailure(): NeedsAuthError {
+    const err = new NeedsAuthError(this.pendingAuthUrl);
+    this.needsAuth = err;
+    return err;
+  }
+
   async connect(): Promise<void> {
-    let capturedUrl: URL | undefined;
     const auth = new SilpoAuthProvider(this.userId, redirectUri(), (url) => {
-      capturedUrl = url;
+      this.pendingAuthUrl = url;
     });
     const client = new Client({ name: 'silpo-meal-planner', version: '0.1.0' }, { capabilities: {} });
     try {
       await client.connect(makeTransport(auth));
     } catch (err) {
-      if (err instanceof UnauthorizedError && capturedUrl) throw new NeedsAuthError(capturedUrl);
+      if (err instanceof UnauthorizedError) throw this.authFailure();
       throw err;
     }
     this.client = client;
@@ -169,6 +203,9 @@ export class SilpoMcpClient {
       ms: Date.now() - t0,
       error: lastErr instanceof Error ? lastErr.message : String(lastErr),
     });
+    // Logged as itself above, then converted: the transport has already tried a refresh and given
+    // up by the time it throws this, so the only thing left to offer the user is a re-link.
+    if (lastErr instanceof UnauthorizedError) throw this.authFailure();
     throw lastErr;
   }
 

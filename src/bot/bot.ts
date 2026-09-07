@@ -12,7 +12,7 @@ import { NeedsAuthError, SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import * as repo from '../db/repo.js';
 import { registerCommands } from './commands.js';
 import { cartActionsKeyboard, confirmMenuKeyboard, promoKeyboard } from './keyboards.js';
-import { RELINK_MESSAGE } from './messages.js';
+import { relinkReply } from './messages.js';
 import { escapeHtml, formatResolvedItems, formatMenu, formatUah, stripHtml } from './format.js';
 
 /**
@@ -51,7 +51,7 @@ function errorBoundary(): (ctx: Context, next: () => Promise<void>) => Promise<v
       await next();
     } catch (err) {
       if (err instanceof NeedsAuthError) {
-        await ctx.reply(RELINK_MESSAGE).catch(() => {});
+        await ctx.reply(...relinkReply(err)).catch(() => {});
         return;
       }
       logger.error({ err, chatId: ctx.chat?.id }, 'Handler failed');
@@ -148,7 +148,7 @@ export function createBot() {
       await replyHtml(ctx, body, cartActionsKeyboard);
     } catch (err) {
       if (err instanceof NeedsAuthError) {
-        await ctx.reply(RELINK_MESSAGE);
+        await ctx.reply(...relinkReply(err));
         return;
       }
       logger.error({ err, userId: user.id }, 'Failed to resolve ingredients');
@@ -239,7 +239,7 @@ export function createBot() {
       );
     } catch (err) {
       if (err instanceof NeedsAuthError) {
-        await ctx.reply(RELINK_MESSAGE);
+        await ctx.reply(...relinkReply(err));
         return;
       }
       logger.error({ err, userId: user.id }, 'Failed to build cart');
@@ -287,7 +287,7 @@ export function createBot() {
       await replyHtml(ctx, result.message);
     } catch (err) {
       if (err instanceof NeedsAuthError) {
-        await ctx.reply(RELINK_MESSAGE);
+        await ctx.reply(...relinkReply(err));
         return;
       }
       logger.error({ err, userId: user.id }, 'Failed to apply promo code');
@@ -346,7 +346,7 @@ export function createBot() {
       await ctx.reply('Кошик очищено.');
     } catch (err) {
       if (err instanceof NeedsAuthError) {
-        await ctx.reply(RELINK_MESSAGE);
+        await ctx.reply(...relinkReply(err));
         return;
       }
       logger.error({ err, userId: user.id }, 'Failed to clear cart');
