@@ -309,8 +309,18 @@ export class SilpoMcpClient {
           // Worth understanding: an agent turn is not one request. `stopWhen: stepCountIs(...)`
           // means up to MAX_TOOL_CALLS_PER_TURN round-trips, each resending this block in full, so
           // the saving multiplies by the number of steps rather than applying once.
+          //
+          // ttl: '1h' over the default 5m. Confirmed against Anthropic's pricing page (2026-09-07):
+          // a 5-min write costs 1.25x base input, a 1-hour write costs 2x, and reads cost 0.1x
+          // either way. On this ~20K-token block at Haiku 4.5 ($1/MTok in), that's ~$0.0254 (5m
+          // write) vs. ~$0.0407 (1h write) vs. ~$0.0020 (either read). This bot's real usage
+          // pattern is "plan a menu, think about it, reply later" — gaps between messages
+          // routinely exceed 5 minutes but stay under an hour, so a 5-min TTL would re-write at
+          // 1.25x on nearly every turn and almost never get read back — worse than no cache at
+          // all. In the worst realistic case (every gap 5–60 min), 1h TTL measured out to roughly
+          // half the cost of 5m TTL.
           ...(index === lastIndex
-            ? { providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' as const } } } }
+            ? { providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' as const, ttl: '1h' as const } } } }
             : {}),
           execute: (args, { abortSignal }) =>
             this.callModelTool(t.name, args as Record<string, unknown>, abortSignal),
