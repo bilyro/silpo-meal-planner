@@ -82,6 +82,35 @@ const BUDGET_EXHAUSTED_RESULT = {
     'відповідай користувачеві тим, що вже маєш, і запропонуй продовжити наступним повідомленням.',
 } as const;
 
+/**
+ * Silpo tools the MODEL is not handed. Every one of them mutates a real account, and there is no
+ * sandbox (spec §4.6).
+ *
+ * Not a theoretical precaution. On 7 Sept 2026 a user answered «Так» as free text instead of
+ * tapping ✅; that routed the turn to the agent loop rather than the deterministic ✅ handler, and
+ * the model called `silpo_add_or_update_cart_products` itself — inventing `quantity: 10` for
+ * «Картопля — 1 кг» and 5 for the chicken, against a branch that was not even the session's. Ten
+ * kilos of potatoes went into a real cart. `computeQuantity` would have sent 1 kg and `capToStock`
+ * would have clamped it, but neither runs on the model's path.
+ *
+ * Withholding the tools rather than refusing inside `execute` is deliberate: a tool the model can
+ * see is a tool it will try, and each attempt costs a step and a full-context round-trip. These
+ * stay fully available to our own deterministic code through `callTool()`, which is the only place
+ * the quantity, stock and branch guards live.
+ */
+const MODEL_BLOCKED_WRITES = new Set([
+  'silpo_add_or_update_cart_products',
+  'silpo_create_shopping_cart',
+  'silpo_update_shopping_cart',
+  'silpo_clear_shopping_cart',
+  'silpo_remove_cart_products',
+  'silpo_add_or_update_favorite_products',
+  'silpo_add_or_update_certificates',
+]);
+
+/** Exported for the tests and for the README's tool-coverage numbers. */
+export const modelBlockedWriteTools: readonly string[] = [...MODEL_BLOCKED_WRITES];
+
 function parseToolResult<T>(res: Awaited<ReturnType<Client['callTool']>>): T {
   if (res.structuredContent) return res.structuredContent as T;
   const first = Array.isArray(res.content) ? res.content[0] : undefined;
@@ -248,13 +277,18 @@ export class SilpoMcpClient {
   }
 
   /**
-   * Exposes every Silpo MCP tool (spec §6.2 — all ~40, not a hand-picked subset) as an AI SDK
-   * tool, routed through the same retry/backoff + tool_call_log path as callTool(). Must be
-   * called after connect() has succeeded.
+   * Exposes the Silpo MCP tools as AI SDK tools, routed through the same retry/backoff +
+   * tool_call_log path as callTool(). Must be called after connect() has succeeded.
+   *
+   * Every tool is read from `tools/list` at runtime and converted from its own JSON Schema, so no
+   * argument shape is hard-coded (spec §6.2). The one departure from "hand the model all ~40" is
+   * MODEL_BLOCKED_WRITES: the read tools are all here, the account-mutating ones are not, and they
+   * remain reachable through callTool() on the deterministic paths.
    */
   async toolsForAiSdk(): Promise<Record<string, Tool>> {
     if (!this.client) throw new Error('SilpoMcpClient.connect() must succeed before toolsForAiSdk()');
-    const { tools } = await this.client.listTools();
+    const { tools: allTools } = await this.client.listTools();
+    const tools = allTools.filter((t) => !MODEL_BLOCKED_WRITES.has(t.name));
     // Sorted by name so the serialised tool block is byte-identical between requests. Anthropic's
     // prompt cache matches on an exact prefix, so if Silpo ever returned tools/list in a different
     // order the cache would silently miss on every turn and we would pay the write price forever.

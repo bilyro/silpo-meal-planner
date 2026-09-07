@@ -41,12 +41,32 @@ Silpo's 🔒 tools (`silpo_find_products_batch`, `silpo_get_promotions`) hard-fa
 exist. `ensureCartContext` establishes them before any search, and `resolveIngredients` throws
 loudly if it is ever called without a timeslot rather than emitting a misleading "0 items found".
 
-**3. The LLM never invents a product, a price, or availability.**
+**3. The LLM never invents a product, a price, a quantity, or availability.**
 Everything the user sees about products is rendered from tool output in
 [`src/bot/format.ts`](src/bot/format.ts) — from `SessionState.resolvedItems`, never from model
 prose. On a proposed menu the model's own text is *dropped* and the menu is re-rendered from what
 `propose_menu` stored ([`src/bot/bot.ts`](src/bot/bot.ts)). Hallucinated groceries are structurally
-impossible, not merely discouraged by the prompt.
+impossible, not merely discouraged by the prompt — and since the model holds no cart-write tool,
+that now covers what reaches the cart, not just what reaches the screen.
+
+### Why the write tools are gated
+
+This claim used to be true of the *display* and false of the *cart*. On 7 Sept 2026 a user answered
+«Так» as free text instead of tapping ✅. That routed the turn to the agent loop rather than the
+deterministic ✅ handler, and the model — which was then handed all 40 tools — called
+`silpo_add_or_update_cart_products` itself, inventing `quantity: 10` for «Картопля — 1 кг» and `5`
+for the chicken, against a branch that was not the session's. **Ten kilograms of potatoes went into
+a real cart.** `computeQuantity` would have sent 1 kg and `capToStock` would have clamped it to
+stock; neither runs on the model's path.
+
+The fix is structural rather than a prompt instruction: the seven mutating tools are filtered out of
+`toolsForAiSdk()`, so there is no cart-write tool for the model to reach for, however the user
+phrases their confirmation. Cart changes happen only through the 🛒 button and `/clear`, where the
+quantity, stock and branch guards live. Withholding beats refusing inside `execute` — a tool the
+model can see is one it will try, and each attempt costs a step and a full-context round-trip.
+
+Recorded in [`docs/mcp-tool-usage.md`](docs/mcp-tool-usage.md); regression tests in
+[`test/writeGate.test.ts`](test/writeGate.test.ts).
 
 **4. Every MCP call is logged as evidence.**
 One wrapper in [`src/mcp/SilpoMcpClient.ts`](src/mcp/SilpoMcpClient.ts) carries retry/backoff and
@@ -123,9 +143,13 @@ authoritative record of what actually happened.
 ## Silpo MCP tools used
 
 **Exposure strategy.** The live server returns **40 tools** (full snapshot:
-[`docs/tools.json`](docs/tools.json), regenerate with `npm run spike`). All 40 are handed to the
-model each turn — `SilpoMcpClient.toolsForAiSdk()` reads `tools/list` at runtime and converts each
-tool's own JSON Schema into an AI SDK tool, so **no argument shape is hard-coded anywhere**. On top
+[`docs/tools.json`](docs/tools.json), regenerate with `npm run spike`). `toolsForAiSdk()` reads
+`tools/list` at runtime and converts each tool's own JSON Schema into an AI SDK tool, so **no
+argument shape is hard-coded anywhere**. The model is handed **33 of them: every read tool, and no
+tool that mutates the account.** The seven writes (`add_or_update_cart_products`,
+`create_shopping_cart`, `update_shopping_cart`, `clear_shopping_cart`, `remove_cart_products`,
+`add_or_update_favorite_products`, `add_or_update_certificates`) are reachable only through
+`callTool()` on the deterministic paths — see [Why the write tools are gated](#why-the-write-tools-are-gated). On top
 of that, **19 tools are called directly from our own code** on the deterministic paths below. Both
 routes share one wrapper, so both are retried and both are logged.
 
@@ -169,8 +193,9 @@ balance shown at the end (`💳 Бонусів доступно`) rides along on
 `silpo_get_shopping_cart_by_id`'s top-level `loyalty` block rather than costing a separate call.
 
 Every write above happens only after an explicit user action — 🛒 is the confirmation for the cart
-build, and `/clear` asks a second time before clearing. Nothing in this list can place or pay for an
-order; the MCP has no such tool.
+build, and `/clear` asks a second time before clearing. That holds structurally rather than by
+convention: the model is not handed a write tool at all, so there is no second route to one.
+Nothing in this list can place or pay for an order; the MCP has no such tool.
 
 **Deliberately not called:** `silpo_get_promotions`. Spec §6.4 assumed it returns a set of promo
 product ids to prefer. It does not — it returns promo *campaigns* with no product ids at all

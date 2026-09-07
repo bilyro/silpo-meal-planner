@@ -4,19 +4,42 @@ Derived from two sources, not from intent: `tool_call_log` (every call the bot h
 both the deterministic paths and the model's own) and a grep for `callTool` string literals in
 `src/`. Regenerate the call counts with `npm run export-log`.
 
-All 40 tools are handed to the model every turn — `SilpoMcpClient.toolsForAiSdk()` reads
-`tools/list` at runtime and converts each tool's own JSON Schema, so no argument shape is
-hard-coded. What follows is which of them the agent actually reaches.
+`SilpoMcpClient.toolsForAiSdk()` reads `tools/list` at runtime and converts each tool's own JSON
+Schema, so no argument shape is hard-coded. The model is handed **33** of the 40: every read tool,
+and none of the seven that mutate the account.
 
 | | Count |
 |---|---:|
-| Exposed to the model each turn | **40** |
+| Returned by the live server | **40** |
+| Handed to the model each turn | **33** |
+| Withheld — account writes | **7** |
 | Wired into our own code | **19** |
 | Ever actually called | **19** |
 | Touched one way or the other | **21** |
 | Never touched at all | **19** |
 
 The two 19s are different sets — that difference is the interesting part.
+
+## Withheld from the model (7)
+
+`silpo_add_or_update_cart_products` · `silpo_create_shopping_cart` · `silpo_update_shopping_cart` ·
+`silpo_clear_shopping_cart` · `silpo_remove_cart_products` ·
+`silpo_add_or_update_favorite_products` · `silpo_add_or_update_certificates`
+
+Every one mutates a real account, and there is no sandbox. They stay fully available to our own
+deterministic code through `callTool()`.
+
+**Why, concretely.** On 7 Sept 2026 a user answered «Так» as free text instead of tapping ✅. The
+turn went to the agent loop rather than the deterministic ✅ handler, and the model — then handed all
+40 tools — called `silpo_add_or_update_cart_products` itself with `quantity: 10` for «Картопля —
+1 кг» and `5` for the chicken, against a branch that was not the session's. Ten kilograms of
+potatoes reached a real cart. `computeQuantity` would have sent 1 kg and `capToStock` would have
+clamped it; neither runs on the model's path. Three tells it was the model and not our code:
+`addQuantity: false` (a field absent from `src/`), the wrong `branchId`, and integer quantities
+where our code sends kilograms.
+
+Withholding beats refusing inside `execute`: a tool the model can see is one it will try, and each
+attempt costs a step and a full-context round-trip. Tests: `test/writeGate.test.ts`.
 
 ---
 
@@ -62,8 +85,11 @@ Nothing in our code wires either one. They appear in `tool_call_log` because the
 | `silpo_get_promotions` | 2 (1 ok) | Deliberately not wired: it returns promo *campaigns* with no product ids. Promo status is read per-product off `specialPrices` / `oldPrice` instead — cheaper and correct. |
 | `silpo_get_my_promos` | 1 | Never wired. |
 
-This is the payoff for exposing all 40 rather than a curated subset: the agent went past its scripted
-paths. It is also the argument against trimming too aggressively.
+This is the payoff for broad exposure rather than a curated subset: the agent went past its scripted
+paths, and it is the argument against trimming the *read* tools too aggressively.
+
+It cuts both ways, though. The same willingness to improvise is what put ten kilos of potatoes in a
+real cart — so reads stay broad and writes are withheld, rather than one policy for both.
 
 ## Never touched at all (19)
 

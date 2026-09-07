@@ -219,10 +219,13 @@ describe('consecutive duplicate tool calls', () => {
   });
 
   it('still allows a re-read after a call that changed the data (read → write → read)', async () => {
-    const { fake, asModel } = await setup();
+    const { mcp, fake, asModel } = await setup();
 
+    // The write is deliberately NOT a model call: cart-mutating tools are withheld from the model
+    // (see test/writeGate.test.ts), so the real sequence is the model reading the cart, the 🛒
+    // handler writing it through callTool(), and the model reading it back.
     await asModel('silpo_get_shopping_cart_by_id', { shoppingCartId: 'c1' });
-    await asModel('silpo_add_or_update_cart_products', { shoppingCartId: 'c1', products: [{ id: 'p1' }] });
+    await mcp.callTool('silpo_add_or_update_cart_products', { shoppingCartId: 'c1', products: [{ id: 'p1' }] });
     await asModel('silpo_get_shopping_cart_by_id', { shoppingCartId: 'c1' });
 
     // The whole point of "consecutive" rather than "any repeat this turn": the cart genuinely

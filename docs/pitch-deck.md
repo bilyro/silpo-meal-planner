@@ -69,7 +69,8 @@ Four design decisions carry that claim, and each is visible in the repo:
 - **40 tools** read from the live server at runtime via `tools/list` — **no argument shape is
   hard-coded anywhere**, because Silpo's docs say the server is the only source of truth for
   schemas.
-- **16 of them are called directly** by our own deterministic paths; the model can reach all 40.
+- **19 of them are called directly** by our own deterministic paths. The model is handed **33** —
+  every read tool, and none of the seven that mutate the account.
 - **6 of 7 tool categories** exercised: Profile · Product Search · Catalog/Promotions · Cart ·
   Location & Delivery · Loyalty.
 - OAuth 2.1 (Authorization Code + PKCE, Dynamic Client Registration); tokens stored **server-side
@@ -124,6 +125,10 @@ Not a happy-path prototype:
   then an honest re-link prompt.
 - **Expired delivery slots are re-booked** automatically — a cart outlives its slot, and every 🔒
   tool then rejects it.
+- **The model holds no tool that can change the cart.** The seven account-mutating tools are
+  withheld from it and reachable only from our deterministic code, so quantities come from the
+  product's weight and stock rather than the model's guess — a real incident, found in our own
+  `tool_call_log` and now covered by regression tests.
 - **Nothing can place or pay for an order.** Every write follows an explicit user tap, `/clear` asks
   a second time, and the MCP has no checkout tool at all.
 

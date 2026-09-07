@@ -339,17 +339,22 @@
     <div class="eyebrow">Сільпо Шеф · MCP audit</div>
     <h1>Which of Silpo's 40 tools the agent actually uses</h1>
     <p class="standfirst">
-      All 40 are handed to the model every turn — <code>toolsForAiSdk()</code> reads
-      <code>tools/list</code> at runtime and converts each tool's own JSON Schema, so no argument
-      shape is hard-coded anywhere. This is the audit of which ones it <strong>reaches</strong>,
-      taken from <code>tool_call_log</code> and a grep of <code>src/</code> rather than from intent.
+      <code>toolsForAiSdk()</code> reads <code>tools/list</code> at runtime and converts each tool's
+      own JSON Schema, so no argument shape is hard-coded anywhere. The model is handed
+      <strong>33 of the 40</strong>: every read tool, and none of the seven that mutate the account.
+      This is the audit of which ones it <strong>reaches</strong>, taken from
+      <code>tool_call_log</code> and a grep of <code>src/</code> rather than from intent.
     </p>
   </header>
 
   <div class="stats">
     <div class="stat">
       <div class="stat-n">40</div>
-      <div class="stat-l">Exposed to the model each turn</div>
+      <div class="stat-l">Returned by the live server</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">33</div>
+      <div class="stat-l">Handed to the model — reads only</div>
     </div>
     <div class="stat">
       <div class="stat-n">19</div>
@@ -374,6 +379,41 @@
     two tools nobody wired were reached for by the model on its own — which is why the honest
     headline for a judge is 21 touched, not 19.
   </p>
+
+  <section>
+    <div class="head">
+      <h2>Withheld from the model</h2>
+      <span class="chip unused">account writes · 7</span>
+    </div>
+    <p class="lede">
+      Every one mutates a real account, and there is no sandbox. They stay fully available to our own
+      deterministic code through <code>callTool()</code>, which is where the quantity, stock and
+      branch guards live.
+    </p>
+    <div class="pills">
+      <span class="pill">add_or_update_cart_products</span>
+      <span class="pill">create_shopping_cart</span>
+      <span class="pill">update_shopping_cart</span>
+      <span class="pill">clear_shopping_cart</span>
+      <span class="pill">remove_cart_products</span>
+      <span class="pill">add_or_update_favorite_products</span>
+      <span class="pill">add_or_update_certificates</span>
+    </div>
+    <div class="finding">
+      <p><span class="k">Why, concretely.</span> On 7 Sept 2026 a user answered «Так» as free text
+        instead of tapping ✅. The turn went to the agent loop rather than the deterministic ✅
+        handler, and the model — then handed all 40 tools — called
+        <code>silpo_add_or_update_cart_products</code> itself with <code>quantity: 10</code> for
+        «Картопля — 1 кг» and <code>5</code> for the chicken, against a branch that was not the
+        session's. <strong>Ten kilograms of potatoes reached a real cart.</strong></p>
+      <p><code>computeQuantity</code> would have sent 1 kg and <code>capToStock</code> would have
+        clamped it to stock; neither runs on the model's path. Three tells it was the model and not
+        our code: <code>addQuantity: false</code> (a field absent from <code>src/</code>), the wrong
+        <code>branchId</code>, and integer quantities where our code sends kilograms.</p>
+      <p>Withholding beats refusing inside <code>execute</code>: a tool the model can see is one it
+        will try, and each attempt costs a step and a full-context round-trip.</p>
+    </div>
+  </section>
 
   <section>
     <div class="head">
@@ -460,8 +500,10 @@
       <p><span class="k">Why this matters.</span> Nothing in our code calls either tool. They appear
       in the log because the model chose them — the agent went past its scripted paths using schemas
       it read at runtime.</p>
-      <p>That is the payoff for exposing all 40 rather than a curated subset. It is also the
-      strongest argument against trimming the list too aggressively.</p>
+      <p>That is the payoff for broad exposure rather than a curated subset, and the strongest
+      argument against trimming the <em>read</em> tools too aggressively.</p>
+      <p>It cuts both ways. The same willingness to improvise is what put ten kilos of potatoes in a
+      real cart — so reads stay broad and writes are withheld, rather than one policy for both.</p>
     </div>
   </section>
 
