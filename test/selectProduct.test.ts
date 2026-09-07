@@ -136,6 +136,55 @@ describe('violatesRestrictions', () => {
     expect(violatesRestrictions('Картопля молода', ['риба'])).toBe(false);
   });
 
+  /**
+   * The «ковбаса» case. Composition is not available anywhere in the API — checked directly:
+   * silpo_get_product_details returns country, brand, seller and nutrition, and no product in any
+   * category carries an ingredient list. So a sausage counts as containing the restricted meat
+   * unless its name positively names a different one.
+   */
+  describe('composite meat products whose name hides what is in them', () => {
+    it('excludes a sausage that does not say what meat it is', () => {
+      for (const name of [
+        'Ковбаса «Премія»® Українська с/к в/ґ, нарізка',
+        'Ковбаса «Алан» «Брауншвейгська» с/к в/ґ',
+        'Ковбаса Salsus Лікарська варена н/о в/ґ порційна',
+        'Сосиски М\'ясний хутір Молочні н/о в/ґ',
+        'Салямі Золотиста с/к в/ґ',
+        'Паштет печінковий',
+      ]) {
+        expect(violatesRestrictions(name, ['свинина'])).toBe(true);
+      }
+    });
+
+    it('allows one that names a permitted meat', () => {
+      // Over-exclusion is the safer error, but a positively identified meat must still get through
+      // or «без свинини» would empty the entire sausage aisle.
+      expect(violatesRestrictions('Ковбаса куряча варена', ['свинина'])).toBe(false);
+      expect(violatesRestrictions('Сосиски індичі', ['свинина'])).toBe(false);
+      expect(violatesRestrictions('Ковбаса яловича с/к', ['свинина'])).toBe(false);
+      expect(violatesRestrictions('Ковбаса веганська соєва', ['свинина'])).toBe(false);
+    });
+
+    it('still excludes a sausage that names the very meat being avoided', () => {
+      // The named meat clears a product only when it DIFFERS from the restricted one. «тунця» is
+      // the inflected form the synonym list misses, so this case reaches the composite rule rather
+      // than being caught by a literal match first — which is what makes it a real test of it.
+      expect(violatesRestrictions('Ковбаса з тунця', ['риба'])).toBe(true);
+      expect(violatesRestrictions('Ковбаса куряча варена', ['курка'])).toBe(true);
+    });
+
+    it('does not touch non-meat products', () => {
+      // The rule keys off meat restrictions only; a lactose restriction must not swallow bread.
+      expect(violatesRestrictions('Хліб «Кулиничі» тостовий', ['свинина'])).toBe(false);
+      expect(violatesRestrictions('Ковбаса Українська', ['глютен'])).toBe(false);
+    });
+
+    it('catches milk hiding in a sausage name for a lactose restriction', () => {
+      // «Молочні» shares no stem with «молоко» — the two had to be listed separately.
+      expect(violatesRestrictions('Сосиски М\'ясний хутір Молочні н/о в/ґ', ['лактоза'])).toBe(true);
+    });
+  });
+
   it('leaves an unknown restriction as a literal match rather than ignoring it', () => {
     // Nothing in the synonym table covers this, so it must still behave like the old matcher.
     expect(violatesRestrictions('Кабачок цукіні', ['кабачок'])).toBe(true);

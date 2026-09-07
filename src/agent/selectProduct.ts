@@ -223,9 +223,7 @@ export function hasStockHeadroom(p: ProductCandidate): boolean {
  * stems rather than whole words because Ukrainian inflects heavily («шинка», «шинки», «шинкою»).
  *
  * Deliberately conservative. Over-exclusion costs the user a miss they can see and correct;
- * under-exclusion serves them the thing they cannot eat, silently. Where a term is genuinely
- * ambiguous it is left OUT rather than guessed: «ковбаса» is usually but not always pork, and
- * «ребра» are as often beef, so neither is expanded — see the known gap in the module doc.
+ * under-exclusion serves them the thing they cannot eat, silently.
  */
 const RESTRICTION_SYNONYMS: Record<string, string[]> = {
   свин: ['свин', 'сало', 'шинк', 'бекон', 'буженин', 'підчерев', 'карбонад', 'шпик', 'корейк', 'грудинк'],
@@ -234,31 +232,96 @@ const RESTRICTION_SYNONYMS: Record<string, string[]> = {
   риб: ['риб', 'оселедець', 'лосось', 'тунец', 'скумбрі', 'форел', 'хек', 'мінтай', 'кільк', 'шпрот'],
   горіх: ['горіх', 'арахіс', 'мигдал', 'фундук', 'кешʼю', "кеш'ю", 'кешю', 'фісташк'],
   арахіс: ['арахіс', 'арахісов'],
-  лактоз: ['молок', 'вершк', 'сметан', 'кефір', 'йогурт', 'ряжанк', 'сир '],
+  // «молоч» as well as «молок»: «Сосиски Молочні» is a lactose risk and the two stems don't overlap.
+  лактоз: ['молок', 'молоч', 'вершк', 'сметан', 'кефір', 'йогурт', 'ряжанк', 'сир '],
   глютен: ['пшенич', 'борошн', 'макарон', 'хліб', 'булк', 'манк', 'висівк'],
   гриб: ['гриб', 'печериц', 'глив'],
 };
 
+/** Restriction keys that name a meat, and so trigger the composite-product rule below. */
+const MEAT_RESTRICTION_KEYS = new Set(['свин', 'ялович', 'курк', 'риб']);
+
+/**
+ * Product forms made of meat that the name does not identify.
+ *
+ * «Ковбаса «Премія» Українська» is pork; «Ковбаса куряча» is not; and nothing in the catalogue
+ * distinguishes them for us. `silpo_get_product_details` was checked directly for this and carries
+ * only country, brand, seller and nutrition (energy/protein/fat/carbs) — there is NO ingredient or
+ * composition field on any product, in any category. So the composition simply cannot be looked up.
+ */
+const AMBIGUOUS_MEAT_FORMS = [
+  'ковбас',
+  'сосиск',
+  'сардельк',
+  'салям',
+  'паштет',
+  'зельц',
+  'сальтисон',
+  'шпикачк',
+  'ліверн',
+  'нарізка м',
+];
+
+/** Meats a product name can positively identify, keyed to the restriction they correspond to. */
+const NAMED_MEATS: { key: string; stems: string[] }[] = [
+  { key: 'свин', stems: ['свин'] },
+  { key: 'ялович', stems: ['ялович', 'телятин'] },
+  { key: 'курк', stems: ['курк', 'куряч', 'курин'] },
+  { key: 'індич', stems: ['індич', 'індик'] },
+  { key: 'риб', stems: ['риб', 'лосос', 'тунц', 'оселедц'] },
+  { key: 'вегет', stems: ['вегет', 'веган', 'соєв', 'рослинн'] },
+];
+
+/** Which synonym keys a user's phrase invokes — «без свинини» and «свинина» both give `свин`. */
+function restrictionKeysFor(phrase: string): string[] {
+  return Object.keys(RESTRICTION_SYNONYMS).filter((key) => phrase.includes(key));
+}
+
 /**
  * Every stem a single restriction phrase should exclude: the phrase itself, plus the synonyms of
- * any key it starts with.
+ * any key it contains.
  */
 export function expandRestriction(restriction: string): string[] {
   const phrase = restriction.toLowerCase().trim();
   if (phrase.length === 0) return [];
 
   const stems = new Set<string>([phrase]);
-  for (const [key, synonyms] of Object.entries(RESTRICTION_SYNONYMS)) {
-    // The phrase may be a bare term («свинина») or a sentence («без свинини»), so look for the
-    // key anywhere in it rather than only at the start.
-    if (phrase.includes(key)) for (const s of synonyms) stems.add(s);
+  for (const key of restrictionKeysFor(phrase)) {
+    for (const s of RESTRICTION_SYNONYMS[key] ?? []) stems.add(s);
   }
   return [...stems];
 }
 
+/**
+ * True for a composite meat product whose name does not rule the restricted meat out.
+ *
+ * This is the «ковбаса» case, and it is decided the only way it can be: since composition is not
+ * available anywhere in the API, a sausage is treated as containing the restricted meat UNLESS its
+ * name positively names a different one. «Ковбаса куряча» passes; «Ковбаса Українська» does not.
+ *
+ * The asymmetry is deliberate and matches the rest of this module: an unnecessary exclusion shows
+ * up as «не знайшли», which the user can see and work around, while a wrong inclusion silently
+ * serves someone the meat they told us they do not eat. For a stated dietary restriction, refusing
+ * to guess is the correct behaviour — and it is honest about what we actually know.
+ */
+export function isUnverifiableMeat(name: string, restrictedKey: string): boolean {
+  const haystack = name.toLowerCase();
+  if (!MEAT_RESTRICTION_KEYS.has(restrictedKey)) return false;
+  if (!AMBIGUOUS_MEAT_FORMS.some((form) => haystack.includes(form))) return false;
+  // Cleared only by a positively named meat that is NOT the restricted one.
+  return !NAMED_MEATS.some(
+    (meat) => meat.key !== restrictedKey && meat.stems.some((stem) => haystack.includes(stem)),
+  );
+}
+
 export function violatesRestrictions(name: string, restrictions: string[] = []): boolean {
   const haystack = name.toLowerCase();
-  return restrictions.some((r) => expandRestriction(r).some((stem) => haystack.includes(stem)));
+  return restrictions.some((r) => {
+    const phrase = r.toLowerCase().trim();
+    if (phrase.length === 0) return false;
+    if (expandRestriction(phrase).some((stem) => haystack.includes(stem))) return true;
+    return restrictionKeysFor(phrase).some((key) => isUnverifiableMeat(name, key));
+  });
 }
 
 /**

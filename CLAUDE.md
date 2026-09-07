@@ -144,6 +144,19 @@ Two rules that are load-bearing:
 Silpo's `silpo_get_my_food_restrictions` came back **empty** on a real linked account, which is why
 `user_facts` exists at all — the field is there but nobody fills it in.
 
+**Restrictions are matched by food, not by word** (`selectProduct.ts`). A literal substring match
+asks whether a product is *named* after the forbidden thing rather than whether it *is* it, and
+pork reaches the catalogue almost entirely as сало / шинка / бекон / буженина. Two mechanisms:
+
+- `expandRestriction()` — a stem table per restriction (pork, beef, chicken, fish, nuts, lactose,
+  gluten, mushrooms). Unknown restrictions still match literally.
+- `isUnverifiableMeat()` — composite products (ковбаса, сосиски, салямі, паштет…) count as
+  containing the restricted meat **unless the name positively names a different one**. There is no
+  way to check: `silpo_get_product_details` carries only country, brand, seller and nutrition —
+  **no product in any category has an ingredient list**, so composition cannot be looked up. Since
+  the rule demotes rather than excludes, in practice selection falls through to a candidate that
+  does name its meat («Ковбаса з філе індички»), rather than producing a miss.
+
 `/logout` retracts all facts along with the message history: allergies are health data, and the
 next person to link this chat must not inherit them.
 
