@@ -157,7 +157,7 @@ export async function resolveIngredients(
   mcp: SilpoMcpClient,
   cartContext: CartContext,
   menu: Menu,
-  opts: { restrictions?: string[]; preferCheapest?: boolean } = {},
+  opts: { restrictions?: string[]; preferCheapest?: boolean; skipProcessedFormPenalty?: boolean } = {},
 ): Promise<ResolutionResult> {
   if (!cartContext.timeslot) {
     // The 🔒 batch-search tool requires timeslotStart/End; without them every call would fail
@@ -210,6 +210,7 @@ export async function resolveIngredients(
     const picked = selectProduct(want.name, candidates, {
       restrictions: opts.restrictions,
       preferCheapest: opts.preferCheapest,
+      skipProcessedFormPenalty: opts.skipProcessedFormPenalty,
     });
 
     if (picked) {

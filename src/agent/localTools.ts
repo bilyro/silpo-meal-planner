@@ -3,7 +3,8 @@ import { z } from 'zod';
 import * as repo from '../db/repo.js';
 import type { SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import { ensureCartContext } from './cartContext.js';
-import { FACT_KINDS, kindLabel } from './memory.js';
+import { FACT_KINDS, hardRestrictions, kindLabel } from './memory.js';
+import { resolveIngredients } from './resolveIngredients.js';
 import { saveSession, type SessionState } from './session.js';
 
 const proposeMenuInput = z.object({
@@ -13,6 +14,18 @@ const proposeMenuInput = z.object({
       day: z.number().int().positive(),
       dish: z.string(),
       ingredients: z.array(z.object({ name: z.string(), qty: z.string() })),
+    }),
+  ),
+});
+
+const extraItemsInput = z.object({
+  items: z.array(
+    z.object({
+      name: z.string().min(1).describe('Назва товару, як її назвав користувач, напр. «чіпси» або «пиво».'),
+      qty: z
+        .string()
+        .optional()
+        .describe('Кількість, якщо користувач її назвав, напр. «2 шт» або «1 упаковка». Інакше не вказуй.'),
     }),
   ),
 });
@@ -69,6 +82,59 @@ export async function applyResolution(
   state.cartWritten = false;
   await saveSession(userId, state);
   return totals;
+}
+
+export interface AddExtraItemsResult {
+  added: ResolvedItems;
+  misses: string[];
+  totals: Totals;
+}
+
+/**
+ * Adds ad-hoc items the user asked for outside the meal plan's own ingredients (spec: "додай
+ * чіпси і пиво") — appended to `state.resolvedItems`, never a replacement of it.
+ *
+ * The model supplies ONLY names + free-text quantities, exactly the same shape `propose_menu`
+ * uses for recipe ingredients. It is never asked for — and never allowed to supply — a productId
+ * or price: those come solely from `resolveIngredients()` against the live catalogue, the same
+ * function and the same selection heuristic the confirmed-menu path already uses (`bot.ts`'s
+ * `menu_confirm` handler). This is the same "never trust the model to retype tool-sourced data"
+ * rule `finishWithCheckout` and `applyResolution`'s `cartWritten` reset already enforce elsewhere:
+ * the model names NEW inputs, code resolves them for real and appends the result.
+ *
+ * Reuses `applyResolution` for the totals/stage/`cartWritten` bookkeeping over the COMBINED list,
+ * so an old resolution's numbers are never retyped by hand and a stale cart-write flag cannot
+ * survive a list that has since grown.
+ */
+export async function addExtraItems(
+  userId: number,
+  state: SessionState,
+  mcp: SilpoMcpClient,
+  wanted: { name: string; qty?: string }[],
+): Promise<AddExtraItemsResult> {
+  if (!state.cartContext?.timeslot) {
+    throw new Error('Cart context has no timeslot — call ensure_cart_context before adding extra items');
+  }
+
+  const restrictions = await hardRestrictions(userId, state);
+  // One synthetic "dish" holding every requested name — the same shape resolveIngredients()
+  // already flattens menu ingredients from, so extra items go through IDENTICAL selection code
+  // instead of a second, divergent implementation.
+  const syntheticMenu: SessionState['menu'] = [
+    { day: 0, dish: 'додаткові товари', ingredients: wanted.map((w) => ({ name: w.name, qty: w.qty ?? '' })) },
+  ];
+
+  const { items: newItems, misses } = await resolveIngredients(mcp, state.cartContext, syntheticMenu, {
+    ...(restrictions.length > 0 ? { restrictions } : {}),
+    // "чіпси" and "пиво" are exactly the processed/snack forms selectProduct normally demotes in
+    // favour of a raw cooking ingredient — wrong here, since the processed form IS what was asked
+    // for. See SelectionOptions.skipProcessedFormPenalty in selectProduct.ts.
+    skipProcessedFormPenalty: true,
+  });
+
+  const combined = [...(state.resolvedItems ?? []), ...newItems];
+  const totals = await applyResolution(userId, state, combined);
+  return { added: newItems, misses, totals };
 }
 
 interface CartByIdResult {
@@ -215,6 +281,23 @@ export function localTools(userId: number, state: SessionState, mcp: SilpoMcpCli
       execute: async ({ items }) => {
         const totals = await applyResolution(userId, state, items);
         return { ok: true, totals };
+      },
+    }),
+
+    // Ad-hoc items OUTSIDE the meal plan's own ingredients — "додай чіпси і пиво". Input is names
+    // + free-text quantities ONLY: no price, no productId, so the model cannot retype (and
+    // subtly corrupt) tool-sourced numbers the way record_resolution's full-list replacement
+    // would risk. See addExtraItems() above for the resolution + append + totals bookkeeping.
+    add_extra_items: tool({
+      description:
+        'Додає до вже підібраного списку товари, яких НЕ було в меню — те, що користувач попросив ' +
+        'окремо («додай чіпси і пиво», «ще купи вологі салфетки»). Викликай ЛИШЕ назви й кількість, ' +
+        'якщо користувач її назвав — товар і ціну підбирає код за живим каталогом. НЕ вигадуй ' +
+        'productId чи ціну. Контекст кошика (ensure_cart_context) має вже існувати.',
+      inputSchema: extraItemsInput,
+      execute: async ({ items }) => {
+        const { added, misses, totals } = await addExtraItems(userId, state, mcp, items);
+        return { ok: true, added, misses, totals };
       },
     }),
 

@@ -40,6 +40,17 @@ export interface SelectionOptions {
    * relaxed: cheap is not a reason to buy the wrong food.
    */
   preferCheapest?: boolean;
+  /**
+   * Skip the raw-over-processed demotion (`isProcessedForm` below) entirely.
+   *
+   * That demotion exists to stop a search for a RAW cooking ingredient (e.g. «картопля») from
+   * being satisfied by a processed substitute (frozen fries) when a real potato is also on offer.
+   * It backfires when the processed form is what was actually asked for — an ad-hoc request like
+   * «додай чіпси» means the literal snack, and `PROCESSED_FORM_MARKERS` includes `'чіпси'` itself,
+   * so without this flag the tool would demote the exact product the user named. Set this for
+   * extra-item requests, where there is no raw ingredient in play to protect.
+   */
+  skipProcessedFormPenalty?: boolean;
 }
 
 export interface Selection {
@@ -83,6 +94,11 @@ const SYNONYMS: Record<string, string[]> = {
   буряк: ['бурак'],
   квасоля: ['фасол'],
   олія: ['олив'],
+  // The catalogue spells this «чипси» (и), not the standard Ukrainian «чіпси» (і) the add_extra_items
+  // feature's own canonical example types. Live-verified: silpo_find_products_batch("чіпси") already
+  // returns 8 real chip listings, but the stem check rejected every one because "чіпс" never appears
+  // as a substring of "чипси" — a real catalogue-spelling mismatch, not a search-relevance problem.
+  чіпси: ['чипс'],
 };
 
 /** Query stems to try for one word: the word's own stem plus any synonym stems. */
@@ -368,7 +384,7 @@ export function selectProduct(
       isPromo: isPromo(product),
       unitPrice: unitPrice(product),
       headMatch: matchesHeadNoun(query, product.name),
-      processed: isProcessedForm(query, product.name),
+      processed: options.skipProcessedFormPenalty ? false : isProcessedForm(query, product.name),
       headroom: hasStockHeadroom(product),
     }))
     .sort((a, b) => {

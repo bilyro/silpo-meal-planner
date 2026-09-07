@@ -225,6 +225,14 @@ describe('matchesQuery', () => {
     expect(matchesQuery('курячий', 'Філе куряче')).toBe(true);
   });
 
+  it('matches «чіпси» against the catalogue\'s «чипси» spelling', () => {
+    // Live-verified: the real catalogue spells this «чипси» (и), not the standard Ukrainian «чіпси»
+    // (і) — silpo_find_products_batch("чіпси") returns real chip listings, but without this
+    // synonym the plain stem check rejects every one, since «чіпс» is never a literal substring
+    // of «чипси». Found while verifying the add_extra_items feature's own canonical example.
+    expect(matchesQuery('чіпси', 'Чипси Лавка традицій Джміль яблучні')).toBe(true);
+  });
+
   it('stays permissive when every query word is shorter than the 4-char threshold', () => {
     // All words filtered out => no signal to filter on, so nothing is excluded. Deliberate:
     // over-filtering would drop valid hits for short ingredients like «рис» or «сіль».
@@ -318,6 +326,39 @@ describe('selectProduct', () => {
     ];
     expect(selectProduct('куряче філе', all)).toBeUndefined();
     expect(selectProduct('куряче філе', [])).toBeUndefined();
+  });
+});
+
+describe('selectProduct — skipProcessedFormPenalty', () => {
+  // Regression for the extra-items feature ("додай чіпси і пиво"): PROCESSED_FORM_MARKERS
+  // includes 'чіпси' itself, but hasMarker() already exempts a marker that also appears in the
+  // QUERY, so a bare "чіпси" search was never at risk from that particular marker. The real risk
+  // is a DIFFERENT marker showing up in the fuller product name — here 'снек' — which still
+  // demotes a legitimate, cheaper chips listing behind a pricier one with a plainer name.
+  it('demotes a "снек"-tagged listing behind a plainer one by default, even though it is cheaper', () => {
+    const plain = product({ name: 'Чіпси Lux Original', price: 50 });
+    const snackTagged = product({ name: 'Чіпси Lux снек картопляний', price: 40 });
+
+    expect(selectProduct('чіпси', [plain, snackTagged])?.product.name).toBe(plain.name);
+  });
+
+  it('skips that demotion when the flag is set, so the cheaper listing wins as usual', () => {
+    const plain = product({ name: 'Чіпси Lux Original', price: 50 });
+    const snackTagged = product({ name: 'Чіпси Lux снек картопляний', price: 40 });
+
+    const picked = selectProduct('чіпси', [plain, snackTagged], { skipProcessedFormPenalty: true });
+    expect(picked?.product.name).toBe(snackTagged.name);
+  });
+
+  it('still applies restrictions and availability even with the flag set', () => {
+    const forbidden = product({ name: 'Чіпси зі смаком бекону', price: 30 });
+    const allowed = product({ name: 'Чіпси Lux Original', price: 50 });
+
+    const picked = selectProduct('чіпси', [forbidden, allowed], {
+      restrictions: ['свинина'],
+      skipProcessedFormPenalty: true,
+    });
+    expect(picked?.product.name).toBe(allowed.name);
   });
 });
 
