@@ -16,59 +16,90 @@ import { resolveIngredients } from '../src/agent/resolveIngredients.js';
 import { applyResolution, finishWithCheckout } from '../src/agent/localTools.js';
 
 /**
- * Three days of dinners for two. Day 1 is the menu the bot proposed at 07:11 — the same input that
- * produced 10 kg of potatoes — kept deliberately so the regression stays covered. Days 2 and 3
- * exist to carry the basket over Silpo's 799 грн minimum, below which `checkoutWebLink` is absent
- * rather than empty.
+ * Two days of full meals — сніданок, обід, вечеря — for two people.
  *
- * Note that `цибуля` appears on two days: collectIngredients dedupes by name and keeps the LARGEST
- * stated amount rather than summing, because the units are frequently incomparable.
+ * Every ingredient here was checked against the live catalogue with
+ * scripts/probe-ingredients.ts before being used, because plausible-sounding words resolve badly:
+ * «мед» returns blackcurrant jam, «локшина» returns instant ramen, «тріска» returns cod-roe pâté,
+ * and «геркулес» returns frozen dumplings. The phrasings below are the ones that actually land on
+ * the food.
+ *
+ * Several ingredients repeat across meals. collectIngredients dedupes by name and keeps the
+ * LARGEST stated amount rather than summing, because the units are frequently incomparable — so
+ * «яйця 4 шт» wins over «яйця 2 шт» and one purchase covers both meals.
+ *
+ * «картопля» is still «1 кг»: that is the exact input the model once turned into quantity 10, so
+ * keeping it here keeps the regression covered on every run.
  */
 const MENU = [
+  // ---- Day 1 ----
   {
     day: 1,
-    dish: 'Запеканка картопляна з курячим філе',
+    dish: 'Сніданок: сирники зі сметаною та бананом',
     ingredients: [
-      // Bare «картопля» again: selectProduct now ranks the raw potato ahead of «Картопля Aviko
-      // фрі швидкозаморожена», so the phrasing workaround is no longer needed. Still «1 кг», which
-      // keeps the quantity regression that once produced 10 kg of potatoes.
-      { name: 'картопля', qty: '1 кг' },
-      { name: 'куряча грудка', qty: '500 г' },
-      { name: 'цибуля', qty: '2 шт' },
+      { name: 'сир кисломолочний', qty: '400 г' },
+      { name: 'яйця', qty: '2 шт' },
+      { name: 'борошно', qty: '100 г' },
       { name: 'сметана', qty: '200 мл' },
-      { name: 'сир твердий', qty: '200 г' },
-      { name: 'масло вершкове', qty: '100 г' },
+      { name: 'банан', qty: '2 шт' },
+      { name: 'цукор', qty: '50 г' },
+    ],
+  },
+  {
+    day: 1,
+    dish: 'Обід: курячий суп з картоплею',
+    ingredients: [
+      { name: 'куряче стегно', qty: '600 г' },
+      { name: 'картопля', qty: '1 кг' },
+      { name: 'морква', qty: '200 г' },
+      { name: 'цибуля', qty: '2 шт' },
+      { name: 'петрушка', qty: '1 пучок' },
+    ],
+  },
+  {
+    day: 1,
+    dish: 'Вечеря: запечений хек з гарбузом',
+    ingredients: [
+      { name: 'хек', qty: '500 г' },
+      { name: 'гарбуз', qty: '400 г' },
+      { name: 'олія оливкова', qty: '50 мл' },
+      { name: 'лимон', qty: '1 шт' },
+    ],
+  },
+  // ---- Day 2 ----
+  {
+    day: 2,
+    dish: 'Сніданок: омлет з помідорами та сиром',
+    ingredients: [
+      { name: 'яйця', qty: '4 шт' },
+      { name: 'молоко', qty: '100 мл' },
+      { name: 'помідори', qty: '200 г' },
+      { name: 'сир твердий', qty: '100 г' },
+      { name: 'масло вершкове', qty: '50 г' },
+      { name: 'хліб', qty: '1 шт' },
     ],
   },
   {
     day: 2,
-    dish: 'Паста з лососем у вершковому соусі',
+    dish: 'Обід: паста болоньєзе',
     ingredients: [
       { name: 'спагеті', qty: '400 г' },
-      { name: 'лосось', qty: '300 г' },
-      { name: 'вершки', qty: '200 мл' },
-      // «часник» is back: it now resolves to «Часник білий фасований» rather than the granulated
-      // powder. «сир пармезан» stays out — nothing in the catalogue matches it at all — so the
-      // pasta reuses day 1's hard cheese, which collectIngredients dedupes to one line. That is
-      // right: you buy one block of cheese for the week.
+      { name: 'фарш яловичий', qty: '500 г' },
+      { name: 'помідори', qty: '400 г' },
+      { name: 'цибуля', qty: '2 шт' },
       { name: 'часник', qty: '3 зубчики' },
       { name: 'сир твердий', qty: '100 г' },
-      { name: 'олія оливкова', qty: '50 мл' },
     ],
   },
   {
-    day: 3,
-    dish: 'Овочеве рагу з куркою та печерицями',
+    day: 2,
+    dish: 'Вечеря: салат з лососем',
     ingredients: [
-      { name: 'куряче стегно', qty: '600 г' },
-      { name: 'морква', qty: '300 г' },
-      // «кабачок» is deliberately still absent: the only catalogue match is «Пюре Gerber кабачок»,
-      // which selectProduct now rejects outright, so it would resolve to an honest miss.
-      { name: 'печериці', qty: '300 г' },
-      { name: 'гарбуз', qty: '400 г' },
-      { name: 'помідори', qty: '400 г' },
-      { name: 'цибуля', qty: '2 шт' },
-      { name: 'рис', qty: '300 г' },
+      { name: 'лосось', qty: '200 г' },
+      { name: 'салат айсберг', qty: '1 шт' },
+      { name: 'огірки', qty: '2 шт' },
+      { name: 'помідори', qty: '200 г' },
+      { name: 'олія оливкова', qty: '30 мл' },
     ],
   },
 ];
