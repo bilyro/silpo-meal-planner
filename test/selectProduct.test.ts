@@ -137,6 +137,19 @@ describe('violatesRestrictions', () => {
   });
 
   /**
+   * Ukrainian inflects these fish names irregularly — the nominative ending is REPLACED, not
+   * appended (лосось→лосося, оселедець→оселедця, мінтай→мінтаю), so a stem copied from the
+   * nominative word does not match the inflected form as a substring. «Філе лосося» previously
+   * came back `false` under a стated fish allergy — the exact under-exclusion this feature exists
+   * to prevent, and worse than a plain miss because it is silent.
+   */
+  it('matches fish names through their inflected forms, not just the nominative', () => {
+    expect(violatesRestrictions('Філе лосося', ['риба'])).toBe(true);
+    expect(violatesRestrictions('Стейк з оселедця', ['риба'])).toBe(true);
+    expect(violatesRestrictions('Філе мінтаю', ['риба'])).toBe(true);
+  });
+
+  /**
    * The «ковбаса» case. Composition is not available anywhere in the API — checked directly:
    * silpo_get_product_details returns country, brand, seller and nutrition, and no product in any
    * category carries an ingredient list. So a sausage counts as containing the restricted meat
@@ -165,12 +178,25 @@ describe('violatesRestrictions', () => {
       expect(violatesRestrictions('Ковбаса веганська соєва', ['свинина'])).toBe(false);
     });
 
+    it('lets a mackerel pâté clear an unrelated pork restriction', () => {
+      // «скумбрі» must positively identify the meat as fish-not-pork, or an unnamed-meat sausage
+      // rule ends up excluding fish products under a restriction that has nothing to do with fish.
+      expect(violatesRestrictions('Паштет Hame зі скумбрією', ['свинина'])).toBe(false);
+    });
+
     it('still excludes a sausage that names the very meat being avoided', () => {
-      // The named meat clears a product only when it DIFFERS from the restricted one. «тунця» is
-      // the inflected form the synonym list misses, so this case reaches the composite rule rather
-      // than being caught by a literal match first — which is what makes it a real test of it.
+      // The named meat clears a product only when it DIFFERS from the restricted one.
       expect(violatesRestrictions('Ковбаса з тунця', ['риба'])).toBe(true);
       expect(violatesRestrictions('Ковбаса куряча варена', ['курка'])).toBe(true);
+    });
+
+    it('has a composite-rule backstop even where the stem table already catches the phrase', () => {
+      // «Ковбаса з тунця» above now passes via expandRestriction's own «тунц» stem before
+      // isUnverifiableMeat runs at all, so it stops proving this rule specifically once that stem
+      // exists. «плотва» is a fish with no catalogue presence and therefore no stem anywhere in
+      // RESTRICTION_SYNONYMS, so a sausage naming it can ONLY be excluded by isUnverifiableMeat
+      // treating the sausage as an unnamed meat under a fish restriction.
+      expect(violatesRestrictions('Ковбаса з плотви', ['риба'])).toBe(true);
     });
 
     it('does not touch non-meat products', () => {

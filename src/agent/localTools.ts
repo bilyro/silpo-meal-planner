@@ -153,7 +153,9 @@ export async function finishWithCheckout(
 }
 
 /**
- * Local (non-MCP) tools, spec §6.3 — all four are now present. `state` is mutated in place; the
+ * Local (non-MCP) tools: the spec §6.3 four (`propose_menu`, `ensure_cart_context`,
+ * `record_resolution`, `finish_with_checkout`) plus the durable-memory tools
+ * (`remember_fact`, `forget_fact`, `recall_facts`). `state` is mutated in place; the
  * caller (runAgentTurn) persists it and reads `state.stage` afterwards.
  */
 export function localTools(userId: number, state: SessionState, mcp: SilpoMcpClient): Record<string, Tool> {

@@ -167,9 +167,9 @@ export function registerCommands(bot: Bot) {
     // Drop the conversation too: whoever links this chat next must not inherit the previous
     // account's history, which can name their family, restrictions and addresses. Durable memory
     // goes with it for the same reason, and more urgently — allergies and diets are health data,
-    // and unlike the 12-turn message window they would otherwise persist indefinitely.
+    // so this is a real erase (deleteUserFacts), not the audit-preserving soft-delete /forget uses.
     await repo.deleteMessages(user.id);
-    await repo.deactivateAllUserFacts(user.id);
+    await repo.deleteUserFacts(user.id);
     await ctx.reply('Відʼєднано. Напишіть /start, щоб підʼєднати акаунт знову.');
   });
 

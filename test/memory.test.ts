@@ -17,7 +17,7 @@ import {
 const listUserFacts = vi.mocked(repo.listUserFacts);
 const listRecentPlans = vi.mocked(repo.listRecentPlans);
 
-type Fact = { id: number; kind: string; text: string; source: string };
+type Fact = { id: number; kind: string; text: string; source: 'user' | 'silpo' };
 
 function fact(kind: string, text: string, id = 1): Fact {
   return { id, kind, text, source: 'user' };

@@ -214,16 +214,22 @@ export async function listRecentPlans(userId: number, limit = 5) {
   });
 }
 
+/** Who asserted a fact — same boundary-typing pattern as `ChatRole` above. */
+export type FactSource = 'user' | 'silpo';
+
 /**
  * Durable memory rows (see schema.ts `userFacts`). Only ACTIVE facts are ever read back into a
  * plan: a retracted allergy must stop constraining the menu immediately, while the row survives
  * for audit.
  */
-export async function listUserFacts(userId: number) {
-  return db.query.userFacts.findMany({
+export async function listUserFacts(
+  userId: number,
+): Promise<{ id: number; kind: string; text: string; source: FactSource }[]> {
+  const rows = await db.query.userFacts.findMany({
     where: and(eq(userFacts.userId, userId), eq(userFacts.active, true)),
     orderBy: (f, { asc }) => [asc(f.id)],
   });
+  return rows.map((r) => ({ id: r.id, kind: r.kind, text: r.text, source: r.source as FactSource }));
 }
 
 /**
@@ -235,7 +241,7 @@ export async function addUserFact(entry: {
   userId: number;
   kind: string;
   text: string;
-  source: string;
+  source: FactSource;
 }): Promise<{ created: boolean }> {
   const existing = await db.query.userFacts.findFirst({
     where: and(
@@ -268,4 +274,14 @@ export async function deactivateAllUserFacts(userId: number): Promise<number> {
     .where(and(eq(userFacts.userId, userId), eq(userFacts.active, true)))
     .returning({ id: userFacts.id });
   return updated.length;
+}
+
+/**
+ * Erases every fact row outright — for account disconnect (`/logout`), not for retracting one
+ * fact. `deactivateAllUserFacts` keeps rows for audit, which is right for `/forget` but wrong here:
+ * allergy/diet text must not survive in the database for whoever links this chat next to inherit,
+ * same as `deleteTokens`/`deleteMessages` for the same handler.
+ */
+export async function deleteUserFacts(userId: number): Promise<void> {
+  await db.delete(userFacts).where(eq(userFacts.userId, userId));
 }

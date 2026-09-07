@@ -26,6 +26,7 @@
  */
 
 import * as repo from '../db/repo.js';
+import type { FactSource } from '../db/repo.js';
 
 /**
  * `allergy` and `diet` FILTER products; `dislike`, `preference` and `household` only bias them.
@@ -38,13 +39,13 @@ export const SOFT_KINDS = ['dislike', 'preference', 'household'] as const;
 export const FACT_KINDS = [...HARD_KINDS, ...SOFT_KINDS] as const;
 
 export type FactKind = (typeof FACT_KINDS)[number];
-export type FactSource = 'user' | 'silpo';
+export type { FactSource };
 
 export interface UserFact {
   id: number;
   kind: string;
   text: string;
-  source: string;
+  source: FactSource;
 }
 
 export function isHardKind(kind: string): boolean {
