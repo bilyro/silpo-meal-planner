@@ -43,12 +43,12 @@ async function main() {
     console.log(Object.keys(products[0] ?? {}).sort().join(', '));
     console.log('\nFULL FIRST CANDIDATE:');
     console.log(JSON.stringify(products[0], null, 2));
-    console.log('\nNAMES + any category-ish fields:');
+    console.log('\nNAME | displayRatio | weighted | step | price');
     for (const p of products) {
-      const catish = Object.fromEntries(
-        Object.entries(p).filter(([k]) => /categ|section|group|tag|type|kind|class/i.test(k)),
+      console.log(
+        `  ${String(p.name).slice(0, 52).padEnd(54)} ratio=${String(p.displayRatio).padEnd(8)} ` +
+          `weighted=${String(p.weighted).padEnd(5)} step=${String(p.step).padEnd(5)} ${p.price}`,
       );
-      console.log(`  ${String(p.name).slice(0, 55).padEnd(57)} ${JSON.stringify(catish)}`);
     }
   } finally {
     await mcp.close();

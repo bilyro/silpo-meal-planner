@@ -4,6 +4,7 @@ import {
   isAvailable,
   isPromo,
   matchesQuery,
+  packMass,
   selectProduct,
   unitPrice,
   violatesRestrictions,
@@ -397,5 +398,61 @@ describe('piece counts against multi-packs', () => {
     for (const text of ['за смаком', '', '400 г']) {
       expect(computeQuantity(text, eggs())).toBe(1);
     }
+  });
+});
+
+/**
+ * The mirror of the egg case: a recipe states a MASS and the catalogue sells packages.
+ * `displayRatio` carries the package size on non-weighted goods ("220г" tub, "0,7кг" pasta pack) —
+ * verified against live data with scripts/probe-raw.ts, including that pasta really is sold in
+ * 400–700 g packs rather than priced per 100 g.
+ */
+describe('recipe masses against packaged goods', () => {
+  const tub = (ratio: string, overrides: Partial<ProductCandidate> = {}) =>
+    product({ name: 'Сир кисломолочний President', price: 66.99, displayRatio: ratio, step: 1, ...overrides });
+
+  it('buys two tubs when the recipe needs more than one holds', () => {
+    expect(computeQuantity('400 г', tub('220г'))).toBe(2);
+  });
+
+  it('buys one when a single package covers it', () => {
+    expect(computeQuantity('200 г', tub('220г'))).toBe(1);
+    expect(computeQuantity('220 г', tub('220г'))).toBe(1);
+  });
+
+  it('reads кг and л package sizes, including a comma decimal', () => {
+    // «Вироби макаронні «Повна Чаша»® вермішель спагеті» really is listed as 0,7кг.
+    expect(computeQuantity('400 г', tub('0,7кг'))).toBe(1);
+    expect(computeQuantity('1 кг', tub('0,7кг'))).toBe(2);
+    expect(computeQuantity('200 мл', tub('1л'))).toBe(1);
+    expect(computeQuantity('1.5 л', tub('1л'))).toBe(2);
+  });
+
+  it('treats millilitres and grams as interchangeable', () => {
+    // Close enough for milk and cream, and the only sensible reading of «200 мл» in a recipe.
+    expect(computeQuantity('500 мл', tub('250г'))).toBe(2);
+  });
+
+  it('falls back to one package when there is no usable ratio', () => {
+    expect(computeQuantity('400 г', tub('10шт'))).toBe(1);
+    expect(computeQuantity('400 г', tub(''))).toBe(1);
+    expect(computeQuantity('400 г', product({ name: 'X', price: 1, step: 1 }))).toBe(1);
+  });
+
+  it('never applies a package size to a weighted product', () => {
+    // On weighted goods displayRatio is a PRICE BASIS, not a package. Reading «Часник» ratio "100г"
+    // as a pack size is the mistake that once quoted 1370 грн for garlic.
+    const garlic = product({ name: 'Часник', price: 274, weighted: true, step: 0.1, displayRatio: '100г' });
+    expect(packMass(garlic)).toBeUndefined();
+    expect(computeQuantity('300 г', garlic)).toBe(0.3);
+  });
+
+  it('still caps at stock', () => {
+    expect(computeQuantity('2 кг', tub('220г', { stock: 3 }))).toBe(3);
+  });
+
+  it('leaves piece counts to the piece rules', () => {
+    expect(computeQuantity('4 шт', tub('10шт'))).toBe(1);
+    expect(computeQuantity('2 шт', tub('220г'))).toBe(2);
   });
 });

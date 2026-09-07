@@ -278,6 +278,25 @@ export function packPieces(p: ProductCandidate): number | undefined {
   return Number.isFinite(n) && n > 1 ? n : undefined;
 }
 
+/**
+ * How much one package holds, in grams, read from `displayRatio` — "220г" on a tub of cottage
+ * cheese, "0,7кг" on a pack of spaghetti. Millilitres are counted as grams, which is close enough
+ * for milk and cream and is the only sensible reading of a recipe's «200 мл».
+ *
+ * ONLY meaningful for non-weighted goods, and the caller must enforce that. On a *weighted*
+ * product the same field is a price basis, not a package: «Часник» carries displayRatio "100г"
+ * alongside a per-kilogram price, and reading that as a pack size is the mistake that once quoted
+ * 1370 грн for garlic (see unitPrice above).
+ */
+export function packMass(p: ProductCandidate): number | undefined {
+  if (p.weighted) return undefined;
+  const m = /^([\d.,]+)\s*(кг|г|л|мл)$/i.exec((p.displayRatio ?? '').trim());
+  const n = m?.[1] ? Number(m[1].replace(',', '.')) : NaN;
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  const unit = m?.[2]?.toLowerCase();
+  return unit === 'кг' || unit === 'л' ? n * 1000 : n;
+}
+
 export function computeQuantity(qtyText: string, p: ProductCandidate): number {
   const step = typeof p.step === 'number' && p.step > 0 ? p.step : undefined;
   const m = /([\d.,]+)\s*([\p{L}.]+)?/u.exec(qtyText.trim());
@@ -306,8 +325,19 @@ export function computeQuantity(qtyText: string, p: ProductCandidate): number {
     return round3(capToStock(kg, p, stepSize));
   }
 
+  // A stated MASS of a packaged good: «сир кисломолочний 400 г» against a 220 г tub is two tubs,
+  // not one. Without this the recipe silently came up short — the mirror of the egg bug below,
+  // and less costly, but still the wrong shopping list.
+  if (Number.isFinite(amount) && isMass) {
+    const perPackageMass = packMass(p);
+    if (perPackageMass) {
+      const wantedGrams = unit === 'кг' || unit === 'л' ? amount * 1000 : amount;
+      return capToStock(Math.max(Math.ceil(wantedGrams / perPackageMass), 1), p, 1);
+    }
+  }
+
   // How many individual items the recipe asks for («4 шт» → 4), defaulting to one package for
-  // anything unparseable or non-countable («за смаком», «400 г» of a packaged good).
+  // anything unparseable or non-countable («за смаком», or a mass with no package size to divide by).
   const wantedPieces = Number.isFinite(amount) && isPieces ? Math.max(Math.ceil(amount), 1) : 1;
   // Then convert pieces to packages when the package holds more than one. Rounded UP: four eggs
   // from a carton of ten is one carton, twelve is two.
