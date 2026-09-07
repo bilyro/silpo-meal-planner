@@ -15,7 +15,15 @@ import { ensureCartContext } from '../src/agent/cartContext.js';
 import { resolveIngredients } from '../src/agent/resolveIngredients.js';
 import { applyResolution, finishWithCheckout } from '../src/agent/localTools.js';
 
-/** The menu the bot proposed at 07:11 — the same input that produced 10 kg of potatoes. */
+/**
+ * Three days of dinners for two. Day 1 is the menu the bot proposed at 07:11 — the same input that
+ * produced 10 kg of potatoes — kept deliberately so the regression stays covered. Days 2 and 3
+ * exist to carry the basket over Silpo's 799 грн minimum, below which `checkoutWebLink` is absent
+ * rather than empty.
+ *
+ * Note that `цибуля` appears on two days: collectIngredients dedupes by name and keeps the LARGEST
+ * stated amount rather than summing, because the units are frequently incomparable.
+ */
 const MENU = [
   {
     day: 1,
@@ -27,6 +35,30 @@ const MENU = [
       { name: 'сметана', qty: '200 мл' },
       { name: 'сир твердий', qty: '200 г' },
       { name: 'масло вершкове', qty: '100 г' },
+    ],
+  },
+  {
+    day: 2,
+    dish: 'Паста з лососем у вершковому соусі',
+    ingredients: [
+      { name: 'спагеті', qty: '400 г' },
+      { name: 'лосось', qty: '300 г' },
+      { name: 'вершки', qty: '200 мл' },
+      { name: 'часник', qty: '3 зубчики' },
+      { name: 'сир пармезан', qty: '100 г' },
+      { name: 'олія оливкова', qty: '50 мл' },
+    ],
+  },
+  {
+    day: 3,
+    dish: 'Овочеве рагу з куркою',
+    ingredients: [
+      { name: 'куряче стегно', qty: '600 г' },
+      { name: 'морква', qty: '300 г' },
+      { name: 'кабачок', qty: '1 шт' },
+      { name: 'помідори', qty: '400 г' },
+      { name: 'цибуля', qty: '2 шт' },
+      { name: 'рис', qty: '300 г' },
     ],
   },
 ];
