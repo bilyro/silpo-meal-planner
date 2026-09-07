@@ -163,7 +163,7 @@ describe('runAgentTurn on a mid-turn 401', () => {
 
   it('leaves a healthy turn alone', async () => {
     stubMcp(() => {});
-    generateTextMock.mockResolvedValue({ text: 'Ось меню' } as never);
+    generateTextMock.mockResolvedValue({ text: 'Ось меню', steps: [{ toolCalls: [] }] } as never);
 
     const result = await runAgentTurn(42, 'меню на 3 дні');
 

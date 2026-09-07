@@ -1,4 +1,4 @@
-import { generateText, stepCountIs } from 'ai';
+import { generateText, stepCountIs, type Tool } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
@@ -53,6 +53,65 @@ export interface AgentTurnResult {
   totals?: SessionState['totals'];
 }
 
+/**
+ * True when a reply restates a menu in prose the way `propose_menu` skipping forces it to — see
+ * `retryProposeMenuIfSkipped` below. «День N» headers are this bot's own, singular way of writing
+ * a day out; nothing else it does produces that shape, so a false positive here just costs one
+ * wasted corrective call, never a wrong one.
+ */
+export function looksLikeUnconfirmedMenu(text: string): boolean {
+  return /день\s*\d+/i.test(text);
+}
+
+/**
+ * `propose_menu` sometimes gets skipped even though the model goes on to write the full menu in
+ * prose instead — see the header comment on `SYSTEM_PROMPT` in systemPrompt.ts (originally
+ * measured ~1-in-3; a live retest this session got ~1-in-6, still real). Because the confirm/edit
+ * buttons only render when `propose_menu` sets `stage='menu_proposed'` (bot.ts), a skip means the
+ * buttons the reply just told the user to press simply never appear.
+ *
+ * Detected here on the ground truth — whether any step of THIS turn actually called the tool —
+ * rather than reading `state.stage`, which could already read `'menu_proposed'` from an earlier,
+ * unrelated turn regardless of what just happened.
+ *
+ * Fixed with a forced follow-up call rather than a stronger prompt: prompting alone already fell
+ * short of 100% reliability once this session (the cart-total hallucination needed a structural
+ * fix after a prompt-only one measurably failed on retest), so this makes the property structural
+ * instead of hoped-for. `toolChoice` forces the tool call; the follow-up is fed the model's OWN
+ * just-written text and told to structure exactly that, not to invent anything new — the same
+ * "code resolves it, the model only supplies inputs" shape as `add_extra_items`.
+ */
+async function retryProposeMenuIfSkipped(
+  state: SessionState,
+  history: { role: 'user' | 'assistant'; content: string }[],
+  userMessage: string,
+  draftText: string,
+  proposeMenuTool: Tool,
+  signal: AbortSignal,
+): Promise<void> {
+  await generateText({
+    model: anthropic(config.AGENT_MODEL),
+    system: SYSTEM_PROMPT,
+    messages: [
+      ...history,
+      { role: 'user', content: userMessage },
+      { role: 'assistant', content: draftText },
+      {
+        role: 'user',
+        content:
+          'Виклич propose_menu з ТОЧНО тим меню, яке ти щойно написав вище — ті самі страви, ' +
+          'інгредієнти й кількості, без змін і без додавань.',
+      },
+    ],
+    tools: { propose_menu: proposeMenuTool },
+    toolChoice: { type: 'tool', toolName: 'propose_menu' },
+    abortSignal: signal,
+  });
+  // propose_menu's own execute() (localTools.ts) sets state.stage/state.menu directly and is
+  // awaited inside generateText, so by the time this resolves either it ran or it didn't — nothing
+  // further to check here. The caller falls back to the original draft if it didn't.
+}
+
 /** spec §6.5: one function per user turn — loads session, runs the tool-calling loop, persists. */
 export async function runAgentTurn(userId: number, userMessage: string): Promise<AgentTurnResult> {
   const state = await loadSession(userId);
@@ -101,10 +160,25 @@ export async function runAgentTurn(userId: number, userMessage: string): Promise
       // something vague and is left with no way to re-link.
       if (mcp.needsAuth) throw mcp.needsAuth;
 
-      // Local tools already mutate `state` and save it themselves; this covers any leftover
-      // mutation (e.g. stage changes not yet persisted) so the DB always reflects the latest turn.
-      await saveSession(userId, state);
       const text = result.text || 'Готово.';
+      const proposedThisTurn = result.steps.some((s) => s.toolCalls?.some((c) => c.toolName === 'propose_menu'));
+      // propose_menu is unconditionally part of localTools()'s return, so this is always defined
+      // in practice — the check exists only to satisfy the index-signature type, not a real gap.
+      const proposeMenuTool = tools.propose_menu;
+      if (!proposedThisTurn && proposeMenuTool && looksLikeUnconfirmedMenu(text)) {
+        try {
+          await retryProposeMenuIfSkipped(state, history, userMessage, text, proposeMenuTool, signal);
+        } catch (err) {
+          // A failed correction must not fail the whole turn — the user still gets the original
+          // (correct-but-unconfirmed) text, exactly the pre-fix behaviour, not an error message.
+          logger.warn({ err, userId }, 'propose_menu retry failed; returning the original draft');
+        }
+      }
+
+      // Local tools already mutate `state` and save it themselves; this covers any leftover
+      // mutation (e.g. stage changes not yet persisted, including the retry above) so the DB
+      // always reflects the latest turn.
+      await saveSession(userId, state);
       // Recorded only on success: a failed turn shouldn't leave a dangling user message with no
       // reply, or persist a generic error string as if the assistant had said something meaningful.
       await repo.appendMessages(userId, [

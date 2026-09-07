@@ -105,7 +105,7 @@ describe('per-turn deadline', () => {
 
   it('leaves a turn that finishes in time untouched, with a live (unaborted) signal', async () => {
     stubMcp();
-    generateTextMock.mockResolvedValue({ text: 'Ось меню' } as never);
+    generateTextMock.mockResolvedValue({ text: 'Ось меню', steps: [{ toolCalls: [] }] } as never);
     vi.useFakeTimers();
 
     const result = await runAgentTurn(42, 'меню на 3 дні');
