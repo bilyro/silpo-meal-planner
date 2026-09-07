@@ -29,12 +29,10 @@ const MENU = [
     day: 1,
     dish: 'Запеканка картопляна з курячим філе',
     ingredients: [
-      // «картопля мита», not «картопля»: the bare word ranks «Картопля Aviko фрі
-      // швидкозаморожена» first (it is on promo and «Картопля» genuinely is the head noun), which
-      // is not what a casserole wants. «мита» echoes a real product name, so it lands on the raw
-      // potato — verified with scripts/probe-ingredients.ts. Still «1 кг», which keeps the
-      // quantity regression that produced 10 kg of potatoes.
-      { name: 'картопля мита', qty: '1 кг' },
+      // Bare «картопля» again: selectProduct now ranks the raw potato ahead of «Картопля Aviko
+      // фрі швидкозаморожена», so the phrasing workaround is no longer needed. Still «1 кг», which
+      // keeps the quantity regression that once produced 10 kg of potatoes.
+      { name: 'картопля', qty: '1 кг' },
       { name: 'куряча грудка', qty: '500 г' },
       { name: 'цибуля', qty: '2 шт' },
       { name: 'сметана', qty: '200 мл' },
@@ -49,10 +47,11 @@ const MENU = [
       { name: 'спагеті', qty: '400 г' },
       { name: 'лосось', qty: '300 г' },
       { name: 'вершки', qty: '200 мл' },
-      // No «часник»: every phrasing tried either misses entirely or lands on granulated garlic
-      // powder. No «сир пармезан» either — nothing in the catalogue matches it, so the pasta uses
-      // the same hard cheese as day 1 (collectIngredients dedupes it to one line, which is right:
-      // you buy one block of cheese for the week).
+      // «часник» is back: it now resolves to «Часник білий фасований» rather than the granulated
+      // powder. «сир пармезан» stays out — nothing in the catalogue matches it at all — so the
+      // pasta reuses day 1's hard cheese, which collectIngredients dedupes to one line. That is
+      // right: you buy one block of cheese for the week.
+      { name: 'часник', qty: '3 зубчики' },
       { name: 'сир твердий', qty: '100 г' },
       { name: 'олія оливкова', qty: '50 мл' },
     ],
@@ -63,7 +62,8 @@ const MENU = [
     ingredients: [
       { name: 'куряче стегно', qty: '600 г' },
       { name: 'морква', qty: '300 г' },
-      // «кабачок» resolved to «Пюре Gerber кабачок» — baby food. Mushrooms resolve cleanly.
+      // «кабачок» is deliberately still absent: the only catalogue match is «Пюре Gerber кабачок»,
+      // which selectProduct now rejects outright, so it would resolve to an honest miss.
       { name: 'печериці', qty: '300 г' },
       { name: 'гарбуз', qty: '400 г' },
       { name: 'помідори', qty: '400 г' },

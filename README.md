@@ -225,6 +225,16 @@ account, not guessed:
 - Search is fuzzy: «куряче філе» returns «Качине філе» (duck). `selectProduct` requires every
   distinguishing query word to appear in the product name, and ranks head-noun matches above promo
   price — buying the wrong food is worse than missing a discount.
+- **The search payload has no category field.** It carries only `available, branchId, companyId,
+  displayRatio, externalProductId, id, image, name, oldPrice, price, slug, specialPrices, step,
+  stock, weighted` (dump one with `npx tsx scripts/probe-raw.ts «кабачок»`). So "is this the
+  ingredient or a processed version of it" has to be read off the name — there is nothing better to
+  key on. `selectProduct` demotes processed forms (`пюре`, `гранульований`, `заморожен`, `в
+  маринаді`, …) beneath the raw item and rejects non-ingredients (`Gerber`, `дитяч`, pet food)
+  outright. Without it «картопля» bought frozen Aviko chips, «часник» bought garlic powder, and
+  «кабачок» bought baby-food purée — each because the processed version leads with the ingredient
+  word *and* was cheaper or on promo. Markers in the **query** are never held against a product, so
+  «томатний сік» and «заморожені овочі» still resolve to exactly that.
 
 ---
 

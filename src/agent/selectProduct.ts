@@ -119,6 +119,70 @@ export function matchesHeadNoun(query: string, name: string): boolean {
   return words.some((w) => head.includes(w.slice(0, Math.max(4, w.length - 2))));
 }
 
+/**
+ * Product forms that are a poor stand-in for a raw ingredient: preserved, dried, powdered, frozen
+ * or pre-cooked versions of the thing.
+ *
+ * Name-based because there is nothing better. The live `find_products_batch` payload carries only
+ * `available, branchId, companyId, displayRatio, externalProductId, id, image, name, oldPrice,
+ * price, slug, specialPrices, step, stock, weighted` — verified with scripts/probe-raw.ts. There is
+ * no category, section or tag field to key off, so the name is the only signal available.
+ *
+ * These demote rather than exclude: frozen vegetables and canned tomatoes are perfectly good
+ * cooking ingredients when nothing fresher exists, and demoting means the raw item wins whenever
+ * one is on offer while the processed one still beats a miss.
+ */
+const PROCESSED_FORM_MARKERS = [
+  'пюре',
+  'сік',
+  'консерв',
+  'стерилізован',
+  'маринован',
+  'в маринаді',
+  'гранульован',
+  'сушен',
+  'сушін',
+  'заморожен',
+  'фрі',
+  'чіпси',
+  'снек',
+  'салат з',
+  'по-домашньому',
+  'млинц',
+  'запіканка',
+  'суп',
+  'соус',
+];
+
+/**
+ * Products that are never a substitute for a cooking ingredient, whatever the price.
+ *
+ * Excluded outright rather than demoted, on the same asymmetry the query filter uses: a miss
+ * surfaces to the user as «не знайшли», whereas a false match silently puts baby food in a stew.
+ * «кабачок» returning only «Пюре Gerber кабачок» should be a miss, not a purchase.
+ */
+const NEVER_AN_INGREDIENT = ['gerber', 'hipp', 'дитяч', 'корм для', 'для собак', 'для котів'];
+
+/**
+ * Markers in the QUERY are never held against the product: someone asking for «томатний сік» or
+ * «заморожені овочі» means it, and «сушені гриби» should not be demoted for being dried.
+ */
+function hasMarker(markers: string[], query: string, name: string): boolean {
+  const q = query.toLowerCase();
+  const n = name.toLowerCase();
+  return markers.some((m) => n.includes(m) && !q.includes(m));
+}
+
+/** True when the product is a processed form of the ingredient rather than the ingredient. */
+export function isProcessedForm(query: string, name: string): boolean {
+  return hasMarker(PROCESSED_FORM_MARKERS, query, name);
+}
+
+/** True when the product is not food-for-cooking at all (baby food, pet food). */
+export function isNeverAnIngredient(query: string, name: string): boolean {
+  return hasMarker(NEVER_AN_INGREDIENT, query, name);
+}
+
 export function violatesRestrictions(name: string, restrictions: string[] = []): boolean {
   const haystack = name.toLowerCase();
   return restrictions.some((r) => r.trim().length > 0 && haystack.includes(r.toLowerCase().trim()));
@@ -157,6 +221,7 @@ export function selectProduct(
     (p) =>
       isAvailable(p) &&
       !violatesRestrictions(p.name, options.restrictions) &&
+      !isNeverAnIngredient(query, p.name) &&
       matchesQuery(query, p.name),
   );
   if (viable.length === 0) return undefined;
@@ -167,12 +232,18 @@ export function selectProduct(
       isPromo: isPromo(product),
       unitPrice: unitPrice(product),
       headMatch: matchesHeadNoun(query, product.name),
+      processed: isProcessedForm(query, product.name),
     }))
     .sort((a, b) => {
       // Head-noun match outranks even a promo: «морква» matched «Сік ... яблуко-морква-гарбуз»
       // (carrot JUICE) and, being on promo, beat actual carrots. Buying the wrong food is worse
       // than missing a discount.
       if (a.headMatch !== b.headMatch) return a.headMatch ? -1 : 1;
+      // Then the raw form ahead of the processed one. Head-noun matching does not separate these:
+      // «Картопля Aviko фрі швидкозаморожена» and «Часник «Премія»® гранульований» both lead with
+      // the ingredient, so both looked like the real thing, and both won on being cheaper or on
+      // promo. Frozen chips are not what a casserole wants, and garlic powder is not three cloves.
+      if (a.processed !== b.processed) return a.processed ? 1 : -1;
       if (a.isPromo !== b.isPromo) return a.isPromo ? -1 : 1;
       return a.unitPrice - b.unitPrice;
     });

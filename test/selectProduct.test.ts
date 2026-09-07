@@ -272,3 +272,77 @@ describe('computeQuantity', () => {
     }
   });
 });
+
+/**
+ * Category filtering. Silpo's search payload carries no category, section or tag field — only
+ * name, price, stock, weighted and friends (verified with scripts/probe-raw.ts) — so "is this the
+ * ingredient or a processed version of it" has to be read off the name.
+ *
+ * All three cases below were live failures on 7 Sept 2026: the query word appears in each product
+ * name and each leads with it, so both the wrong-noun filter and the head-noun rank passed them,
+ * and each then won on being cheaper or on promo.
+ */
+describe('processed forms and non-ingredients', () => {
+  it('prefers the raw potato over frozen chips', () => {
+    const picked = selectProduct('картопля', [
+      product({ name: 'Картопля Aviko Оригінальна фрі швидкозаморожена', price: 199, oldPrice: 249 }),
+      product({ name: 'Картопля рожева мита', price: 36.49, weighted: true, step: 0.1 }),
+    ]);
+    expect(picked?.product.name).toBe('Картопля рожева мита');
+  });
+
+  it('prefers fresh garlic over granulated garlic, despite the powder being cheaper and on promo', () => {
+    const picked = selectProduct('часник', [
+      product({ name: 'Часник «Премія»® гранульований', price: 14.99, oldPrice: 19.99 }),
+      product({ name: 'Часник білий фасований', price: 44.49, weighted: true, step: 0.1 }),
+    ]);
+    expect(picked?.product.name).toBe('Часник білий фасований');
+  });
+
+  it('rejects baby food outright rather than buying it as a vegetable', () => {
+    // «кабачок» returned nothing but this. A miss the user sees beats purée in a stew.
+    expect(selectProduct('кабачок', [product({ name: 'Пюре Gerber кабачок', price: 65.99 })])).toBeUndefined();
+  });
+
+  it('still takes a processed form when it is all there is', () => {
+    // Demotion, not exclusion: canned tomatoes beat no tomatoes.
+    const picked = selectProduct('помідори', [
+      product({ name: 'Томати консервовані Верес', price: 89 }),
+    ]);
+    expect(picked?.product.name).toBe('Томати консервовані Верес');
+  });
+
+  it('does not hold a form against a product the user asked for by that form', () => {
+    // Someone asking for juice means juice; asking for frozen vegetables means frozen.
+    const juice = selectProduct('томатний сік', [
+      product({ name: 'Сік Ніжин томатний прямого віджиму', price: 59.99 }),
+      product({ name: 'Томат Azura Чері круглий', price: 71.99 }),
+    ]);
+    expect(juice?.product.name).toBe('Сік Ніжин томатний прямого віджиму');
+
+    const frozen = selectProduct('заморожені овочі', [
+      product({ name: 'Суміш овочева Лімо швидкозаморожена', price: 99 }),
+    ]);
+    expect(frozen?.product.name).toBe('Суміш овочева Лімо швидкозаморожена');
+  });
+
+  it('keeps head-noun matching as the stronger signal', () => {
+    // A raw item that does not lead with the query word must still lose to one that does; the
+    // processed check is a tiebreak beneath it, not a replacement for it.
+    const picked = selectProduct('морква', [
+      product({ name: 'Сік Galicia Baby яблуко-морква-гарбуз', price: 20 }),
+      product({ name: 'Морква', price: 17.49, weighted: true, step: 0.1 }),
+    ]);
+    expect(picked?.product.name).toBe('Морква');
+  });
+
+  it('is neutral when every candidate shares the marker', () => {
+    // «салат» as an ingredient: if all candidates are salads the demotion cancels out and price
+    // decides, rather than everything being rejected.
+    const picked = selectProduct('салат', [
+      product({ name: 'Салат з капустою свіжий', price: 90 }),
+      product({ name: 'Салат з огірками', price: 60 }),
+    ]);
+    expect(picked?.product.name).toBe('Салат з огірками');
+  });
+});
