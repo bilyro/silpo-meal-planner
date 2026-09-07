@@ -29,7 +29,12 @@ const MENU = [
     day: 1,
     dish: 'Запеканка картопляна з курячим філе',
     ingredients: [
-      { name: 'картопля', qty: '1 кг' },
+      // «картопля мита», not «картопля»: the bare word ranks «Картопля Aviko фрі
+      // швидкозаморожена» first (it is on promo and «Картопля» genuinely is the head noun), which
+      // is not what a casserole wants. «мита» echoes a real product name, so it lands on the raw
+      // potato — verified with scripts/probe-ingredients.ts. Still «1 кг», which keeps the
+      // quantity regression that produced 10 kg of potatoes.
+      { name: 'картопля мита', qty: '1 кг' },
       { name: 'куряча грудка', qty: '500 г' },
       { name: 'цибуля', qty: '2 шт' },
       { name: 'сметана', qty: '200 мл' },
@@ -44,18 +49,23 @@ const MENU = [
       { name: 'спагеті', qty: '400 г' },
       { name: 'лосось', qty: '300 г' },
       { name: 'вершки', qty: '200 мл' },
-      { name: 'часник', qty: '3 зубчики' },
-      { name: 'сир пармезан', qty: '100 г' },
+      // No «часник»: every phrasing tried either misses entirely or lands on granulated garlic
+      // powder. No «сир пармезан» either — nothing in the catalogue matches it, so the pasta uses
+      // the same hard cheese as day 1 (collectIngredients dedupes it to one line, which is right:
+      // you buy one block of cheese for the week).
+      { name: 'сир твердий', qty: '100 г' },
       { name: 'олія оливкова', qty: '50 мл' },
     ],
   },
   {
     day: 3,
-    dish: 'Овочеве рагу з куркою',
+    dish: 'Овочеве рагу з куркою та печерицями',
     ingredients: [
       { name: 'куряче стегно', qty: '600 г' },
       { name: 'морква', qty: '300 г' },
-      { name: 'кабачок', qty: '1 шт' },
+      // «кабачок» resolved to «Пюре Gerber кабачок» — baby food. Mushrooms resolve cleanly.
+      { name: 'печериці', qty: '300 г' },
+      { name: 'гарбуз', qty: '400 г' },
       { name: 'помідори', qty: '400 г' },
       { name: 'цибуля', qty: '2 шт' },
       { name: 'рис', qty: '300 г' },
