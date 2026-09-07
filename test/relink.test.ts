@@ -36,6 +36,9 @@ vi.mock('../src/db/repo.js', () => ({
   appendMessages: vi.fn(async () => {}),
   getSessionState: vi.fn(async () => undefined),
   saveSessionState: vi.fn(async () => {}),
+  // Durable memory (agent/memory.ts) is read on every turn; an empty user remembers nothing.
+  listUserFacts: vi.fn(async () => []),
+  listRecentPlans: vi.fn(async () => []),
 }));
 
 vi.mock('@ai-sdk/anthropic', () => ({ anthropic: vi.fn(() => ({ modelId: 'test-model' })) }));

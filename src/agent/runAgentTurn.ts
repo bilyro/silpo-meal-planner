@@ -6,6 +6,7 @@ import * as repo from '../db/repo.js';
 import { NeedsAuthError, SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import { RELINK_MESSAGE } from '../bot/messages.js';
 import { localTools } from './localTools.js';
+import { formatMemoryBlock, recallMemory } from './memory.js';
 import { repeatLastPlanTool } from './plans.js';
 import { loadSession, saveSession, type SessionState } from './session.js';
 import { SYSTEM_PROMPT } from './systemPrompt.js';
@@ -64,7 +65,16 @@ export async function runAgentTurn(userId: number, userMessage: string): Promise
     return await withDeadline(config.TURN_TIMEOUT_MS, async (signal) => {
       await mcp.connect();
 
-      const history = await repo.getRecentMessages(userId, HISTORY_TURNS);
+      const [history, memory] = await Promise.all([
+        repo.getRecentMessages(userId, HISTORY_TURNS),
+        recallMemory(userId),
+      ]);
+
+      // Durable memory rides in the system prompt rather than the message history: it must survive
+      // past the 12-turn window, and it must not be something the model can "forget" by talking
+      // long enough. It also sits AFTER the static prompt so the cacheable prefix stays stable.
+      const memoryBlock = formatMemoryBlock(memory);
+
       const tools = {
         ...localTools(userId, state, mcp),
         ...repeatLastPlanTool(userId, state),
@@ -72,7 +82,9 @@ export async function runAgentTurn(userId: number, userMessage: string): Promise
       };
       const result = await generateText({
         model: anthropic(config.AGENT_MODEL),
-        system: `${SYSTEM_PROMPT}\n\n<session_state>${JSON.stringify(state)}</session_state>`,
+        system:
+          `${SYSTEM_PROMPT}\n\n<session_state>${JSON.stringify(state)}</session_state>` +
+          (memoryBlock ? `\n\n${memoryBlock}` : ''),
         messages: [...history, { role: 'user', content: userMessage }],
         tools,
         stopWhen: stepCountIs(config.MAX_TOOL_CALLS_PER_TURN),

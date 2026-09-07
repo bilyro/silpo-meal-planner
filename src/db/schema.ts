@@ -73,6 +73,39 @@ export const plans = pgTable('plans', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Durable per-user memory that outlives a planning session: allergies, diets, dislikes,
+ * preferences, household notes.
+ *
+ * This exists because Silpo's own `silpo_get_my_food_restrictions` came back EMPTY on a real
+ * linked account — the field exists but nobody fills it in, so a bot that trusts it alone knows
+ * nothing about what the user cannot eat. Everything the user tells us in chat was previously
+ * forgotten after 12 turns (the `messages` window), which is exactly the wrong lifetime for
+ * "I'm allergic to peanuts".
+ *
+ * `kind` is load-bearing, not a label: `allergy` and `diet` are HARD constraints that filter
+ * products, while `dislike` and `preference` only bias selection. Collapsing the two would let an
+ * allergy degrade into a suggestion, so they are kept apart at the schema level and the split is
+ * enforced in memory.ts.
+ *
+ * `source` records who asserted the fact, so one the model inferred from conversation can be told
+ * apart from one the user stated outright — the same audit reasoning behind `tool_call_log`.
+ *
+ * Rows are deactivated (`active = false`), never deleted, so "I'm not vegetarian any more" stays
+ * traceable rather than silently rewriting history.
+ */
+export const userFacts = pgTable('user_facts', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+  kind: text('kind').notNull(),
+  text: text('text').notNull(),
+  source: text('source').notNull(),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const toolCallLog = pgTable('tool_call_log', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')

@@ -5,6 +5,7 @@ import { runAgentTurn } from '../agent/runAgentTurn.js';
 import { ensureCartContext } from '../agent/cartContext.js';
 import { applyResolution, finishWithCheckout } from '../agent/localTools.js';
 import { applyPromoCode, fetchLoyalty, fetchOffers, firstApplicableCode, formatLoyaltyBlock } from '../agent/loyalty.js';
+import { hardRestrictions } from '../agent/memory.js';
 import { loadLastPlanIntoState, savePlanFromState } from '../agent/plans.js';
 import { resolveIngredients } from '../agent/resolveIngredients.js';
 import { loadSession, saveSession } from '../agent/session.js';
@@ -131,8 +132,15 @@ export function createBot() {
         return;
       }
 
+      // Restrictions come from BOTH sources. Silpo's own food-restrictions field is authoritative
+      // when set, but on a real linked account it came back empty — nobody fills it in — so the
+      // allergies and diets the user told the bot must be merged in here. This is the deterministic
+      // 🛒 path, which does not go through the model at all: without this merge a stored allergy
+      // would constrain the model's menu and then be ignored by the code that actually picks the
+      // products.
+      const restrictions = await hardRestrictions(user.id, state);
       const { items, misses } = await resolveIngredients(mcp, cartCtx.cartContext, state.menu, {
-        ...(state.profile?.restrictions ? { restrictions: state.profile.restrictions } : {}),
+        ...(restrictions.length > 0 ? { restrictions } : {}),
       });
 
       if (items.length === 0) {

@@ -1,7 +1,17 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { OAuthClientInformationFull, OAuthTokens } from '@modelcontextprotocol/sdk/shared/auth.js';
 import { db } from './client.js';
-import { messages, oauthClients, oauthPending, oauthTokens, plans, sessions, toolCallLog, users } from './schema.js';
+import {
+  messages,
+  oauthClients,
+  oauthPending,
+  oauthTokens,
+  plans,
+  sessions,
+  toolCallLog,
+  userFacts,
+  users,
+} from './schema.js';
 
 export async function getOrCreateUser(telegramChatId: string) {
   const existing = await db.query.users.findFirst({ where: eq(users.telegramChatId, telegramChatId) });
@@ -202,4 +212,60 @@ export async function listRecentPlans(userId: number, limit = 5) {
     orderBy: (p, { desc }) => [desc(p.createdAt), desc(p.id)],
     limit,
   });
+}
+
+/**
+ * Durable memory rows (see schema.ts `userFacts`). Only ACTIVE facts are ever read back into a
+ * plan: a retracted allergy must stop constraining the menu immediately, while the row survives
+ * for audit.
+ */
+export async function listUserFacts(userId: number) {
+  return db.query.userFacts.findMany({
+    where: and(eq(userFacts.userId, userId), eq(userFacts.active, true)),
+    orderBy: (f, { asc }) => [asc(f.id)],
+  });
+}
+
+/**
+ * Inserts a fact, de-duplicating on (kind, text) among the user's active rows so a user who
+ * repeats "у мене алергія на арахіс" across sessions does not accumulate identical constraints
+ * that then get injected into the prompt three times over.
+ */
+export async function addUserFact(entry: {
+  userId: number;
+  kind: string;
+  text: string;
+  source: string;
+}): Promise<{ created: boolean }> {
+  const existing = await db.query.userFacts.findFirst({
+    where: and(
+      eq(userFacts.userId, entry.userId),
+      eq(userFacts.kind, entry.kind),
+      eq(userFacts.text, entry.text),
+      eq(userFacts.active, true),
+    ),
+  });
+  if (existing) return { created: false };
+  await db.insert(userFacts).values(entry);
+  return { created: true };
+}
+
+/** Retracts one fact by id, scoped to its owner so an id from another user cannot be touched. */
+export async function deactivateUserFact(userId: number, id: number): Promise<boolean> {
+  const updated = await db
+    .update(userFacts)
+    .set({ active: false })
+    .where(and(eq(userFacts.userId, userId), eq(userFacts.id, id), eq(userFacts.active, true)))
+    .returning({ id: userFacts.id });
+  return updated.length > 0;
+}
+
+/** Retracts every active fact — the `/forget` escape hatch. Returns how many were retracted. */
+export async function deactivateAllUserFacts(userId: number): Promise<number> {
+  const updated = await db
+    .update(userFacts)
+    .set({ active: false })
+    .where(and(eq(userFacts.userId, userId), eq(userFacts.active, true)))
+    .returning({ id: userFacts.id });
+  return updated.length;
 }

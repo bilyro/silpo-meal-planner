@@ -1,7 +1,9 @@
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
+import * as repo from '../db/repo.js';
 import type { SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import { ensureCartContext } from './cartContext.js';
+import { FACT_KINDS, kindLabel } from './memory.js';
 import { saveSession, type SessionState } from './session.js';
 
 const proposeMenuInput = z.object({
@@ -197,6 +199,51 @@ export function localTools(userId: number, state: SessionState, mcp: SilpoMcpCli
         const totals = await applyResolution(userId, state, items);
         return { ok: true, totals };
       },
+    }),
+
+    // Memory writes are deliberately narrow. The model picks from a fixed set of kinds and stores
+    // one short phrase — it cannot invent a schema, and `source: 'user'` is hard-coded rather than
+    // taken as an argument so a model-inferred fact can never be recorded as something the user
+    // said. The tool returns the stored text so the reply can echo it back: a memory the user
+    // cannot see is one they cannot correct, and a silently wrong allergy is worse than none.
+    remember_fact: tool({
+      description:
+        'Запамʼятовує факт про користувача НАДОВГО (між сесіями): алергію, дієту, нелюбов до ' +
+        'продукту, вподобання чи побутову деталь. Виклич це, коли користувач сам повідомив таке ' +
+        'про себе («у мене алергія на горіхи», «ми не їмо свинину», «я вегетаріанка»). ' +
+        'НЕ вигадуй факти і не зберігай здогадки — лише те, що користувач прямо сказав. ' +
+        'Після виклику ОБОВʼЯЗКОВО підтверди користувачеві, що саме ти запамʼятав.',
+      inputSchema: z.object({
+        kind: z
+          .enum(FACT_KINDS)
+          .describe(
+            'allergy — алергія (жорстка заборона); diet — дієта, напр. вегетаріанство (жорстка ' +
+              'заборона); dislike — просто не любить; preference — вподобання; household — побут ' +
+              '(напр. «готуємо на 4 осіб»).',
+          ),
+        text: z.string().min(2).max(200).describe('Коротко, українською, напр. «арахіс» або «без свинини».'),
+      }),
+      execute: async ({ kind, text }) => {
+        const { created } = await repo.addUserFact({ userId, kind, text: text.trim(), source: 'user' });
+        return { ok: true, created, stored: `${kindLabel(kind)}: ${text.trim()}` };
+      },
+    }),
+
+    forget_fact: tool({
+      description:
+        'Забуває раніше збережений факт про користувача. Виклич, коли користувач каже, що щось ' +
+        'більше не актуальне («я більше не вегетаріанка», «забудь про алергію»). Спочатку виклич ' +
+        'recall_facts, щоб дізнатися id потрібного факту.',
+      inputSchema: z.object({ id: z.number().int().positive() }),
+      execute: async ({ id }) => ({ ok: await repo.deactivateUserFact(userId, id) }),
+    }),
+
+    recall_facts: tool({
+      description: 'Повертає всі збережені факти про користувача разом з їх id.',
+      inputSchema: z.object({}),
+      execute: async () => ({
+        facts: (await repo.listUserFacts(userId)).map((f) => ({ id: f.id, kind: f.kind, text: f.text })),
+      }),
     }),
 
     finish_with_checkout: tool({

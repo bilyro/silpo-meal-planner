@@ -14,6 +14,7 @@ import { SilpoMcpClient } from '../src/mcp/SilpoMcpClient.js';
 import { ensureCartContext } from '../src/agent/cartContext.js';
 import { resolveIngredients } from '../src/agent/resolveIngredients.js';
 import { applyResolution, finishWithCheckout } from '../src/agent/localTools.js';
+import { savePlanFromState } from '../src/agent/plans.js';
 
 /**
  * Three days of full meals — сніданок, обід, вечеря — for two, chosen for a cheap basket.
@@ -195,6 +196,12 @@ async function main() {
     const summary = await finishWithCheckout(user.id, state, mcp);
     await saveSession(user.id, state);
     console.log(`\n${JSON.stringify(summary, null, 2)}`);
+
+    // Archive the plan, exactly as the Telegram 🛒 handler does. Without this the script's runs
+    // leave no history, so `/plans` and the durable memory that reads past dishes stay empty no
+    // matter how many times the deterministic path is exercised.
+    const planId = await savePlanFromState(user.id, state);
+    console.log(planId ? `\nplan archived as #${planId}` : '\nplan not archived (identical to the last one)');
   } finally {
     await mcp.close();
   }

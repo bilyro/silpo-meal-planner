@@ -15,6 +15,13 @@
       "when": 1788689776595,
       "tag": "0001_parallel_shinko_yamashiro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788783844600,
+      "tag": "0002_equal_ozymandias",
+      "breakpoints": true
     }
   ]
 }

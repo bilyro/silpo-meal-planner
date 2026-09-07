@@ -4,7 +4,9 @@ import { logger } from '../logger.js';
 import { NeedsAuthError, SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import { loadSession } from '../agent/session.js';
 import { formatPlanSummary, parsePlanRow } from '../agent/plans.js';
+import { kindLabel } from '../agent/memory.js';
 import { clearCartKeyboard, repeatPlanKeyboard } from './keyboards.js';
+import { escapeHtml } from './format.js';
 import { relinkReply } from './messages.js';
 
 interface GetShoppingCartByIdResult {
@@ -124,19 +126,56 @@ export function registerCommands(bot: Bot) {
     });
   });
 
+  /**
+   * Shows everything the bot remembers. A memory the user cannot inspect is one they cannot
+   * correct, and a wrong allergy silently shapes every future menu — so this is not a nicety.
+   */
+  bot.command('memory', async (ctx) => {
+    const user = await repo.getOrCreateUser(String(ctx.chat.id));
+    const facts = await repo.listUserFacts(user.id);
+
+    if (facts.length === 0) {
+      await ctx.reply(
+        'Я поки нічого про вас не памʼятаю.\n\n' +
+          'Напишіть, напр.: «у мене алергія на арахіс», «ми не їмо свинину», «готуємо на 4 осіб» — ' +
+          'і я враховуватиму це в кожному меню.',
+      );
+      return;
+    }
+
+    const lines = facts.map((f) => `• <b>${escapeHtml(kindLabel(f.kind))}</b>: ${escapeHtml(f.text)}`);
+    await ctx.reply(
+      `🧠 Що я про вас памʼятаю:\n${lines.join('\n')}\n\n` +
+        'Щоб щось прибрати — просто скажіть, напр. «забудь про алергію на арахіс». ' +
+        '/forget очищає все.',
+      { parse_mode: 'HTML' },
+    );
+  });
+
+  bot.command('forget', async (ctx) => {
+    const user = await repo.getOrCreateUser(String(ctx.chat.id));
+    const count = await repo.deactivateAllUserFacts(user.id);
+    await ctx.reply(
+      count === 0 ? 'Мені й так нічого про вас не відомо.' : `Забув усе, що знав про вас (${count}).`,
+    );
+  });
+
   bot.command('logout', async (ctx) => {
     const chatId = String(ctx.chat.id);
     const user = await repo.getOrCreateUser(chatId);
     await repo.deleteTokens(user.id);
     // Drop the conversation too: whoever links this chat next must not inherit the previous
-    // account's history, which can name their family, restrictions and addresses.
+    // account's history, which can name their family, restrictions and addresses. Durable memory
+    // goes with it for the same reason, and more urgently — allergies and diets are health data,
+    // and unlike the 12-turn message window they would otherwise persist indefinitely.
     await repo.deleteMessages(user.id);
+    await repo.deactivateAllUserFacts(user.id);
     await ctx.reply('Відʼєднано. Напишіть /start, щоб підʼєднати акаунт знову.');
   });
 
   bot.command('help', async (ctx) => {
     await ctx.reply(
-      'Команди:\n/start — підʼєднати акаунт\n/plan — спланувати меню\n/plans — минулі плани\n/cart — переглянути кошик\n/clear — очистити кошик\n/logout — відʼєднати акаунт',
+      'Команди:\n/start — підʼєднати акаунт\n/plan — спланувати меню\n/plans — минулі плани\n/cart — переглянути кошик\n/clear — очистити кошик\n/memory — що я про вас памʼятаю\n/forget — забути все про вас\n/logout — відʼєднати акаунт',
     );
   });
 }

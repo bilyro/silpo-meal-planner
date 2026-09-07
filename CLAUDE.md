@@ -74,9 +74,9 @@ web/ (Fastify) exposes /auth/callback (OAuth redirect), /healthz
   503 when Postgres is unreachable), and `/auth/callback` (the OAuth redirect target, must be
   reachable from the internet — ngrok/cloudflared in dev). There is no `/auth/start`: `/start` hands
   the authorize URL straight to the user as an inline button.
-- **`src/db/`** — Drizzle ORM over Postgres. `schema.ts` defines the 8 tables (`users`,
+- **`src/db/`** — Drizzle ORM over Postgres. `schema.ts` defines the 9 tables (`users`,
   `oauth_clients`, `oauth_tokens`, `oauth_pending`, `sessions`, `messages`, `plans`,
-  `tool_call_log`); generate
+  `user_facts`, `tool_call_log`); generate
   migrations with `drizzle-kit generate` (writes to `drizzle/`), apply with `npm run migrate`
   (`src/db/migrate.ts`, using `drizzle-orm/node-postgres/migrator`).
 - **`src/config.ts`** — zod-validated env parsing; loads `.env` via `process.loadEnvFile()` (not
@@ -115,6 +115,37 @@ break and expensive to notice:
 Kept as one JSON row per Telegram chat in `sessions.state_json`. Shape is defined in spec §5.2
 (`SessionState`: `stage`, `profile`, `cartContext`, `request`, `menu`, `resolvedItems`, `totals`,
 `metrics`). `stage` drives which inline keyboard the bot renders next.
+
+### Memory (`src/agent/memory.ts`)
+
+Four stores with deliberately different lifetimes — don't collapse them:
+
+| Store | Holds | Lifetime |
+|---|---|---|
+| `sessions.state_json` | the plan being built | overwritten each cycle |
+| `messages` | last 12 turns of prose | rolling window |
+| `plans` | every menu ever built + resolved products | permanent |
+| `user_facts` | allergies, diets, dislikes, preferences, household | permanent, user-retractable |
+
+Two rules that are load-bearing:
+
+- **`kind` is not a label.** `allergy`/`diet` are HARD (they filter products via
+  `hardRestrictions()`, which merges them with Silpo's own restrictions); `dislike`/`preference`/
+  `household` are SOFT (prompt-only). An allergy demoted to a preference is a safety bug, not a
+  ranking bug. `bot.ts`'s 🛒 handler must keep calling `hardRestrictions()` — it never goes through
+  the model, so a stored allergy that only reaches the prompt would be ignored by the code that
+  actually picks products.
+- **Past purchases are never stated as inventory.** We learn what entered a *cart*, never what was
+  bought (checkout is an external link) or eaten. `silpo_get_my_online_orders` is the only honest
+  source of purchase truth, and on a real account it returns zero orders, so its line-item shape is
+  unverified. `formatMemoryBlock` therefore renders recent purchases as a question for the user,
+  and `test/memory.test.ts` pins that wording.
+
+Silpo's `silpo_get_my_food_restrictions` came back **empty** on a real linked account, which is why
+`user_facts` exists at all — the field is there but nobody fills it in.
+
+`/logout` retracts all facts along with the message history: allergies are health data, and the
+next person to link this chat must not inherit them.
 
 ### Dependency version note
 

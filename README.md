@@ -93,7 +93,7 @@ a session.
 6. The user pays in Silpo's own checkout. The bot never places or pays for an order — by design,
    and because the MCP has no checkout tool at all.
 
-Commands: `/start` · `/plan` · `/cart` · `/clear` (with confirmation) · `/logout` · `/help`.
+Commands: `/start` · `/plan` · `/plans` · `/cart` · `/clear` (with confirmation) · `/memory` · `/forget` · `/logout` · `/help`.
 
 ---
 
