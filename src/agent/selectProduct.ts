@@ -262,6 +262,22 @@ function round3(n: number): number {
   return Math.round(n * 1000) / 1000;
 }
 
+/**
+ * How many individual pieces one package holds, read from `displayRatio` — "10шт" on a carton of
+ * eggs, "12шт" on a dozen. Undefined when the ratio describes mass ("80г", "400г") or is missing,
+ * which is the common case.
+ *
+ * This matters because a recipe counts pieces and the catalogue sells packages. «яйця 4 шт» meant
+ * four *cartons* — about forty eggs, ₴220 — until this existed, since the piece branch below
+ * treated the number as a package count.
+ */
+export function packPieces(p: ProductCandidate): number | undefined {
+  const m = /^([\d.,]+)\s*шт/i.exec((p.displayRatio ?? '').trim());
+  const n = m?.[1] ? Number(m[1].replace(',', '.')) : NaN;
+  // A ratio of exactly 1шт tells us nothing the default does not already assume.
+  return Number.isFinite(n) && n > 1 ? n : undefined;
+}
+
 export function computeQuantity(qtyText: string, p: ProductCandidate): number {
   const step = typeof p.step === 'number' && p.step > 0 ? p.step : undefined;
   const m = /([\d.,]+)\s*([\p{L}.]+)?/u.exec(qtyText.trim());
@@ -290,8 +306,14 @@ export function computeQuantity(qtyText: string, p: ProductCandidate): number {
     return round3(capToStock(kg, p, stepSize));
   }
 
-  const pieces = Number.isFinite(amount) && isPieces ? Math.max(Math.ceil(amount), 1) : 1;
-  return capToStock(pieces, p, 1);
+  // How many individual items the recipe asks for («4 шт» → 4), defaulting to one package for
+  // anything unparseable or non-countable («за смаком», «400 г» of a packaged good).
+  const wantedPieces = Number.isFinite(amount) && isPieces ? Math.max(Math.ceil(amount), 1) : 1;
+  // Then convert pieces to packages when the package holds more than one. Rounded UP: four eggs
+  // from a carton of ten is one carton, twelve is two.
+  const perPackage = packPieces(p);
+  const packages = perPackage ? Math.max(Math.ceil(wantedPieces / perPackage), 1) : wantedPieces;
+  return capToStock(packages, p, 1);
 }
 
 /**

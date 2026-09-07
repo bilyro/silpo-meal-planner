@@ -346,3 +346,56 @@ describe('processed forms and non-ingredients', () => {
     expect(picked?.product.name).toBe('Салат з огірками');
   });
 });
+
+/**
+ * Recipes count pieces; the catalogue sells packages. `displayRatio` carries the pack size when
+ * there is one ("10шт" on a carton of eggs), which is the only signal available for this — there
+ * is no unit-count field (see scripts/probe-raw.ts).
+ */
+describe('piece counts against multi-packs', () => {
+  const eggs = (overrides: Partial<ProductCandidate> = {}) =>
+    product({ name: 'Яйця курячі Ситий двір С2', price: 54.99, displayRatio: '10шт', step: 1, ...overrides });
+
+  it('buys one carton for four eggs, not four cartons', () => {
+    // The live bug: «яйця 4 шт» ordered 4 packages, roughly forty eggs for ₴220.
+    expect(computeQuantity('4 шт', eggs())).toBe(1);
+  });
+
+  it('rounds up to the next whole package', () => {
+    expect(computeQuantity('12 шт', eggs())).toBe(2);
+    expect(computeQuantity('10 шт', eggs())).toBe(1);
+    expect(computeQuantity('21 шт', eggs())).toBe(3);
+  });
+
+  it('never orders less than one package', () => {
+    expect(computeQuantity('1 шт', eggs())).toBe(1);
+  });
+
+  it('leaves single-item products counting as before', () => {
+    // «хліб 1 шт» is one loaf; a mass ratio says nothing about piece counts.
+    const bread = product({ name: 'Хліб Фітнес тостовий', price: 34.99, displayRatio: '450г', step: 1 });
+    expect(computeQuantity('1 шт', bread)).toBe(1);
+    expect(computeQuantity('2 шт', bread)).toBe(2);
+  });
+
+  it('ignores a ratio of exactly 1шт, which adds nothing', () => {
+    const single = product({ name: 'Салат Айсберг', price: 76.11, displayRatio: '1шт', step: 1 });
+    expect(computeQuantity('2 шт', single)).toBe(2);
+  });
+
+  it('ignores displayRatio entirely for weighted goods', () => {
+    // Weighted items are ordered in kilograms; the piece branch never runs for them.
+    const potato = product({ name: 'Картопля рожева мита', price: 36.49, weighted: true, step: 0.1, displayRatio: '100г' });
+    expect(computeQuantity('1 кг', potato)).toBe(1);
+  });
+
+  it('still caps at available stock', () => {
+    expect(computeQuantity('50 шт', eggs({ stock: 2 }))).toBe(2);
+  });
+
+  it('treats a non-countable amount as one package', () => {
+    for (const text of ['за смаком', '', '400 г']) {
+      expect(computeQuantity(text, eggs())).toBe(1);
+    }
+  });
+});
