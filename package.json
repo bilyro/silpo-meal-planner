@@ -9,6 +9,7 @@
     "start": "node dist/src/index.js",
     "migrate": "tsx src/db/migrate.ts",
     "spike": "tsx scripts/mcp-spike.ts",
+    "export-log": "tsx scripts/export-tool-log.ts",
     "test": "vitest run"
   },
   "keywords": [],

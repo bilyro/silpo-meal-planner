@@ -187,8 +187,8 @@ account, not guessed:
 
 ## Status
 
-Phases 0–5 are complete and **verified live against a real Silpo account** (6 Sept 2026). Phase 6 is
-in progress.
+Phases 0–6 are complete and **verified live against a real Silpo account** (6–7 Sept 2026). Phase 7
+(deploy and submission) is in progress.
 
 - [x] **Phase 0** — project skeleton, config, Docker Postgres, Drizzle schema.
 - [x] **Phase 1** — MCP spike: OAuth login + `tools/list` → [`docs/tools.json`](docs/tools.json),
@@ -216,13 +216,23 @@ in progress.
       honest stubs — they reply with a one-line prompt that routes the user to free text, which the
       agent loop can act on since it holds the resolved list. `silpo_get_similar_products` and
       `silpo_remove_cart_products` are not called yet.
-- [ ] **Phase 6** — loyalty, plan persistence, robustness. **In progress, landing now** in three
-      parallel workstreams: loyalty/coupons (`silpo_get_loyalty_info`, `silpo_get_my_coupons`,
-      `silpo_get_promo_codes`), writing completed plans to the `plans` table plus «Повтори минулий
-      план», and guardrails beyond the existing `MAX_TOOL_CALLS_PER_TURN` cap (per-turn timeout,
-      duplicate-call dedupe, error UX). The tools table above therefore reflects the deterministic
-      calls as of this writing and will grow. `npm test` is green.
+- [x] **Phase 6** — loyalty, plan persistence, robustness. Loyalty and coupons
+      (`silpo_get_loyalty_info`, `silpo_get_my_coupons`, `silpo_get_promo_codes`) appended to the
+      cart reply; completed plans written to the `plans` table with `/plans` and «Повтори минулий
+      план»; guardrails beyond the `MAX_TOOL_CALLS_PER_TURN` cap — a 60 s per-turn wall-clock
+      deadline that cancels in-flight MCP requests, consecutive-duplicate call suppression, and a
+      grammY error boundary so no handler can fail silently.
+      **Not verified live:** `applyPromoCode` — test it on a throwaway cart, never the demo cart.
 - [ ] **Phase 7** — deploy, record the ≤3 min video, pitch deck, submit.
+      **Done:** the deploy is buildable and reproducible — [`fly.toml`](fly.toml), a
+      [`.dockerignore`](.dockerignore) that keeps `.env` out of the image, a production-only
+      dependency stage, migrations applied on boot, bounded graceful shutdown, and `/readyz`
+      alongside `/healthz`. Runbook in [`docs/deploy.md`](docs/deploy.md); cold start verified
+      locally (migrate → listen → both probes 200 → SIGTERM → clean exit). Submission artefacts:
+      [`docs/tool-call-log.md`](docs/tool-call-log.md) (generated, not hand-written) and
+      [`docs/pitch-deck.md`](docs/pitch-deck.md).
+      **Left:** `fly deploy` itself, three consecutive clean end-to-end runs from a phone, the video,
+      and the submission form.
 
 Note: `SessionState.metrics.toolCalls` is currently a placeholder that nothing increments —
 `tool_call_log` is the real per-session record and the one to query for the metrics slide.
@@ -241,8 +251,13 @@ npm run migrate             # applies drizzle/ SQL migrations
 npm run dev                 # tsx watch — boots Fastify + the bot in one process
 ```
 
-`npm run dev` runs the web server (`GET /healthz`) and the Telegram bot (long polling) together.
-Production: `npm run build && npm start`.
+`npm run dev` runs the web server and the Telegram bot (long polling) together, and applies any
+pending migrations on boot — so the explicit `npm run migrate` above is only needed if you want to
+migrate without starting anything. Production: `npm run build && npm start`.
+
+Two HTTP probes, deliberately separate: `GET /healthz` is liveness ("the process is up") and touches
+nothing else, so a brief database blip cannot cause a restart loop that also takes down
+`/auth/callback`; `GET /readyz` runs a real `select 1` and returns 503 when Postgres is unreachable.
 
 > **Postgres runs on host port 5433, not 5432.** The dev machine already had a native Postgres on
 > 5432, and Docker's port publish loses that conflict silently on macOS — connections reach the
@@ -278,9 +293,30 @@ npx vitest run test/selectProduct.test.ts # a single file
 ```
 
 Unit tests cover the pure selection heuristic (promo preference, unit-price normalisation, stock
-capping, fuzzy-match rejection), `cartContext` against a mocked MCP client, and the Telegram
-formatters, with Phase 6 suites landing alongside. Nothing in the test suite touches the network or
-a real account — the whole suite runs in well under a second.
+capping, fuzzy-match rejection), `cartContext` against a mocked MCP client, the Telegram formatters,
+and the Phase 6 guardrails (per-turn deadline, duplicate suppression, call budget). Nothing in the
+test suite touches the network or a real account — the whole suite runs in well under a second.
+
+### Deploying
+
+See [`docs/deploy.md`](docs/deploy.md). The point of deploying is narrow: `PUBLIC_BASE_URL` must be a
+stable internet-reachable HTTPS origin, or linking from a phone fails (see
+[Known issues](#known-issues)). The runbook covers the step it is easiest to forget — **after the
+hostname changes you must clear `oauth_clients`**, because a DCR registration bakes its
+`redirect_uris` in and the old one is now wrong.
+
+### The submission log excerpt
+
+```bash
+npm run export-log                       # last 200 calls → docs/tool-call-log.md
+npm run export-log -- --limit 120 --since 2026-09-07T09:00:00Z
+```
+
+Renders `tool_call_log` as a JSON-RPC transcript plus a metrics table (calls, distinct tools, p50 /
+p95). The request frames are exactly what went over the wire; **responses are not stored** — they
+carry the account holder's real name, family, addresses and orders — so each is annotated with the
+recorded outcome only, and argument keys that identify the account holder are redacted. Product
+names, branch and cart ids are left intact, since they are the part that shows the integration works.
 
 ---
 
@@ -361,12 +397,15 @@ src/
   logger.ts        pino
   db/              Drizzle schema, client, migrate, repo helpers
   mcp/             SilpoMcpClient, DB-backed OAuth provider
-  web/             Fastify: /healthz, /auth/callback
+  web/             Fastify: /healthz, /readyz, /auth/callback
   agent/           runAgentTurn, systemPrompt, local tools, cartContext,
                    resolveIngredients, selectProduct, session
   bot/             grammY bot, commands, keyboards, HTML formatting, welcome
-scripts/           mcp-spike.ts (OAuth + tools/list), dump-tools.ts
-docs/              spec, tools.json snapshot, phase5-findings, demo-script
+scripts/           mcp-spike.ts (OAuth + tools/list), dump-tools.ts, export-tool-log.ts
+docs/              spec, tools.json snapshot, phase5-findings, demo-script, deploy, pitch-deck,
+                   tool-call-log.md (generated)
 drizzle/           generated SQL migrations
 test/              unit tests (no network)
+Dockerfile         multi-stage; .dockerignore keeps .env out of the image
+fly.toml           deploy target — see docs/deploy.md
 ```

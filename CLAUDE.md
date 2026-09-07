@@ -27,8 +27,14 @@ npm run dev                 # tsx watch src/index.ts — boots web server + bot 
 npm run build                # tsc -> dist/
 npm start                    # node dist/index.js (after build)
 npm test                     # vitest run
+npm run export-log           # tool_call_log -> docs/tool-call-log.md (submission deliverable)
 npx drizzle-kit generate     # regenerate SQL migration after editing src/db/schema.ts
 ```
+
+`src/index.ts` calls `runMigrations()` on boot before binding the port, so `npm run dev` /
+`npm start` migrate by themselves and the standalone `npm run migrate` is only for migrating without
+starting anything. This assumes **one instance** — two containers booting against an empty database
+would race; see `docs/deploy.md`.
 
 Run a single test file: `npx vitest run test/selectProduct.test.ts`.
 
@@ -63,9 +69,11 @@ web/ (Fastify) exposes /auth/callback (OAuth redirect), /healthz
   returns ~40 tools; **never hard-code argument shapes** — they must be read at runtime from
   `tools/list` (dumped to `docs/tools.json` once Phase 1 lands) since the docs explicitly say the
   server is the only source of truth for schemas.
-- **`src/web/`** — Fastify. `/healthz` for liveness and `/auth/callback` (the OAuth redirect
-  target, must be reachable from the internet — ngrok/cloudflared in dev). There is no
-  `/auth/start`: `/start` hands the authorize URL straight to the user as an inline button.
+- **`src/web/`** — Fastify. `/healthz` (liveness — deliberately touches nothing else, so a database
+  blip can't trigger a restart loop that also kills `/auth/callback`), `/readyz` (runs `select 1`,
+  503 when Postgres is unreachable), and `/auth/callback` (the OAuth redirect target, must be
+  reachable from the internet — ngrok/cloudflared in dev). There is no `/auth/start`: `/start` hands
+  the authorize URL straight to the user as an inline button.
 - **`src/db/`** — Drizzle ORM over Postgres. `schema.ts` defines the 8 tables (`users`,
   `oauth_clients`, `oauth_tokens`, `oauth_pending`, `sessions`, `messages`, `plans`,
   `tool_call_log`); generate
@@ -73,6 +81,17 @@ web/ (Fastify) exposes /auth/callback (OAuth redirect), /healthz
   (`src/db/migrate.ts`, using `drizzle-orm/node-postgres/migrator`).
 - **`src/config.ts`** — zod-validated env parsing; loads `.env` via `process.loadEnvFile()` (not
   dotenv) and fails fast (exits 1) on missing/invalid vars.
+
+### Deployment
+
+`Dockerfile` (multi-stage) + `fly.toml`; runbook in `docs/deploy.md`. Two things there are easy to
+break and expensive to notice:
+
+- **`.dockerignore` must keep `.env` out.** The build stage does `COPY . .`, and image layers are
+  additive — a secret copied in one layer stays readable even if a later layer deletes it.
+- **Changing `PUBLIC_BASE_URL` requires clearing `oauth_clients`.** A Dynamic Client Registration
+  bakes its `redirect_uris` in, so the client registered against the old origin makes
+  `mcp.silpo.ua/authorize` reject the new redirect_uri.
 
 ### Hard constraints from the Silpo MCP (spec §4 — read before touching `mcp/` or `agent/`)
 

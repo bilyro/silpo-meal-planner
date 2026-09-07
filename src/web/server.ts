@@ -1,6 +1,8 @@
 import Fastify from 'fastify';
+import { sql } from 'drizzle-orm';
 import type { Bot } from 'grammy';
 import { logger } from '../logger.js';
+import { db } from '../db/client.js';
 import * as repo from '../db/repo.js';
 import { completeAuthorization } from '../mcp/SilpoMcpClient.js';
 import { sendWelcomeMessage } from '../bot/welcome.js';
@@ -15,7 +17,22 @@ interface AuthCallbackQuery {
 export function buildServer(bot: Bot) {
   const app = Fastify({ loggerInstance: logger });
 
+  // Liveness: "the process is up". Deliberately touches nothing else — this is what the platform
+  // health check watches, and making it depend on Postgres would turn a brief database blip into a
+  // restart loop that also takes down /auth/callback.
   app.get('/healthz', async () => ({ status: 'ok' }));
+
+  // Readiness: "the process can actually serve". Separate endpoint precisely so a failing database
+  // is visible (to us, and in the demo) without being fatal.
+  app.get('/readyz', async (_req, reply) => {
+    try {
+      await db.execute(sql`select 1`);
+      return { status: 'ok', db: 'ok' };
+    } catch (err) {
+      logger.error({ err }, 'Readiness check failed: database unreachable');
+      return reply.code(503).send({ status: 'degraded', db: 'unreachable' });
+    }
+  });
 
   app.get<{ Querystring: AuthCallbackQuery }>('/auth/callback', async (req, reply) => {
     const { code, state, error } = req.query;

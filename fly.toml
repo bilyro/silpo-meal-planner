@@ -1,0 +1,46 @@
+# Deploy target for spec §8 Phase 7 item 1 — "so the OAuth callback URL is stable".
+# That is the whole point of deploying: PUBLIC_BASE_URL must be an internet-reachable HTTPS origin
+# or phone-based linking fails (see the Known issues section of README.md).
+#
+# `app` is a placeholder — `fly launch --no-deploy` rewrites it with the name you pick, and
+# PUBLIC_BASE_URL below must then match `https://<that-name>.fly.dev`. Full walkthrough in
+# docs/deploy.md.
+
+app = "silpo-chef"
+primary_region = "waw"          # Warsaw: nearest region to Kyiv, so MCP round-trips stay short
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3000"
+  NODE_ENV = "production"
+  LOG_LEVEL = "info"
+  SILPO_MCP_URL = "https://mcp.silpo.ua/mcp"
+  PUBLIC_BASE_URL = "https://silpo-chef.fly.dev"
+
+# Secrets (TELEGRAM_BOT_TOKEN, ANTHROPIC_API_KEY, DATABASE_URL) are set with `fly secrets set`,
+# never here — fly.toml is committed.
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  # Both false on purpose. The bot uses long polling, not webhooks, so a suspended machine receives
+  # nothing and simply stops answering Telegram — there is no inbound request to wake it. It also
+  # holds one MCP client and its OAuth state per user in memory during a turn.
+  auto_stop_machines = false
+  auto_start_machines = false
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/healthz"
+
+# One machine, deliberately: migrations run on boot (src/db/migrate.ts) and two machines starting
+# against an empty database would race. Telegram long polling also does not shard across instances.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

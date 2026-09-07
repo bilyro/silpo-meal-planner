@@ -1,0 +1,22 @@
+# The build stage does `COPY . .`, so without this file `.env` — which holds the real
+# TELEGRAM_BOT_TOKEN and ANTHROPIC_API_KEY — is baked into an image layer and travels with every
+# `fly deploy` / `docker push`. Deleting it in a later layer would not help: layers are additive
+# and the secret stays readable in the earlier one.
+.env
+.env.*
+!.env.example
+
+node_modules
+dist
+.git
+.gitignore
+.claude
+npm-debug.log*
+.DS_Store
+
+# Not needed to build or run, and they make the build context (and every rebuild) larger.
+docs
+test
+README.md
+CLAUDE.md
+docker-compose.yml
