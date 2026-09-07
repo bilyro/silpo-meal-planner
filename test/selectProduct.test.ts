@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeQuantity,
+  hasStockHeadroom,
   isAvailable,
   isPromo,
   matchesQuery,
@@ -454,5 +455,105 @@ describe('recipe masses against packaged goods', () => {
   it('leaves piece counts to the piece rules', () => {
     expect(computeQuantity('4 шт', tub('10шт'))).toBe(1);
     expect(computeQuantity('2 шт', tub('220г'))).toBe(2);
+  });
+});
+
+/**
+ * Budget mode. Normally a promo item outranks a cheaper plain one, because promo redemption is the
+ * business value. When the shopper asks for the cheapest basket that preference is backwards: a
+ * discounted premium brand routinely costs more than an undiscounted own brand.
+ */
+describe('preferCheapest', () => {
+  const promoPremium = product({ name: 'Сир твердий Президент', price: 120, oldPrice: 160 });
+  const plainOwnBrand = product({ name: 'Сир твердий «Премія»®', price: 80 });
+
+  it('normally takes the promo item even when a plain one is cheaper', () => {
+    const picked = selectProduct('сир твердий', [promoPremium, plainOwnBrand]);
+    expect(picked?.product.name).toBe('Сир твердий Президент');
+  });
+
+  it('takes the cheaper item in budget mode', () => {
+    const picked = selectProduct('сир твердий', [promoPremium, plainOwnBrand], { preferCheapest: true });
+    expect(picked?.product.name).toBe('Сир твердий «Премія»®');
+  });
+
+  it('still takes a promo item when it is also the cheapest', () => {
+    const cheapPromo = product({ name: 'Сир твердий Дешевий', price: 50, oldPrice: 90 });
+    const picked = selectProduct('сир твердий', [cheapPromo, plainOwnBrand], { preferCheapest: true });
+    expect(picked?.product.name).toBe('Сир твердий Дешевий');
+    expect(picked?.isPromo).toBe(true);
+  });
+
+  it('does NOT relax the wrong-food guards — cheap is no reason to buy duck for chicken', () => {
+    const duck = product({ name: 'Качине філе', price: 10 });
+    const chicken = product({ name: 'Куряче філе охолоджене', price: 200 });
+    const picked = selectProduct('куряче філе', [duck, chicken], { preferCheapest: true });
+    expect(picked?.product.name).toBe('Куряче філе охолоджене');
+  });
+
+  it('does NOT relax raw-over-processed either', () => {
+    const chips = product({ name: 'Картопля Aviko фрі швидкозаморожена', price: 30 });
+    const raw = product({ name: 'Картопля рожева мита', price: 36.49, weighted: true, step: 0.1 });
+    const picked = selectProduct('картопля', [chips, raw], { preferCheapest: true });
+    expect(picked?.product.name).toBe('Картопля рожева мита');
+  });
+
+  it('still refuses non-ingredients however cheap', () => {
+    expect(
+      selectProduct('кабачок', [product({ name: 'Пюре Gerber кабачок', price: 5 })], { preferCheapest: true }),
+    ).toBeUndefined();
+  });
+
+  it('still respects dietary restrictions', () => {
+    const pork = product({ name: 'Фарш свинина', price: 10 });
+    const beef = product({ name: 'Фарш яловичий', price: 300 });
+    const picked = selectProduct('фарш', [pork, beef], { preferCheapest: true, restrictions: ['свинина'] });
+    expect(picked?.product.name).toBe('Фарш яловичий');
+  });
+});
+
+/**
+ * Last-unit avoidance. Silpo reported «Олія соняшникова «Чумак»» with stock 1, accepted the search,
+ * then rejected the cart with `product.offer.stock.max` — reproducibly across runs, because the
+ * unit went between the two calls. A blocked checkout costs more than the few hryvnia saved, and
+ * budget mode makes it likelier: the cheapest listing is often the last clearance unit.
+ */
+describe('stock headroom', () => {
+  it('takes the better-stocked listing over a cheaper last unit', () => {
+    const lastOne = product({ name: 'Олія соняшникова «Чумак»', price: 67.99, stock: 1 });
+    const plenty = product({ name: 'Олія соняшникова «Повна Чаша»®', price: 76.49, stock: 25 });
+    const picked = selectProduct('олія соняшникова', [lastOne, plenty], { preferCheapest: true });
+    expect(picked?.product.name).toBe('Олія соняшникова «Повна Чаша»®');
+  });
+
+  it('still takes the last unit when it is the only match', () => {
+    // Demotion, not exclusion — one bottle beats no bottle.
+    const lastOne = product({ name: 'Олія соняшникова «Чумак»', price: 67.99, stock: 1 });
+    expect(selectProduct('олія соняшникова', [lastOne])?.product.name).toBe('Олія соняшникова «Чумак»');
+  });
+
+  it('treats unknown stock as fine — absence of data is not scarcity', () => {
+    expect(hasStockHeadroom(product({ name: 'X', price: 1, stock: null }))).toBe(true);
+    expect(hasStockHeadroom(product({ name: 'X', price: 1, stock: undefined }))).toBe(true);
+  });
+
+  it('needs two whole units for a counted good', () => {
+    expect(hasStockHeadroom(product({ name: 'X', price: 1, stock: 1 }))).toBe(false);
+    expect(hasStockHeadroom(product({ name: 'X', price: 1, stock: 2 }))).toBe(true);
+  });
+
+  it('measures headroom in steps for weighted goods', () => {
+    // 0.15 kg of something sold in 100 g steps is one step and a half — not enough.
+    expect(hasStockHeadroom(product({ name: 'X', price: 1, weighted: true, step: 0.1, stock: 0.15 }))).toBe(false);
+    expect(hasStockHeadroom(product({ name: 'X', price: 1, weighted: true, step: 0.1, stock: 0.2 }))).toBe(true);
+    expect(hasStockHeadroom(product({ name: 'X', price: 1, weighted: true, step: 1.4, stock: 250 }))).toBe(true);
+  });
+
+  it('does not outrank the correctness tiers', () => {
+    // A well-stocked wrong food still loses to a scarce right one.
+    const duckPlenty = product({ name: 'Качине філе', price: 10, stock: 99 });
+    const chickenScarce = product({ name: 'Куряче філе охолоджене', price: 200, stock: 1 });
+    const picked = selectProduct('куряче філе', [duckPlenty, chickenScarce], { preferCheapest: true });
+    expect(picked?.product.name).toBe('Куряче філе охолоджене');
   });
 });

@@ -58,10 +58,19 @@ async function main() {
       if (cart[key] !== undefined) console.log(`${key}: ${JSON.stringify(cart[key])}`);
     }
 
-    const validations = cart.validations as { level?: string; message?: string; type?: string }[] | undefined;
-    if (validations?.length) {
+    // Validations live under `calculation`, not at the top level — the same path hasTimeslotError
+    // uses. Reading `cart.validations` here silently reported "no validations" on a blocked cart.
+    const calculation = cart.calculation as
+      | { validations?: { level?: string; message?: string; type?: string; productId?: string }[] }
+      | undefined;
+    const validations = calculation?.validations ?? [];
+    if (validations.length) {
       console.log('\nvalidations (why checkout may be blocked):');
-      for (const v of validations) console.log(`  [${v.level}] ${v.type ?? ''} ${v.message ?? ''}`);
+      const byId = new Map(products.map((p) => [String(p.productId ?? p.id), String(p.name ?? '?')]));
+      for (const v of validations) {
+        const who = v.productId ? ` ← ${byId.get(String(v.productId)) ?? v.productId}` : '';
+        console.log(`  [${v.level}] ${v.type ?? ''} ${v.message ?? ''}${who}`);
+      }
     }
 
     const link = res.checkoutWebLink ?? res.checkoutMobileLink;

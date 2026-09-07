@@ -14,7 +14,8 @@ import { SilpoMcpClient } from '../src/mcp/SilpoMcpClient.js';
 import { ensureCartContext } from '../src/agent/cartContext.js';
 import { resolveIngredients } from '../src/agent/resolveIngredients.js';
 
-const CANDIDATES = process.argv.slice(2);
+const CHEAPEST = process.argv.includes('--cheapest');
+const CANDIDATES = process.argv.slice(2).filter((a) => a !== '--cheapest');
 
 async function main() {
   if (CANDIDATES.length === 0) throw new Error('pass candidate ingredient names as arguments');
@@ -39,6 +40,7 @@ async function main() {
 
     const { items, misses } = await resolveIngredients(mcp, state.cartContext!, menu, {
       restrictions: state.profile?.restrictions,
+      preferCheapest: CHEAPEST,
     });
 
     for (const name of CANDIDATES) {

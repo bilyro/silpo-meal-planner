@@ -30,6 +30,16 @@ export interface ProductCandidate {
 export interface SelectionOptions {
   /** Lowercased restriction keywords, e.g. ['свинина', 'лактоза']. */
   restrictions?: string[];
+  /**
+   * Rank purely by price within the correctness tiers, instead of preferring promo items.
+   *
+   * Normally a promo item wins even when a plain one is cheaper, because promo redemption is the
+   * business value (spec §6.4). When the user asks for the cheapest basket that preference is
+   * exactly backwards: a discounted premium brand routinely costs more than an undiscounted own
+   * brand. The correctness tiers above it — head-noun match and raw-over-processed — are NOT
+   * relaxed: cheap is not a reason to buy the wrong food.
+   */
+  preferCheapest?: boolean;
 }
 
 export interface Selection {
@@ -183,6 +193,23 @@ export function isNeverAnIngredient(query: string, name: string): boolean {
   return hasMarker(NEVER_AN_INGREDIENT, query, name);
 }
 
+/**
+ * True when the listing has comfortable stock, rather than being the last unit on the shelf.
+ *
+ * Ordering the entire remaining stock is a coin flip: Silpo reports «Олія соняшникова «Чумак»»
+ * with stock 1, accepts the search, and then rejects the cart with `product.offer.stock.max`
+ * because the unit went between the two calls — reproducibly, not as a one-off race. A blocked
+ * checkout costs far more than a few hryvnia, and budget mode makes this worse rather than better,
+ * since the cheapest listing is often the last clearance unit.
+ *
+ * Unknown stock counts as fine: absence of data is not evidence of scarcity.
+ */
+export function hasStockHeadroom(p: ProductCandidate): boolean {
+  if (typeof p.stock !== 'number') return true;
+  const minimum = p.weighted ? (typeof p.step === 'number' && p.step > 0 ? p.step : 0.1) : 1;
+  return p.stock >= minimum * 2;
+}
+
 export function violatesRestrictions(name: string, restrictions: string[] = []): boolean {
   const haystack = name.toLowerCase();
   return restrictions.some((r) => r.trim().length > 0 && haystack.includes(r.toLowerCase().trim()));
@@ -233,6 +260,7 @@ export function selectProduct(
       unitPrice: unitPrice(product),
       headMatch: matchesHeadNoun(query, product.name),
       processed: isProcessedForm(query, product.name),
+      headroom: hasStockHeadroom(product),
     }))
     .sort((a, b) => {
       // Head-noun match outranks even a promo: «морква» matched «Сік ... яблуко-морква-гарбуз»
@@ -244,7 +272,10 @@ export function selectProduct(
       // the ingredient, so both looked like the real thing, and both won on being cheaper or on
       // promo. Frozen chips are not what a casserole wants, and garlic powder is not three cloves.
       if (a.processed !== b.processed) return a.processed ? 1 : -1;
-      if (a.isPromo !== b.isPromo) return a.isPromo ? -1 : 1;
+      if (!options.preferCheapest && a.isPromo !== b.isPromo) return a.isPromo ? -1 : 1;
+      // Above price, deliberately: a listing with one unit left is cheap precisely because it is
+      // the last one, and buying it blocks the whole checkout rather than saving anything.
+      if (a.headroom !== b.headroom) return a.headroom ? -1 : 1;
       return a.unitPrice - b.unitPrice;
     });
 

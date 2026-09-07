@@ -16,93 +16,126 @@ import { resolveIngredients } from '../src/agent/resolveIngredients.js';
 import { applyResolution, finishWithCheckout } from '../src/agent/localTools.js';
 
 /**
- * Two days of full meals — сніданок, обід, вечеря — for two people.
+ * Three days of full meals — сніданок, обід, вечеря — for two, chosen for a cheap basket.
  *
- * Every ingredient here was checked against the live catalogue with
- * scripts/probe-ingredients.ts before being used, because plausible-sounding words resolve badly:
- * «мед» returns blackcurrant jam, «локшина» returns instant ramen, «тріска» returns cod-roe pâté,
- * and «геркулес» returns frozen dumplings. The phrasings below are the ones that actually land on
- * the food.
+ * Run with `--cheapest`, which drops selectProduct's promo preference so price alone decides
+ * within the correctness tiers. Those tiers still apply: budget mode never buys duck for chicken,
+ * never takes a processed form over the raw one, and never touches baby food.
  *
- * Several ingredients repeat across meals. collectIngredients dedupes by name and keeps the
- * LARGEST stated amount rather than summing, because the units are frequently incomparable — so
- * «яйця 4 шт» wins over «яйця 2 шт» and one purchase covers both meals.
+ * Every ingredient was checked against the live catalogue with scripts/probe-ingredients.ts.
+ * Things that look obvious but do not work, and are therefore absent:
+ *   «гречка» -> a Green Chef cereal BAR; «крупа гречана», «пшоно», «горох» -> nothing at all.
+ *   «сіль» -> a 119 UAH speciality black salt, so seasoning is left off the list entirely.
+ *   «мед» -> blackcurrant jam. «локшина»/«вермішель» -> instant ramen. «тріска» -> cod-roe pate.
  *
- * «картопля» is still «1 кг»: that is the exact input the model once turned into quantity 10, so
- * keeping it here keeps the regression covered on every run.
+ * Repeats across meals are deduped by collectIngredients, which keeps the LARGEST stated amount
+ * rather than summing, so one purchase covers every meal that needs it.
+ *
+ * «картопля» stays at «1 кг»: the exact input the model once turned into quantity 10, kept so the
+ * regression is covered on every run.
  */
 const MENU = [
   // ---- Day 1 ----
   {
     day: 1,
-    dish: 'Сніданок: сирники зі сметаною та бананом',
+    dish: 'Сніданок: вівсянка на молоці з бананом',
     ingredients: [
-      { name: 'сир кисломолочний', qty: '400 г' },
-      { name: 'яйця', qty: '2 шт' },
-      { name: 'борошно', qty: '100 г' },
-      { name: 'сметана', qty: '200 мл' },
+      { name: 'каша вівсяна', qty: '200 г' },
+      { name: 'молоко', qty: '500 мл' },
       { name: 'банан', qty: '2 шт' },
       { name: 'цукор', qty: '50 г' },
     ],
   },
   {
     day: 1,
-    dish: 'Обід: курячий суп з картоплею',
+    dish: 'Обід: борщ',
+    ingredients: [
+      { name: 'буряк', qty: '300 г' },
+      { name: 'капуста', qty: '500 г' },
+      { name: 'картопля', qty: '1 кг' },
+      { name: 'морква', qty: '200 г' },
+      { name: 'цибуля', qty: '2 шт' },
+      { name: 'томатна паста', qty: '100 г' },
+    ],
+  },
+  {
+    day: 1,
+    dish: 'Вечеря: макарони по-флотськи',
+    ingredients: [
+      { name: 'макарони', qty: '400 г' },
+      { name: 'фарш', qty: '500 г' },
+      { name: 'цибуля', qty: '2 шт' },
+      { name: 'олія соняшникова', qty: '50 мл' },
+    ],
+  },
+  // ---- Day 2 ----
+  {
+    day: 2,
+    dish: 'Сніданок: омлет із хлібом',
+    ingredients: [
+      { name: 'яйця', qty: '6 шт' },
+      { name: 'молоко', qty: '100 мл' },
+      { name: 'хліб', qty: '1 шт' },
+      { name: 'олія соняшникова', qty: '30 мл' },
+    ],
+  },
+  {
+    day: 2,
+    dish: 'Обід: курячий суп',
     ingredients: [
       { name: 'куряче стегно', qty: '600 г' },
-      { name: 'картопля', qty: '1 кг' },
+      { name: 'картопля', qty: '500 г' },
       { name: 'морква', qty: '200 г' },
       { name: 'цибуля', qty: '2 шт' },
       { name: 'петрушка', qty: '1 пучок' },
     ],
   },
   {
-    day: 1,
-    dish: 'Вечеря: запечений хек з гарбузом',
+    day: 2,
+    dish: 'Вечеря: тушкована капуста з рисом',
     ingredients: [
-      { name: 'хек', qty: '500 г' },
-      { name: 'гарбуз', qty: '400 г' },
-      { name: 'олія оливкова', qty: '50 мл' },
-      { name: 'лимон', qty: '1 шт' },
+      { name: 'капуста', qty: '600 г' },
+      { name: 'рис', qty: '300 г' },
+      { name: 'морква', qty: '200 г' },
+      { name: 'томатна паста', qty: '100 г' },
     ],
   },
-  // ---- Day 2 ----
+  // ---- Day 3 ----
   {
-    day: 2,
-    dish: 'Сніданок: омлет з помідорами та сиром',
+    day: 3,
+    dish: 'Сніданок: сирники зі сметаною',
     ingredients: [
-      { name: 'яйця', qty: '4 шт' },
-      { name: 'молоко', qty: '100 мл' },
-      { name: 'помідори', qty: '200 г' },
-      { name: 'сир твердий', qty: '100 г' },
+      { name: 'сир кисломолочний', qty: '400 г' },
+      { name: 'яйця', qty: '2 шт' },
+      { name: 'борошно', qty: '100 г' },
+      { name: 'цукор', qty: '50 г' },
+      { name: 'сметана', qty: '200 мл' },
+    ],
+  },
+  {
+    day: 3,
+    dish: 'Обід: оселедець з картоплею',
+    ingredients: [
+      { name: 'оселедець', qty: '300 г' },
+      { name: 'картопля', qty: '800 г' },
+      { name: 'цибуля', qty: '1 шт' },
+      { name: 'олія соняшникова', qty: '30 мл' },
+    ],
+  },
+  {
+    day: 3,
+    dish: 'Вечеря: запіканка з макаронами та сиром',
+    ingredients: [
+      { name: 'макарони', qty: '300 г' },
+      { name: 'яйця', qty: '3 шт' },
+      { name: 'молоко', qty: '200 мл' },
+      { name: 'сир твердий', qty: '150 г' },
       { name: 'масло вершкове', qty: '50 г' },
-      { name: 'хліб', qty: '1 шт' },
-    ],
-  },
-  {
-    day: 2,
-    dish: 'Обід: паста болоньєзе',
-    ingredients: [
-      { name: 'спагеті', qty: '400 г' },
-      { name: 'фарш яловичий', qty: '500 г' },
-      { name: 'помідори', qty: '400 г' },
-      { name: 'цибуля', qty: '2 шт' },
-      { name: 'часник', qty: '3 зубчики' },
-      { name: 'сир твердий', qty: '100 г' },
-    ],
-  },
-  {
-    day: 2,
-    dish: 'Вечеря: салат з лососем',
-    ingredients: [
-      { name: 'лосось', qty: '200 г' },
-      { name: 'салат айсберг', qty: '1 шт' },
-      { name: 'огірки', qty: '2 шт' },
-      { name: 'помідори', qty: '200 г' },
-      { name: 'олія оливкова', qty: '30 мл' },
     ],
   },
 ];
+
+const CHEAPEST = process.argv.includes('--cheapest');
 
 async function main() {
   const [user] = await db.select().from(users).orderBy(desc(users.id)).limit(1);
@@ -135,6 +168,7 @@ async function main() {
     console.log('\nresolving ingredients against the live catalogue ...');
     const { items, misses } = await resolveIngredients(mcp, state.cartContext!, MENU, {
       restrictions: state.profile?.restrictions,
+      preferCheapest: CHEAPEST,
     });
 
     console.log(`\n${items.length} items resolved, ${misses.length} misses`);

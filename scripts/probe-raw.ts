@@ -43,11 +43,12 @@ async function main() {
     console.log(Object.keys(products[0] ?? {}).sort().join(', '));
     console.log('\nFULL FIRST CANDIDATE:');
     console.log(JSON.stringify(products[0], null, 2));
-    console.log('\nNAME | displayRatio | weighted | step | price');
+    console.log('\nNAME | ratio | weighted | step | stock | available | price');
     for (const p of products) {
       console.log(
-        `  ${String(p.name).slice(0, 52).padEnd(54)} ratio=${String(p.displayRatio).padEnd(8)} ` +
-          `weighted=${String(p.weighted).padEnd(5)} step=${String(p.step).padEnd(5)} ${p.price}`,
+        `  ${String(p.name).slice(0, 46).padEnd(48)} ratio=${String(p.displayRatio).padEnd(7)} ` +
+          `w=${String(p.weighted).padEnd(5)} step=${String(p.step).padEnd(4)} ` +
+          `stock=${String(p.stock).padEnd(6)} avail=${String(p.available).padEnd(5)} ${p.price}`,
       );
     }
   } finally {
