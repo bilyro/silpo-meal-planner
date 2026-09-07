@@ -218,12 +218,29 @@ export class SilpoMcpClient {
   async toolsForAiSdk(): Promise<Record<string, Tool>> {
     if (!this.client) throw new Error('SilpoMcpClient.connect() must succeed before toolsForAiSdk()');
     const { tools } = await this.client.listTools();
+    // Sorted by name so the serialised tool block is byte-identical between requests. Anthropic's
+    // prompt cache matches on an exact prefix, so if Silpo ever returned tools/list in a different
+    // order the cache would silently miss on every turn and we would pay the write price forever.
+    const sorted = [...tools].sort((a, b) => a.name.localeCompare(b.name));
+    const lastIndex = sorted.length - 1;
+
     return Object.fromEntries(
-      tools.map((t) => [
+      sorted.map((t, index) => [
         t.name,
         tool({
           description: t.description ?? t.name,
           inputSchema: jsonSchema(t.inputSchema as JSONSchema7),
+          // A cache breakpoint on the FINAL tool caches the whole tool block, which measured at
+          // 18,012 of the 20,158 input tokens on a typical turn — 89%. The tool block sits before
+          // `system` in Anthropic's request order, so this stays valid even though the system
+          // prompt carries per-turn session state and changes every time.
+          //
+          // Worth understanding: an agent turn is not one request. `stopWhen: stepCountIs(...)`
+          // means up to MAX_TOOL_CALLS_PER_TURN round-trips, each resending this block in full, so
+          // the saving multiplies by the number of steps rather than applying once.
+          ...(index === lastIndex
+            ? { providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' as const } } } }
+            : {}),
           execute: (args, { abortSignal }) =>
             this.callModelTool(t.name, args as Record<string, unknown>, abortSignal),
         }),
