@@ -126,10 +126,16 @@ authoritative record of what actually happened.
 [`docs/tools.json`](docs/tools.json), regenerate with `npm run spike`). All 40 are handed to the
 model each turn — `SilpoMcpClient.toolsForAiSdk()` reads `tools/list` at runtime and converts each
 tool's own JSON Schema into an AI SDK tool, so **no argument shape is hard-coded anywhere**. On top
-of that, **16 tools are called directly from our own code** on the deterministic paths below. Both
+of that, **19 tools are called directly from our own code** on the deterministic paths below. Both
 routes share one wrapper, so both are retried and both are logged.
 
-The table below is the 16 direct calls, verified against the source (grep for `callTool` in `src/`):
+Counting honestly, against `tool_call_log` and the source rather than intent: **19 tools are wired
+into our code, 19 have actually been called, and 21 have been touched one way or the other** — the
+two sets differ at the edges, and the difference is the interesting part. Two wired tools have never
+had their branch reached, and two tools nobody wired were reached for by the model on its own.
+Full breakdown: [`docs/mcp-tool-usage.md`](docs/mcp-tool-usage.md).
+
+The table below is the 19 direct calls, verified against the source (grep for `callTool` in `src/`):
 
 | Flow step | Tool | Called from | Why | Writes? |
 |---|---|---|---|---|
@@ -146,10 +152,17 @@ The table below is the 16 direct calls, verified against the source (grep for `c
 | Cart context | `silpo_create_shopping_cart` | `agent/cartContext.ts` | Create the cart with address + branch + slot | **yes** |
 | Cart context | `silpo_update_shopping_cart` | `agent/cartContext.ts` | Re-book the slot when a carried-over cart's slot has expired | **yes** |
 | Resolve list | `silpo_find_products_batch` 🔒 | `agent/resolveIngredients.ts` | Up to 30 ingredient queries per call, chunked | no |
-| Resolve list | `silpo_get_replacements` | `agent/resolveIngredients.ts` | Substitute an ingredient whose match is out of stock | no |
+| Resolve list | `silpo_get_replacements` ◦ | `agent/resolveIngredients.ts` | Substitute an ingredient whose match is out of stock | no |
 | Build cart | `silpo_add_or_update_cart_products` | `bot/bot.ts` (🛒 handler) | Write the whole resolved list in ONE batched call | **yes** |
 | Finish | `silpo_get_shopping_cart_by_id` | `agent/localTools.ts`, `bot/commands.ts` | `checkoutWebLink`, Silpo's own total, bonus balance, and validation errors | no |
+| Finish | `silpo_get_loyalty_info` | `agent/loyalty.ts` | Bonus balance and tier shown under the cart | no |
+| Finish | `silpo_get_my_coupons` | `agent/loyalty.ts` | Personal coupons that apply to this basket | no |
+| Finish | `silpo_get_promo_codes` | `agent/loyalty.ts` | Promo codes offered alongside the checkout link | no |
 | Cleanup | `silpo_clear_shopping_cart` | `bot/bot.ts` (`/clear` → confirm) | Required by spec §4.6 — there is no sandbox, so cleanup must exist | **yes** |
+
+◦ `silpo_get_replacements` and `silpo_list_branches` are implemented but have never been reached on
+a real run — one needs an out-of-stock match, the other a delivery type that names no branch. Live
+code on a branch that hasn't fired, not dead code.
 
 Category coverage: **Profile · Location & Delivery · Cart · Product Search · Loyalty**. The loyalty
 balance shown at the end (`💳 Бонусів доступно`) rides along on
@@ -163,8 +176,13 @@ order; the MCP has no such tool.
 product ids to prefer. It does not — it returns promo *campaigns* with no product ids at all
 (verified live). Promo status is instead read per-product off `specialPrices` / `oldPrice`, which
 `silpo_find_products_batch` results already carry. That is cheaper *and* correct. The model may
-still call it for display context, and can reach any of the other 24 tools when a conversation calls
+still call it for display context, and can reach any of the other 21 tools when a conversation calls
 for it.
+
+And it does: `tool_call_log` shows the model reaching for `silpo_get_promotions` and
+`silpo_get_my_promos` on its own — two tools nothing in our code wires. That is the payoff for
+exposing all 40 rather than a curated subset, and it is why the exposure strategy is worth the
+tokens it costs.
 
 ### What the live API actually does (and the spec got wrong)
 

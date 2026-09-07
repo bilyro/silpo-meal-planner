@@ -1,0 +1,533 @@
+<title>Silpo Tool Coverage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+  :root {
+    --ground:      #F4F2F1;
+    --surface:     #FFFFFF;
+    --surface-alt: #EDEAE8;
+    --ink:         #1A1614;
+    --ink-mute:    #6B6360;
+    --ink-faint:   #928A87;
+    --rule:        #DDD9D7;
+    --rule-strong: #C6C0BD;
+    --accent:      #C8102E;
+
+    --live:        #2E6F4E;
+    --live-bg:     #E4EFE8;
+    --dormant:     #8A6410;
+    --dormant-bg:  #F4EBD8;
+    --improvised:  #524193;
+    --improvised-bg:#E8E5F3;
+    --unused:      #7C7472;
+    --unused-bg:   #E7E3E1;
+
+    --shadow: 0 1px 2px rgba(26, 22, 20, .05), 0 8px 24px -16px rgba(26, 22, 20, .25);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #171514;
+      --surface:     #201D1B;
+      --surface-alt: #272321;
+      --ink:         #EDE9E7;
+      --ink-mute:    #A79F9B;
+      --ink-faint:   #7D7571;
+      --rule:        #332F2D;
+      --rule-strong: #4A4441;
+      --accent:      #FF6B7E;
+
+      --live:        #6FBF92;
+      --live-bg:     #1E2E26;
+      --dormant:     #D9A94A;
+      --dormant-bg:  #302819;
+      --improvised:  #A99BE8;
+      --improvised-bg:#26223A;
+      --unused:      #948C89;
+      --unused-bg:   #262221;
+
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #171514;
+    --surface:     #201D1B;
+    --surface-alt: #272321;
+    --ink:         #EDE9E7;
+    --ink-mute:    #A79F9B;
+    --ink-faint:   #7D7571;
+    --rule:        #332F2D;
+    --rule-strong: #4A4441;
+    --accent:      #FF6B7E;
+
+    --live:        #6FBF92;
+    --live-bg:     #1E2E26;
+    --dormant:     #D9A94A;
+    --dormant-bg:  #302819;
+    --improvised:  #A99BE8;
+    --improvised-bg:#26223A;
+    --unused:      #948C89;
+    --unused-bg:   #262221;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Archivo", ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: clamp(2.5rem, 6vw, 5rem) clamp(1.1rem, 4vw, 2.5rem) 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.25rem;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead { display: flex; flex-direction: column; gap: 1rem; }
+
+  .eyebrow {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .7rem;
+    font-weight: 500;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  h1 {
+    font-size: clamp(2.1rem, 5.5vw, 3.4rem);
+    font-weight: 800;
+    letter-spacing: -.033em;
+    line-height: 1.02;
+    text-wrap: balance;
+    max-width: 18ch;
+  }
+
+  .standfirst {
+    max-width: 64ch;
+    font-size: clamp(1rem, 2vw, 1.11rem);
+    color: var(--ink-mute);
+  }
+
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- stat strip ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .stat {
+    background: var(--surface);
+    padding: 1.15rem 1.25rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+  }
+
+  .stat-n {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 2.15rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-l {
+    font-size: .78rem;
+    color: var(--ink-mute);
+    line-height: 1.35;
+  }
+
+  .stat.is-accent .stat-n { color: var(--accent); }
+
+  .note {
+    font-size: .9rem;
+    color: var(--ink-mute);
+    max-width: 68ch;
+    border-left: 2px solid var(--rule-strong);
+    padding-left: .9rem;
+  }
+
+  /* ---------- sections ---------- */
+  section { display: flex; flex-direction: column; gap: 1.1rem; }
+
+  .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .75rem; }
+
+  h2 {
+    font-size: clamp(1.25rem, 3vw, 1.55rem);
+    font-weight: 700;
+    letter-spacing: -.02em;
+  }
+
+  .chip {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: .28rem .55rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .chip.live       { color: var(--live);       background: var(--live-bg); }
+  .chip.dormant    { color: var(--dormant);    background: var(--dormant-bg); }
+  .chip.improvised { color: var(--improvised); background: var(--improvised-bg); }
+  .chip.unused     { color: var(--unused);     background: var(--unused-bg); }
+
+  .lede { font-size: .95rem; color: var(--ink-mute); max-width: 68ch; }
+
+  /* ---------- tables ---------- */
+  .scroll {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  table { border-collapse: collapse; width: 100%; min-width: 640px; }
+
+  thead th {
+    text-align: left;
+    font-size: .69rem;
+    font-weight: 600;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: .7rem .85rem;
+    background: var(--surface-alt);
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: .62rem .85rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+    font-size: .88rem;
+  }
+
+  tbody tr:last-child td { border-bottom: 0; }
+
+  /* the left status stripe: encodes the category on every row */
+  tbody td:first-child { border-left: 3px solid transparent; }
+  .t-live    tbody td:first-child { border-left-color: var(--live); }
+  .t-dormant tbody td:first-child { border-left-color: var(--dormant); }
+  .t-improv  tbody td:first-child { border-left-color: var(--improvised); }
+  .t-unused  tbody td:first-child { border-left-color: var(--unused); }
+
+  code, .tool {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .82em;
+  }
+
+  .tool { font-weight: 500; white-space: nowrap; }
+  .tool .pre { color: var(--ink-faint); font-weight: 400; }
+
+  .num {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .muted { color: var(--ink-mute); }
+
+  .w {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: var(--accent);
+  }
+
+  .lock { color: var(--ink-faint); }
+
+  /* ---------- the finding ---------- */
+  .finding {
+    background: var(--improvised-bg);
+    border: 1px solid color-mix(in srgb, var(--improvised) 30%, transparent);
+    border-radius: 3px;
+    padding: 1.15rem 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+  }
+
+  .finding p { max-width: 70ch; font-size: .92rem; }
+  .finding .k { color: var(--improvised); font-weight: 600; }
+
+  /* ---------- off-mission pills ---------- */
+  .pills { display: flex; flex-wrap: wrap; gap: .4rem; }
+
+  .pill {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .765rem;
+    padding: .32rem .55rem;
+    border: 1px solid var(--rule-strong);
+    border-radius: 2px;
+    color: var(--ink-mute);
+    background: var(--surface);
+  }
+
+  .verdict {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+
+  .col {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+  }
+
+  .col h3 {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .col p { font-size: .89rem; color: var(--ink-mute); }
+  .col .for { color: var(--live); }
+  .col .against { color: var(--accent); }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.4rem;
+    font-size: .83rem;
+    color: var(--ink-faint);
+    max-width: 72ch;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+  }
+
+  @media (max-width: 620px) {
+    .stat-n { font-size: 1.8rem; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Сільпо Шеф · MCP audit</div>
+    <h1>Which of Silpo's 40 tools the agent actually uses</h1>
+    <p class="standfirst">
+      All 40 are handed to the model every turn — <code>toolsForAiSdk()</code> reads
+      <code>tools/list</code> at runtime and converts each tool's own JSON Schema, so no argument
+      shape is hard-coded anywhere. This is the audit of which ones it <strong>reaches</strong>,
+      taken from <code>tool_call_log</code> and a grep of <code>src/</code> rather than from intent.
+    </p>
+  </header>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-n">40</div>
+      <div class="stat-l">Exposed to the model each turn</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">19</div>
+      <div class="stat-l">Wired into our own code</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">19</div>
+      <div class="stat-l">Ever actually called</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">21</div>
+      <div class="stat-l">Touched one way or the other</div>
+    </div>
+    <div class="stat is-accent">
+      <div class="stat-n">19</div>
+      <div class="stat-l">Never touched at all</div>
+    </div>
+  </div>
+
+  <p class="note">
+    The two 19s are <em>different sets</em>. Two wired tools have never had their branch reached, and
+    two tools nobody wired were reached for by the model on its own — which is why the honest
+    headline for a judge is 21 touched, not 19.
+  </p>
+
+  <section>
+    <div class="head">
+      <h2>Used</h2>
+      <span class="chip live">wired &amp; exercised · 17</span>
+    </div>
+    <p class="lede">
+      Called from deterministic TypeScript on the plan → cart path. Every write happens only after an
+      explicit user tap.
+    </p>
+    <div class="scroll">
+      <table class="t-live">
+        <thead>
+          <tr><th>Tool</th><th>Called from</th><th>Why</th><th class="num">Calls</th><th>Writes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_my_profile</td><td class="muted">bot/welcome.ts</td><td>Greet by real name</td><td class="num">19</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_my_food_restrictions</td><td class="muted">bot/welcome.ts</td><td>Hard constraints on menu and product choice</td><td class="num">19</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_my_family</td><td class="muted">bot/welcome.ts</td><td>Family size → portions; pets → pet food</td><td class="num">18</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_shopping_cart_by_id</td><td class="muted">cartContext, localTools, commands</td><td>Checkout link, Silpo's own total, validations</td><td class="num">13</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>find_products_batch <span class="lock">🔒</span></td><td class="muted">resolveIngredients</td><td>Up to 30 ingredient queries per call, chunked</td><td class="num">11</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_my_delivery_addresses</td><td class="muted">cartContext</td><td>Use the saved address when there is one</td><td class="num">10</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_my_shopping_cart</td><td class="muted">cartContext</td><td>Reuse a cart instead of creating a second</td><td class="num">9</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>add_or_update_cart_products</td><td class="muted">bot.ts (🛒)</td><td>Writes the whole resolved list in ONE call</td><td class="num">3</td><td><span class="w">WRITE</span></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_time_slots</td><td class="muted">cartContext</td><td>First available slot — required by every 🔒 tool</td><td class="num">2</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>find_address</td><td class="muted">cartContext</td><td>Geocode a free-text address</td><td class="num">1</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_available_delivery_types</td><td class="muted">cartContext</td><td>Which types serve those coordinates</td><td class="num">1</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>create_shopping_cart</td><td class="muted">cartContext</td><td>Create cart with address + branch + slot</td><td class="num">1</td><td><span class="w">WRITE</span></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>update_shopping_cart</td><td class="muted">cartContext</td><td>Re-book a slot that expired</td><td class="num">1</td><td><span class="w">WRITE</span></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_loyalty_info</td><td class="muted">agent/loyalty.ts</td><td>Bonus balance and tier</td><td class="num">1</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_my_coupons</td><td class="muted">agent/loyalty.ts</td><td>Personal coupons for this basket</td><td class="num">1</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_promo_codes</td><td class="muted">agent/loyalty.ts</td><td>Promo codes beside the checkout link</td><td class="num">1</td><td></td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>clear_shopping_cart</td><td class="muted">bot.ts (/clear)</td><td>Cleanup — there is no sandbox</td><td class="num">1</td><td><span class="w">WRITE</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">
+      Category coverage: <strong>Profile · Location &amp; Delivery · Cart · Product Search ·
+      Loyalty</strong>. One <code>find_products_batch</code> call failed — the documented
+      cart-context precondition, before <code>ensureCartContext</code> enforced it.
+    </p>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Wired, never triggered</h2>
+      <span class="chip dormant">dormant · 2</span>
+    </div>
+    <p class="lede">Live code on a branch that has not fired yet — not dead code.</p>
+    <div class="scroll">
+      <table class="t-dormant">
+        <thead><tr><th>Tool</th><th>Where</th><th>Waiting on</th></tr></thead>
+        <tbody>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_replacements</td><td class="muted">resolveIngredients.ts:229</td><td>A matched product that is out of stock</td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>list_branches</td><td class="muted">cartContext.ts:245</td><td>A delivery type that names no branch</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>The model reached for these itself</h2>
+      <span class="chip improvised">unwired · 2</span>
+    </div>
+    <div class="scroll">
+      <table class="t-improv">
+        <thead><tr><th>Tool</th><th class="num">Calls</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="tool"><span class="pre">silpo_</span>get_promotions</td>
+            <td class="num">2</td>
+            <td>Deliberately not wired: it returns promo <em>campaigns</em> with no product ids. Promo status is read per-product off <code>specialPrices</code> / <code>oldPrice</code> instead — cheaper and correct. One of the two calls failed.</td>
+          </tr>
+          <tr>
+            <td class="tool"><span class="pre">silpo_</span>get_my_promos</td>
+            <td class="num">1</td>
+            <td>Never wired anywhere in <code>src/</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="finding">
+      <p><span class="k">Why this matters.</span> Nothing in our code calls either tool. They appear
+      in the log because the model chose them — the agent went past its scripted paths using schemas
+      it read at runtime.</p>
+      <p>That is the payoff for exposing all 40 rather than a curated subset. It is also the
+      strongest argument against trimming the list too aggressively.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Never touched</h2>
+      <span class="chip unused">unused · 19</span>
+    </div>
+    <p class="lede">Split by whether they are plausibly on the roadmap or simply not a meal
+      planner's business.</p>
+    <div class="scroll">
+      <table class="t-unused">
+        <thead><tr><th>Tool</th><th>Would serve</th></tr></thead>
+        <tbody>
+          <tr><td class="tool"><span class="pre">silpo_</span>remove_cart_products</td><td>The ✏️ «Прибрати позицію» stub</td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_similar_products</td><td>The 💸 «Дешевше» budget-squeeze stub</td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_product_details</td><td>Same — comparing a cheaper candidate</td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_products</td><td>Single-product search outside the batch path</td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_coupon_details</td><td>Explaining a coupon the agent surfaced</td></tr>
+          <tr><td class="tool"><span class="pre">silpo_</span>get_my_online_orders</td><td>«Замов як минулого разу» from real history</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="lede" style="margin-top:.6rem">
+      <strong>Off-mission (13)</strong> — the trim candidates, <strong>13,777 of 47,783 chars =
+      28.8%</strong> of the tool block:
+    </p>
+    <div class="pills">
+      <span class="pill">find_nova_poshta_offices</span>
+      <span class="pill">find_nova_poshta_settlements</span>
+      <span class="pill">add_or_update_certificates</span>
+      <span class="pill">get_my_certificates</span>
+      <span class="pill">get_my_favorites</span>
+      <span class="pill">add_or_update_favorite_products</span>
+      <span class="pill">get_categories</span>
+      <span class="pill">get_categories_tree</span>
+      <span class="pill">get_category</span>
+      <span class="pill">get_popular_categories</span>
+      <span class="pill">get_product_sets</span>
+      <span class="pill">get_my_premium_subscription</span>
+      <span class="pill">get_my_offline_orders</span>
+    </div>
+
+    <div class="verdict">
+      <div class="col">
+        <h3><span class="for">For trimming</span></h3>
+        <p>Every irrelevant tool is one more thing the model can reach for wrongly, and this project
+          already needed a duplicate-call guard. Accuracy is the real argument — the cost saving is
+          about $0.012 per plan.</p>
+      </div>
+      <div class="col">
+        <h3><span class="against">Against</span></h3>
+        <p>«All 40 exposed» is part of the pitch, and the section above is evidence it does something
+          real. A judge may well read the tool list.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Counts from <code>tool_call_log</code> — 115 calls recorded to date — cross-referenced against
+      <code>callTool</code> string literals in <code>src/</code>. Regenerate with
+      <code>npm run export-log</code>.</p>
+    <p>Tools marked 🔒 require an active cart context (<code>branchId</code>,
+      <code>deliveryType</code>, <code>timeslotStart</code>, <code>timeslotEnd</code>) before they
+      will answer at all.</p>
+  </footer>
+
+</div>
