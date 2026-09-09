@@ -8,6 +8,7 @@ import {
   oauthTokens,
   plans,
   recipes,
+  sharedRecipes,
   sessions,
   toolCallLog,
   userFacts,
@@ -319,7 +320,7 @@ export async function saveRecipe(
     });
 }
 
-/** Exact normalized-name match — deliberately not fuzzy; see memory.ts's recallRecipe(). */
+/** Exact normalized-name match — deliberately not fuzzy; see localTools.ts's recallRecipe(). */
 export async function findRecipe(userId: number, dishName: string) {
   return db.query.recipes.findFirst({
     where: and(eq(recipes.userId, userId), eq(recipes.dishNameKey, dishKey(dishName))),
@@ -337,4 +338,39 @@ export async function listRecipes(userId: number, limit = 20) {
 /** For account disconnect (`/logout`) — recipes are this household's data, same as messages/facts. */
 export async function deleteRecipes(userId: number): Promise<void> {
   await db.delete(recipes).where(eq(recipes.userId, userId));
+}
+
+// ── Shared recipes (cross-user pool, consulted only when the personal one has nothing) ─────────
+
+/**
+ * Upserts the shared entry for a dish, mirroring `saveRecipe()` — every clean resolution writes
+ * to both tables, not a separately curated promotion step. `contributedByUserId` is provenance
+ * only; it is overwritten to whoever refined the recipe most recently, same as `ingredientsJson`.
+ */
+export async function saveSharedRecipe(
+  dishName: string,
+  ingredients: { name: string; qty: string }[],
+  contributedByUserId: number,
+): Promise<void> {
+  const key = dishKey(dishName);
+  await db
+    .insert(sharedRecipes)
+    .values({ dishNameKey: key, dishName, ingredientsJson: ingredients, contributedByUserId })
+    .onConflictDoUpdate({
+      target: sharedRecipes.dishNameKey,
+      set: {
+        dishName,
+        ingredientsJson: ingredients,
+        contributedByUserId,
+        timesUsed: sql`${sharedRecipes.timesUsed} + 1`,
+        lastUsedAt: sql`now()`,
+      },
+    });
+}
+
+/** Exact normalized-name match, same as `findRecipe()` — the shared-pool fallback. */
+export async function findSharedRecipe(dishName: string) {
+  return db.query.sharedRecipes.findFirst({
+    where: eq(sharedRecipes.dishNameKey, dishKey(dishName)),
+  });
 }

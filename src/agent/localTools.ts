@@ -198,20 +198,31 @@ export async function removeItems(
 }
 
 export type RecallRecipeResult =
-  | { found: true; dishName: string; ingredients: unknown; timesUsed: number }
+  | { found: true; source: 'personal' | 'shared'; dishName: string; ingredients: unknown; timesUsed: number }
   | { found: false };
 
 /**
  * Looks up a dish this user already cooked before, for the model to check before inventing an
- * ingredient list from scratch — see `saveRecipe()` in `db/repo.ts` for where these get written
- * (bot.ts's ✅ handler, only on a clean resolution) and the `recipes` table's own doc comment for
- * why only names/quantities are stored, never a resolved product or price.
+ * ingredient list from scratch — see `saveRecipe()`/`saveSharedRecipe()` in `db/repo.ts` for
+ * where these get written (bot.ts's ✅ handler, only on a clean resolution) and the `recipes`
+ * table's own doc comment for why only names/quantities are stored, never a resolved product or
+ * price.
+ *
+ * Checks this user's OWN history first — most personalized, most trusted — and only falls back
+ * to the cross-user `sharedRecipes` pool if this user has never cooked the dish. `source` tells
+ * the model which one it got, so the prompt can ask for more adaptation caution on a shared
+ * result (a stranger's family size and preferences, not this one's).
  */
 export async function recallRecipe(userId: number, dishName: string): Promise<RecallRecipeResult> {
-  const recipe = await repo.findRecipe(userId, dishName);
-  return recipe
-    ? { found: true, dishName: recipe.dishName, ingredients: recipe.ingredientsJson, timesUsed: recipe.timesUsed }
-    : { found: false };
+  const personal = await repo.findRecipe(userId, dishName);
+  if (personal) {
+    return { found: true, source: 'personal', dishName: personal.dishName, ingredients: personal.ingredientsJson, timesUsed: personal.timesUsed };
+  }
+  const shared = await repo.findSharedRecipe(dishName);
+  if (shared) {
+    return { found: true, source: 'shared', dishName: shared.dishName, ingredients: shared.ingredientsJson, timesUsed: shared.timesUsed };
+  }
+  return { found: false };
 }
 
 interface CartByIdResult {
@@ -443,11 +454,13 @@ export function localTools(userId: number, state: SessionState, mcp: SilpoMcpCli
     // saving happens deterministically in bot.ts's ✅ handler, only once a resolution is clean.
     recall_recipe: tool({
       description:
-        'Перевіряє, чи вже готували цю страву для цього користувача раніше — повертає збережений ' +
-        'список інгредієнтів, якщо є. Виклич це ПЕРЕД тим, як самостійно вигадувати склад страви, ' +
-        'коли назва схожа на щось, що могли просити раніше (напр. «борщ», «плов»). Якщо знайдено — ' +
-        'адаптуй ці інгредієнти під поточний запит (розмір сім\'ї, нові побажання), а не копіюй ' +
-        'бездумно; якщо не знайдено — склади страву як завжди.',
+        'Перевіряє, чи вже хтось готував цю страву — спочатку у цього користувача, потім у ' +
+        'спільній базі інших користувачів — повертає збережений список інгредієнтів, якщо є. ' +
+        'Виклич це ПЕРЕД тим, як самостійно вигадувати склад страви, коли назва схожа на щось, що ' +
+        'могли просити раніше (напр. «борщ», «плов»). Якщо знайдено — адаптуй ці інгредієнти під ' +
+        'поточний запит (розмір сім\'ї, нові побажання), а не копіюй бездумно; якщо source=' +
+        '"shared" — це рецепт ІНШОГО користувача, тож зваж це ще уважніше. Якщо не знайдено — ' +
+        'склади страву як завжди.',
       inputSchema: z.object({ dishName: z.string().min(1) }),
       execute: async ({ dishName }) => recallRecipe(userId, dishName),
     }),

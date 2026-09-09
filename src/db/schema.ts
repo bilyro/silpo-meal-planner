@@ -123,10 +123,8 @@ export const userFacts = pgTable('user_facts', {
  * place (the newest version is treated as the most refined one) and bumps `timesUsed`, rather
  * than accumulating a row per occurrence.
  *
- * Scoped to one user for now — a genuinely shared, cross-user recipe library is a real
- * possibility later, but reusing someone else's borscht for a different household's stated
- * preferences is the more likely failure mode to get wrong first, so per-user is where this
- * starts.
+ * Scoped to one user — this user's own history, checked first and trusted most. See
+ * `sharedRecipes` below for the cross-user pool consulted only when this table has nothing.
  */
 export const recipes = pgTable(
   'recipes',
@@ -144,6 +142,37 @@ export const recipes = pgTable(
   },
   (table) => [unique().on(table.userId, table.dishNameKey)],
 );
+
+/**
+ * The cross-user pool `recipes` falls back to when THIS user has never cooked a dish. Same
+ * ingredients-only shape and the same "0 misses" correctness bar as `recipes` — every clean
+ * resolution writes to both tables, not a separately curated promotion step.
+ *
+ * Unique on `dishNameKey` alone: there is exactly one shared entry per dish name, not one per
+ * (user, dish). `contributedByUserId` is provenance only (who last refined it), never used to
+ * filter or restrict who can read it.
+ *
+ * Naming a forbidden ingredient here is not a safety gap: a shared recipe's ingredient NAMES
+ * still flow through the exact same `resolveIngredients` -> `selectProduct` -> `hardRestrictions`
+ * pipeline as a personal one. A shared "борщ" naming «свинина» for a user with a «без свинини»
+ * restriction simply fails to find a matching product for that one ingredient — the same miss
+ * this pipeline already produces today, not a silent violation. What a shared entry can get
+ * wrong is fit, not safety: a family size or preference that doesn't match this user, which is
+ * why the model is told to adapt a shared suggestion even more than its own.
+ *
+ * Not touched by `/logout` — a contribution to the shared pool is aggregate data, not this
+ * user's property to erase, the same reasoning `tool_call_log` already stands on.
+ */
+export const sharedRecipes = pgTable('shared_recipes', {
+  id: serial('id').primaryKey(),
+  dishNameKey: text('dish_name_key').notNull().unique(),
+  dishName: text('dish_name').notNull(),
+  ingredientsJson: jsonb('ingredients_json').notNull(),
+  timesUsed: integer('times_used').notNull().default(1),
+  contributedByUserId: integer('contributed_by_user_id').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const toolCallLog = pgTable('tool_call_log', {
   id: serial('id').primaryKey(),

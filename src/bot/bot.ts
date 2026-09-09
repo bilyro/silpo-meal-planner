@@ -172,11 +172,15 @@ export function createBot() {
       // WHOLE menu, not per dish, so "0 misses" is the only correctness bar available without
       // re-deriving which dish a miss belonged to. Deliberately after the reply, own catch each:
       // a failure to remember a recipe must not turn a cart that WAS built into an error message.
+      // Writes to BOTH the personal and shared pool — same correctness bar, no separate curation.
       if (misses.length === 0) {
         for (const dish of state.menu) {
           await repo
             .saveRecipe(user.id, dish.dish, dish.ingredients)
             .catch((err) => logger.error({ err, userId: user.id, dish: dish.dish }, 'Failed to save recipe'));
+          await repo
+            .saveSharedRecipe(dish.dish, dish.ingredients, user.id)
+            .catch((err) => logger.error({ err, userId: user.id, dish: dish.dish }, 'Failed to save shared recipe'));
         }
       }
     } catch (err) {
