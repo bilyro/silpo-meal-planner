@@ -5,6 +5,7 @@ import type { SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import { ensureCartContext } from './cartContext.js';
 import { FACT_KINDS, hardRestrictions, kindLabel } from './memory.js';
 import { resolveIngredients } from './resolveIngredients.js';
+import { matchesQuery } from './selectProduct.js';
 import { saveSession, type SessionState } from './session.js';
 
 const proposeMenuInput = z.object({
@@ -28,6 +29,13 @@ const extraItemsInput = z.object({
         .describe('Кількість, якщо користувач її назвав, напр. «2 шт» або «1 упаковка». Інакше не вказуй.'),
     }),
   ),
+});
+
+const removeItemsInput = z.object({
+  items: z
+    .array(z.string().min(1))
+    .min(1)
+    .describe('Назви позицій, як їх назвав користувач, напр. ["лосось", "чіпси"].'),
 });
 
 const resolvedItemSchema = z.object({
@@ -137,6 +145,58 @@ export async function addExtraItems(
   return { added: newItems, misses, totals };
 }
 
+export interface RemoveItemsResult {
+  removed: ResolvedItems;
+  notFound: string[];
+  totals: Totals;
+}
+
+/** True when `name`, as the user said it, refers to this already-resolved line. */
+function itemMatchesName(item: ResolvedItems[number], name: string): boolean {
+  return matchesQuery(name, item.ingredient) || matchesQuery(name, item.title);
+}
+
+/**
+ * Removes items the user asked to drop ("прибери лосось") — filtered out of `state.resolvedItems`
+ * by code, never by asking the model to retype everything else that should survive. That mirrors
+ * `addExtraItems`'s append: the model names WHICH existing lines go, code does the filtering, so a
+ * line the user meant to keep can never be silently dropped or altered by a retyped list.
+ *
+ * Matching reuses `matchesQuery` (`selectProduct.ts`) against both `ingredient` (what the user
+ * originally asked for) and `title` (the actual resolved product) — the same Ukrainian-inflection
+ * tolerant matching the catalogue search already trusts, rather than a second, divergent heuristic.
+ * Each requested name removes at most ONE line (`find`, not a sweep): "прибери яловина" removing
+ * every beef-named line at once — including one the user didn't mean — would be a worse mistake
+ * than occasionally needing to ask again with a more specific name.
+ *
+ * Reuses `applyResolution` for the totals/stage/`cartWritten` bookkeeping, so removing a line
+ * invalidates a stale "already written to the real cart" flag exactly like adding one does.
+ */
+export async function removeItems(
+  userId: number,
+  state: SessionState,
+  names: string[],
+): Promise<RemoveItemsResult> {
+  let remaining = state.resolvedItems ?? [];
+  const removed: ResolvedItems = [];
+  const notFound: string[] = [];
+
+  for (const rawName of names) {
+    const name = rawName.trim();
+    if (!name) continue;
+    const match = remaining.find((item) => itemMatchesName(item, name));
+    if (!match) {
+      notFound.push(name);
+      continue;
+    }
+    removed.push(match);
+    remaining = remaining.filter((item) => item !== match);
+  }
+
+  const totals = await applyResolution(userId, state, remaining);
+  return { removed, notFound, totals };
+}
+
 interface CartByIdResult {
   success: boolean;
   cart: Record<string, unknown>;
@@ -235,9 +295,10 @@ export async function finishWithCheckout(
 
 /**
  * Local (non-MCP) tools: the spec §6.3 four (`propose_menu`, `ensure_cart_context`,
- * `record_resolution`, `finish_with_checkout`) plus the durable-memory tools
- * (`remember_fact`, `forget_fact`, `recall_facts`). `state` is mutated in place; the
- * caller (runAgentTurn) persists it and reads `state.stage` afterwards.
+ * `record_resolution`, `finish_with_checkout`), the durable-memory tools (`remember_fact`,
+ * `forget_fact`, `recall_facts`), and the ad-hoc list edits (`add_extra_items`, `remove_items`).
+ * `state` is mutated in place; the caller (runAgentTurn) persists it and reads `state.stage`
+ * afterwards.
  */
 export function localTools(userId: number, state: SessionState, mcp: SilpoMcpClient): Record<string, Tool> {
   return {
@@ -298,6 +359,21 @@ export function localTools(userId: number, state: SessionState, mcp: SilpoMcpCli
       execute: async ({ items }) => {
         const { added, misses, totals } = await addExtraItems(userId, state, mcp, items);
         return { ok: true, added, misses, totals };
+      },
+    }),
+
+    // Removes an already-resolved line by name — "прибери лосось". Filters state.resolvedItems
+    // in code, never by asking the model to retype everything that should stay. See removeItems()
+    // above for the matching + totals/cartWritten bookkeeping.
+    remove_items: tool({
+      description:
+        'Прибирає товари зі вже підібраного списку за назвою — те, що користувач попросив прибрати ' +
+        '(«прибери лосось», «без чіпсів»). Викликай ЛИШЕ назви, як їх назвав користувач — код сам ' +
+        'знаходить відповідну позицію. Якщо позицію не знайдено — скажи про це користувачу, не вигадуй.',
+      inputSchema: removeItemsInput,
+      execute: async ({ items }) => {
+        const { removed, notFound, totals } = await removeItems(userId, state, items);
+        return { ok: true, removed: removed.map((r) => r.title), notFound, totals };
       },
     }),
 
