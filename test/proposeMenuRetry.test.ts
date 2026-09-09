@@ -25,7 +25,7 @@ vi.mock('../src/config.js', () => ({
     TURN_TIMEOUT_MS: 60_000,
     PORT: 3000,
     AGENT_MODEL: 'test-model',
-    DAILY_MESSAGE_LIMIT: 8,
+    DAILY_MESSAGE_LIMIT: 10,
   },
 }));
 

@@ -20,7 +20,7 @@ vi.mock('../src/config.js', () => ({
     TURN_TIMEOUT_MS: 60_000,
     PORT: 3000,
     AGENT_MODEL: 'test-model',
-    DAILY_MESSAGE_LIMIT: 8,
+    DAILY_MESSAGE_LIMIT: 10,
   },
 }));
 
@@ -133,7 +133,7 @@ describe('daily message limit', () => {
 
   it('refuses BEFORE connecting to Silpo or calling the model once the limit is reached', async () => {
     const { connect, close } = stubMcp();
-    countUserMessagesTodayMock.mockResolvedValue(8); // === DAILY_MESSAGE_LIMIT
+    countUserMessagesTodayMock.mockResolvedValue(10); // === DAILY_MESSAGE_LIMIT
 
     const result = await runAgentTurn(42, 'ще одне повідомлення');
 
@@ -158,7 +158,7 @@ describe('daily message limit', () => {
   it('proceeds normally below the limit', async () => {
     stubMcp();
     vi.spyOn(SilpoMcpClient.prototype, 'toolsForAiSdk').mockResolvedValue({});
-    countUserMessagesTodayMock.mockResolvedValue(7); // one under the limit
+    countUserMessagesTodayMock.mockResolvedValue(9); // one under the limit
     generateTextMock.mockResolvedValue({ text: 'Ось меню', steps: [{ toolCalls: [] }] } as never);
 
     const result = await runAgentTurn(42, 'меню на 3 дні');

@@ -23,7 +23,7 @@ const envSchema = z.object({
   // This is an ordering agent, not an open-ended chat companion — a real session (plan, resolve,
   // adjust once or twice, build cart) fits well under this. Caps token spend per user per day;
   // checked BEFORE any model or Silpo call, so hitting it costs nothing (see runAgentTurn.ts).
-  DAILY_MESSAGE_LIMIT: z.coerce.number().int().positive().default(8),
+  DAILY_MESSAGE_LIMIT: z.coerce.number().int().positive().default(10),
 });
 
 export type Config = z.infer<typeof envSchema>;
