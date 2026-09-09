@@ -111,6 +111,50 @@ const MODEL_BLOCKED_WRITES = new Set([
 /** Exported for the tests and for the README's tool-coverage numbers. */
 export const modelBlockedWriteTools: readonly string[] = [...MODEL_BLOCKED_WRITES];
 
+/**
+ * Off-mission or redundant read tools, withheld for cost rather than safety (that's
+ * MODEL_BLOCKED_WRITES above) — none of these have ever been called in this account's real usage
+ * (checked against tool_call_log across the whole build), and none are on any documented path.
+ *
+ * Measured live (2026-09-09, via Anthropic's count_tokens, same system prompt and model): cutting
+ * these 18 shrinks the tool-schema block from 15,385 to 8,554 input tokens — 44% — and that block
+ * resends in full on EVERY step of EVERY turn (see the cache-breakpoint comment below), so the
+ * saving multiplies by however many steps a turn takes, not once.
+ *
+ * `get_promotions` and `get_product_details` are the two borderline cases — not off-mission, but
+ * already actively discouraged in SYSTEM_PROMPT (get_promotions returns campaigns with no product
+ * ids; get_product_details is redundant with find_products_batch and needs a `slug` the model
+ * tends to substitute a `productId` for). Withholding them makes that structural instead of relying
+ * on the model to keep obeying a prompt instruction it can just as easily ignore — the same
+ * reasoning already applied to the cart-hallucination and propose_menu fixes this session.
+ *
+ * Nova Poshta (parcel-locker) lookup is dead weight for a different reason: this bot only ever
+ * builds a DeliveryHome / DeliveryExpressByPromise cart, never a postal-pickup one.
+ */
+const MODEL_BLOCKED_OFF_MISSION = new Set([
+  'silpo_get_promotions',
+  'silpo_get_product_details',
+  'silpo_find_nova_poshta_offices',
+  'silpo_find_nova_poshta_settlements',
+  'silpo_get_categories',
+  'silpo_get_categories_tree',
+  'silpo_get_category',
+  'silpo_get_popular_categories',
+  'silpo_get_products',
+  'silpo_get_product_sets',
+  'silpo_get_similar_products',
+  'silpo_get_my_favorites',
+  'silpo_get_my_premium_subscription',
+  'silpo_get_my_promos',
+  'silpo_get_my_certificates',
+  'silpo_get_coupon_details',
+  'silpo_get_my_online_orders',
+  'silpo_get_my_offline_orders',
+]);
+
+/** Exported for the tests and for the README's tool-coverage numbers. */
+export const modelBlockedOffMissionTools: readonly string[] = [...MODEL_BLOCKED_OFF_MISSION];
+
 function parseToolResult<T>(res: Awaited<ReturnType<Client['callTool']>>): T {
   if (res.structuredContent) return res.structuredContent as T;
   const first = Array.isArray(res.content) ? res.content[0] : undefined;
@@ -281,14 +325,15 @@ export class SilpoMcpClient {
    * tool_call_log path as callTool(). Must be called after connect() has succeeded.
    *
    * Every tool is read from `tools/list` at runtime and converted from its own JSON Schema, so no
-   * argument shape is hard-coded (spec §6.2). The one departure from "hand the model all ~40" is
-   * MODEL_BLOCKED_WRITES: the read tools are all here, the account-mutating ones are not, and they
-   * remain reachable through callTool() on the deterministic paths.
+   * argument shape is hard-coded (spec §6.2). Two departures from "hand the model all ~40":
+   * MODEL_BLOCKED_WRITES withholds the account-mutating tools for safety (they remain reachable
+   * through callTool() on the deterministic paths), and MODEL_BLOCKED_OFF_MISSION withholds tools
+   * that are simply never relevant to this bot's mission, purely to shrink the fixed per-step cost.
    */
   async toolsForAiSdk(): Promise<Record<string, Tool>> {
     if (!this.client) throw new Error('SilpoMcpClient.connect() must succeed before toolsForAiSdk()');
     const { tools: allTools } = await this.client.listTools();
-    const tools = allTools.filter((t) => !MODEL_BLOCKED_WRITES.has(t.name));
+    const tools = allTools.filter((t) => !MODEL_BLOCKED_WRITES.has(t.name) && !MODEL_BLOCKED_OFF_MISSION.has(t.name));
     // Sorted by name so the serialised tool block is byte-identical between requests. Anthropic's
     // prompt cache matches on an exact prefix, so if Silpo ever returned tools/list in a different
     // order the cache would silently miss on every turn and we would pay the write price forever.
