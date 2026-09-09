@@ -130,6 +130,34 @@ export function registerCommands(bot: Bot) {
    * Shows everything the bot remembers. A memory the user cannot inspect is one they cannot
    * correct, and a wrong allergy silently shapes every future menu — so this is not a nicety.
    */
+  /** Ingredient names only, defensively read — repo.ts moves opaque JSON, this owns the shape. */
+  function ingredientNames(ingredientsJson: unknown): string {
+    if (!Array.isArray(ingredientsJson)) return '';
+    return ingredientsJson
+      .map((i) => (typeof i === 'object' && i !== null && 'name' in i ? String((i as { name: unknown }).name) : null))
+      .filter((n): n is string => n !== null)
+      .join(', ');
+  }
+
+  bot.command('recipes', async (ctx) => {
+    const user = await repo.getOrCreateUser(String(ctx.chat.id));
+    const saved = await repo.listRecipes(user.id, 15);
+
+    if (saved.length === 0) {
+      await ctx.reply(
+        'Я поки не запам\'ятав жодної страви. Складіть меню і підтвердіть кошик — і наступного ' +
+          'разу, коли попросите ту саму страву, я підберу ті самі інгредієнти замість вигадувати з нуля.',
+      );
+      return;
+    }
+
+    const lines = saved.map(
+      (r) =>
+        `• <b>${escapeHtml(r.dishName)}</b> (${r.timesUsed}×): ${escapeHtml(ingredientNames(r.ingredientsJson))}`,
+    );
+    await ctx.reply(`📖 Страви, які я запам'ятав:\n${lines.join('\n')}`, { parse_mode: 'HTML' });
+  });
+
   bot.command('memory', async (ctx) => {
     const user = await repo.getOrCreateUser(String(ctx.chat.id));
     const facts = await repo.listUserFacts(user.id);
@@ -168,14 +196,16 @@ export function registerCommands(bot: Bot) {
     // account's history, which can name their family, restrictions and addresses. Durable memory
     // goes with it for the same reason, and more urgently — allergies and diets are health data,
     // so this is a real erase (deleteUserFacts), not the audit-preserving soft-delete /forget uses.
+    // Recipes are the same household's data too — a new linker shouldn't inherit someone else's.
     await repo.deleteMessages(user.id);
     await repo.deleteUserFacts(user.id);
+    await repo.deleteRecipes(user.id);
     await ctx.reply('Відʼєднано. Напишіть /start, щоб підʼєднати акаунт знову.');
   });
 
   bot.command('help', async (ctx) => {
     await ctx.reply(
-      'Команди:\n/start — підʼєднати акаунт\n/plan — спланувати меню\n/plans — минулі плани\n/cart — переглянути кошик\n/clear — очистити кошик\n/memory — що я про вас памʼятаю\n/forget — забути все про вас\n/logout — відʼєднати акаунт',
+      'Команди:\n/start — підʼєднати акаунт\n/plan — спланувати меню\n/plans — минулі плани\n/recipes — запам\'ятовані страви\n/cart — переглянути кошик\n/clear — очистити кошик\n/memory — що я про вас памʼятаю\n/forget — забути все про вас\n/logout — відʼєднати акаунт',
     );
   });
 }

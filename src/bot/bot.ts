@@ -167,6 +167,18 @@ export function createBot() {
         body += `\n\n⚠️ Не знайшли: ${misses.map((m) => escapeHtml(m)).join(', ')}`;
       }
       await replyHtml(ctx, body, cartActionsKeyboard);
+
+      // Recipes only get saved on a clean run — resolveIngredients reports misses across the
+      // WHOLE menu, not per dish, so "0 misses" is the only correctness bar available without
+      // re-deriving which dish a miss belonged to. Deliberately after the reply, own catch each:
+      // a failure to remember a recipe must not turn a cart that WAS built into an error message.
+      if (misses.length === 0) {
+        for (const dish of state.menu) {
+          await repo
+            .saveRecipe(user.id, dish.dish, dish.ingredients)
+            .catch((err) => logger.error({ err, userId: user.id, dish: dish.dish }, 'Failed to save recipe'));
+        }
+      }
     } catch (err) {
       if (err instanceof NeedsAuthError) {
         await ctx.reply(...relinkReply(err));

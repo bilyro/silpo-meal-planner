@@ -197,6 +197,23 @@ export async function removeItems(
   return { removed, notFound, totals };
 }
 
+export type RecallRecipeResult =
+  | { found: true; dishName: string; ingredients: unknown; timesUsed: number }
+  | { found: false };
+
+/**
+ * Looks up a dish this user already cooked before, for the model to check before inventing an
+ * ingredient list from scratch — see `saveRecipe()` in `db/repo.ts` for where these get written
+ * (bot.ts's ✅ handler, only on a clean resolution) and the `recipes` table's own doc comment for
+ * why only names/quantities are stored, never a resolved product or price.
+ */
+export async function recallRecipe(userId: number, dishName: string): Promise<RecallRecipeResult> {
+  const recipe = await repo.findRecipe(userId, dishName);
+  return recipe
+    ? { found: true, dishName: recipe.dishName, ingredients: recipe.ingredientsJson, timesUsed: recipe.timesUsed }
+    : { found: false };
+}
+
 interface CartByIdResult {
   success: boolean;
   cart: Record<string, unknown>;
@@ -296,9 +313,9 @@ export async function finishWithCheckout(
 /**
  * Local (non-MCP) tools: the spec §6.3 four (`propose_menu`, `ensure_cart_context`,
  * `record_resolution`, `finish_with_checkout`), the durable-memory tools (`remember_fact`,
- * `forget_fact`, `recall_facts`), and the ad-hoc list edits (`add_extra_items`, `remove_items`).
- * `state` is mutated in place; the caller (runAgentTurn) persists it and reads `state.stage`
- * afterwards.
+ * `forget_fact`, `recall_facts`, `recall_recipe`), and the ad-hoc list edits (`add_extra_items`,
+ * `remove_items`). `state` is mutated in place; the caller (runAgentTurn) persists it and reads
+ * `state.stage` afterwards.
  */
 export function localTools(userId: number, state: SessionState, mcp: SilpoMcpClient): Record<string, Tool> {
   return {
@@ -420,6 +437,19 @@ export function localTools(userId: number, state: SessionState, mcp: SilpoMcpCli
       execute: async () => ({
         facts: (await repo.listUserFacts(userId)).map((f) => ({ id: f.id, kind: f.kind, text: f.text })),
       }),
+    }),
+
+    // Checks for an already-cooked dish before inventing its ingredients from scratch. Read-only —
+    // saving happens deterministically in bot.ts's ✅ handler, only once a resolution is clean.
+    recall_recipe: tool({
+      description:
+        'Перевіряє, чи вже готували цю страву для цього користувача раніше — повертає збережений ' +
+        'список інгредієнтів, якщо є. Виклич це ПЕРЕД тим, як самостійно вигадувати склад страви, ' +
+        'коли назва схожа на щось, що могли просити раніше (напр. «борщ», «плов»). Якщо знайдено — ' +
+        'адаптуй ці інгредієнти під поточний запит (розмір сім\'ї, нові побажання), а не копіюй ' +
+        'бездумно; якщо не знайдено — склади страву як завжди.',
+      inputSchema: z.object({ dishName: z.string().min(1) }),
+      execute: async ({ dishName }) => recallRecipe(userId, dishName),
     }),
 
     finish_with_checkout: tool({

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { OAuthClientInformationFull, OAuthTokens } from '@modelcontextprotocol/sdk/shared/auth.js';
 import { db } from './client.js';
 import {
@@ -7,6 +7,7 @@ import {
   oauthPending,
   oauthTokens,
   plans,
+  recipes,
   sessions,
   toolCallLog,
   userFacts,
@@ -284,4 +285,56 @@ export async function deactivateAllUserFacts(userId: number): Promise<number> {
  */
 export async function deleteUserFacts(userId: number): Promise<void> {
   await db.delete(userFacts).where(eq(userFacts.userId, userId));
+}
+
+// ── Recipes (durable per-dish ingredient lists) ────────────────────────────────────────────────
+
+/** Lowercased, trimmed match key — the same normalization used everywhere else in this codebase. */
+function dishKey(dishName: string): string {
+  return dishName.trim().toLowerCase();
+}
+
+/**
+ * Saves or refreshes one dish's ingredient list. One row per (user, dish): re-cooking the same
+ * dish updates `ingredientsJson` in place — the newest version is treated as the most refined
+ * one — and bumps `timesUsed`, rather than accumulating a row per occurrence.
+ */
+export async function saveRecipe(
+  userId: number,
+  dishName: string,
+  ingredients: { name: string; qty: string }[],
+): Promise<void> {
+  const key = dishKey(dishName);
+  await db
+    .insert(recipes)
+    .values({ userId, dishNameKey: key, dishName, ingredientsJson: ingredients })
+    .onConflictDoUpdate({
+      target: [recipes.userId, recipes.dishNameKey],
+      set: {
+        dishName,
+        ingredientsJson: ingredients,
+        timesUsed: sql`${recipes.timesUsed} + 1`,
+        lastUsedAt: sql`now()`,
+      },
+    });
+}
+
+/** Exact normalized-name match — deliberately not fuzzy; see memory.ts's recallRecipe(). */
+export async function findRecipe(userId: number, dishName: string) {
+  return db.query.recipes.findFirst({
+    where: and(eq(recipes.userId, userId), eq(recipes.dishNameKey, dishKey(dishName))),
+  });
+}
+
+export async function listRecipes(userId: number, limit = 20) {
+  return db.query.recipes.findMany({
+    where: eq(recipes.userId, userId),
+    orderBy: (r, { desc }) => [desc(r.lastUsedAt)],
+    limit,
+  });
+}
+
+/** For account disconnect (`/logout`) — recipes are this household's data, same as messages/facts. */
+export async function deleteRecipes(userId: number): Promise<void> {
+  await db.delete(recipes).where(eq(recipes.userId, userId));
 }

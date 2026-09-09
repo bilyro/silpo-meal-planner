@@ -1,4 +1,4 @@
-import { pgTable, serial, text, boolean, integer, timestamp, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, boolean, integer, timestamp, jsonb, unique } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -105,6 +105,45 @@ export const userFacts = pgTable('user_facts', {
   active: boolean('active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * A dish once cooked, remembered so the NEXT request for the same dish doesn't re-derive its
+ * ingredient list from scratch — real testing this session found the model producing genuinely
+ * different quantities and even different units for the "same" recipe run to run.
+ *
+ * Deliberately holds only `ingredientsJson` (names + free-text quantities, e.g. `[{name:
+ * "буряк", qty: "3 шт"}]`) — never a `productId` or price. Those are the ephemeral half of a
+ * resolution: prices, promos and stock drift constantly, which is exactly why
+ * `resolveIngredients()` re-runs a full live search every time regardless of any cache. A recipe
+ * is the durable half — what the dish IS — and stays useful long after any specific product
+ * lookup would be stale.
+ *
+ * `dishNameKey` is the match key (trimmed, lowercased); `dishName` keeps the original casing
+ * for display. One row per (user, dish): re-cooking the same dish updates `ingredientsJson` in
+ * place (the newest version is treated as the most refined one) and bumps `timesUsed`, rather
+ * than accumulating a row per occurrence.
+ *
+ * Scoped to one user for now — a genuinely shared, cross-user recipe library is a real
+ * possibility later, but reusing someone else's borscht for a different household's stated
+ * preferences is the more likely failure mode to get wrong first, so per-user is where this
+ * starts.
+ */
+export const recipes = pgTable(
+  'recipes',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    dishNameKey: text('dish_name_key').notNull(),
+    dishName: text('dish_name').notNull(),
+    ingredientsJson: jsonb('ingredients_json').notNull(),
+    timesUsed: integer('times_used').notNull().default(1),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [unique().on(table.userId, table.dishNameKey)],
+);
 
 export const toolCallLog = pgTable('tool_call_log', {
   id: serial('id').primaryKey(),
