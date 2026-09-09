@@ -55,12 +55,36 @@ export interface AgentTurnResult {
 
 /**
  * True when a reply restates a menu in prose the way `propose_menu` skipping forces it to — see
- * `retryProposeMenuIfSkipped` below. «День N» headers are this bot's own, singular way of writing
- * a day out; nothing else it does produces that shape, so a false positive here just costs one
+ * `retryProposeMenuIfSkipped` below. Two signals, either one enough:
+ *
+ * - an explicit «День N» header — the original signal, for menus that name the day;
+ * - at least two bulleted lines carrying a recipe quantity (a number immediately followed by a
+ *   mass/volume/piece/spoon unit). Found live 2026-09-09: a single-day request can come back as
+ *   "🥩 Вечеря: Яловичий стейк з овочами" straight into an ingredient list, with NO «День 1»
+ *   anywhere — the first signal alone missed this and the turn wasn't retried.
+ *
+ * Currency (грн) is deliberately absent from the unit list. `finish_with_checkout` /
+ * `record_resolution` can also produce a bulleted reply — "• Яловичина — 495 грн" — and that one
+ * must NOT trigger a propose_menu retry: recipes are measured in mass/volume/count, receipts in
+ * money, and that distinction is what keeps the two shapes apart without needing to know which
+ * tool actually ran. The caller adds a second, independent guard for the same reason — see
+ * `noToolCallsThisTurn` below.
+ *
+ * Nothing else this bot does produces either shape, so a false positive here just costs one
  * wasted corrective call, never a wrong one.
  */
 export function looksLikeUnconfirmedMenu(text: string): boolean {
-  return /день\s*\d+/i.test(text);
+  if (/день\s*\d+/i.test(text)) return true;
+  // The trailing negative lookahead does the job \b would, without \b's real bug: JS word
+  // boundaries are defined via \w, which does not include Cyrillic letters, so a plain \b right
+  // after «г» never matches and silently killed every candidate. But dropping the boundary
+  // entirely reopens the currency hole this regex exists to close — "495 грн" would match on the
+  // bare "г" prefix of "грн" with nothing after it to reject. The lookahead requires that no
+  // letter (Cyrillic or Latin) immediately follows the matched unit, so "г" alone still matches
+  // "300г" (followed by a line break) but not the "г" inside "грн" (followed by "р").
+  const recipeQtyBullet =
+    /^[•*-]\s*.+[—-]\s*[\d.,]+\s*(г|кг|мл|л|шт|ст\.?\s*л\.?|ч\.?\s*л\.?|щіпка|зубч\w*|пучок)(?![а-яіїєґА-ЯІЇЄҐa-zA-Z])/gim;
+  return (text.match(recipeQtyBullet) ?? []).length >= 2;
 }
 
 /**
@@ -162,10 +186,20 @@ export async function runAgentTurn(userId: number, userMessage: string): Promise
 
       const text = result.text || 'Готово.';
       const proposedThisTurn = result.steps.some((s) => s.toolCalls?.some((c) => c.toolName === 'propose_menu'));
+      // `noToolCallsThisTurn` implies `!proposedThisTurn` (no calls means propose_menu wasn't one
+      // of them) — kept as two named checks anyway, not merged, so this stays legible as guarding
+      // two different risks: `proposedThisTurn` is the ground-truth pin from the mutation test that
+      // caught a `state.stage`-based version giving a false pass; `noToolCallsThisTurn` guards the
+      // broadened bullet-quantity signal in looksLikeUnconfirmedMenu against firing after an
+      // UNRELATED tool call that also happens to produce a bulleted reply
+      // (record_resolution/add_extra_items/finish_with_checkout can all read like a list). Every
+      // real skip observed so far called NO tool at all that turn — the model just wrote text — so
+      // requiring that here is evidence-backed, not a guess.
+      const noToolCallsThisTurn = result.steps.every((s) => (s.toolCalls?.length ?? 0) === 0);
       // propose_menu is unconditionally part of localTools()'s return, so this is always defined
       // in practice — the check exists only to satisfy the index-signature type, not a real gap.
       const proposeMenuTool = tools.propose_menu;
-      if (!proposedThisTurn && proposeMenuTool && looksLikeUnconfirmedMenu(text)) {
+      if (!proposedThisTurn && noToolCallsThisTurn && proposeMenuTool && looksLikeUnconfirmedMenu(text)) {
         try {
           await retryProposeMenuIfSkipped(state, history, userMessage, text, proposeMenuTool, signal);
         } catch (err) {

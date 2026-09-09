@@ -92,6 +92,32 @@ describe('looksLikeUnconfirmedMenu', () => {
     expect(looksLikeUnconfirmedMenu('Дякую! Гарного дня 😊')).toBe(false);
     expect(looksLikeUnconfirmedMenu('Напишіть адресу доставки.')).toBe(false);
   });
+
+  it('matches a single-day menu with NO «День N» label at all', () => {
+    // Live regression (2026-09-09): this exact reply skipped propose_menu and the original
+    // «день\d+» signal alone missed it — nothing here names a day.
+    const text =
+      '🥩 <b>Вечеря: Яловичий стейк з овочами</b>\n' +
+      '• <i>Яловичий стейк</i> — 300г\n' +
+      '• <i>Морква</i> — 150г\n' +
+      '• <i>Картопля</i> — 300г\n' +
+      '• <i>Цибуля</i> — 50г\n' +
+      '• <i>Оливкова олія</i> — 2 ст. л.\n' +
+      '• <i>Сіль і перець</i> — за смаком\n' +
+      'Приймаєш це меню?';
+    expect(looksLikeUnconfirmedMenu(text)).toBe(true);
+  });
+
+  it('does not match a single bulleted line — needs at least two to avoid an incidental hit', () => {
+    expect(looksLikeUnconfirmedMenu('До речі — • Одна нотатка — 5 хвилин почекайте.')).toBe(false);
+  });
+
+  it('does not match a resolved-items PRICE summary, even though it is also bulleted', () => {
+    // record_resolution / finish_with_checkout can produce this exact shape. Recipes are measured
+    // in mass/volume/count; receipts are measured in money — грн is deliberately not a unit here.
+    const text = '✅ Меню готове!\n• Яловичина — 495 грн\n• Картопля — 120 грн\n• Морква — 60 грн';
+    expect(looksLikeUnconfirmedMenu(text)).toBe(false);
+  });
 });
 
 describe('propose_menu retry', () => {
@@ -135,6 +161,20 @@ describe('propose_menu retry', () => {
 
     // Text matches the menu pattern here too — the retry must key off the ACTUAL tool call this
     // turn, not the text shape alone, or a turn that already succeeded would be retried for free.
+    expect(generateTextMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry when a DIFFERENT tool ran, even if the reply happens to read like a menu', async () => {
+    // record_resolution genuinely produces mass/volume-quantified bullets too ("• Яловичина —
+    // 800 г"), so the currency exclusion alone wouldn't catch this case — noToolCallsThisTurn is
+    // the guard that does.
+    generateTextMock.mockResolvedValue({
+      text: '✅ Підібрав!\n• Яловичина — 800 г\n• Картопля — 600 г',
+      steps: [{ toolCalls: [{ toolName: 'record_resolution', input: {} }] }],
+    } as never);
+
+    await runAgentTurn(42, 'Так, підходить');
+
     expect(generateTextMock).toHaveBeenCalledTimes(1);
   });
 
