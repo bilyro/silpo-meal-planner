@@ -1,7 +1,6 @@
 import Fastify from 'fastify';
 import { randomInt } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import type { Bot } from 'grammy';
 import { logger } from '../logger.js';
 import { db } from '../db/client.js';
 import * as repo from '../db/repo.js';
@@ -14,7 +13,7 @@ interface AuthCallbackQuery {
   error?: string;
 }
 
-export function buildServer(bot: Bot) {
+export function buildServer() {
   const app = Fastify({ loggerInstance: logger });
 
   // Liveness: "the process is up". Deliberately touches nothing else — this is what the platform

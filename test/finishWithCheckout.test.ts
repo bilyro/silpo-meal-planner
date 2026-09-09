@@ -15,7 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/db/repo.js', () => ({ saveSessionState: vi.fn(async () => {}) }));
 
-import { finishWithCheckout } from '../src/agent/localTools.js';
+import { describeBlockers, finishWithCheckout } from '../src/agent/localTools.js';
 import type { SessionState } from '../src/agent/session.js';
 import type { SilpoMcpClient } from '../src/mcp/SilpoMcpClient.js';
 
@@ -49,6 +49,38 @@ function mockMcp() {
 }
 
 beforeEach(() => vi.clearAllMocks());
+
+describe('describeBlockers', () => {
+  it('names the minimum order value from the live incident it was written for', () => {
+    const cart = {
+      calculation: {
+        validations: [{ level: 'error', type: 'order', message: 'order.cost.min', context: { orderCostMin: 799 } }],
+      },
+    };
+    expect(describeBlockers(cart)).toEqual(['мінімальна сума замовлення — 799 грн']);
+  });
+
+  it('translates a stock-max validation and a timeslot-type validation', () => {
+    const cart = {
+      calculation: {
+        validations: [
+          { level: 'error', message: 'product.offer.stock.max' },
+          { level: 'error', type: 'timeslot' },
+        ],
+      },
+    };
+    expect(describeBlockers(cart)).toEqual([
+      'одного з товарів не вистачає на складі',
+      'час доставки більше не доступний — потрібно обрати новий слот',
+    ]);
+  });
+
+  it('ignores non-error validations and reports nothing for an empty/absent list', () => {
+    expect(describeBlockers({ calculation: { validations: [{ level: 'info', message: 'x' }] } })).toEqual([]);
+    expect(describeBlockers({ calculation: { validations: [] } })).toEqual([]);
+    expect(describeBlockers({})).toEqual([]);
+  });
+});
 
 describe('finishWithCheckout — refuses to read before anything was written', () => {
   it('returns an error and calls no Silpo tool when cartWritten is unset', async () => {

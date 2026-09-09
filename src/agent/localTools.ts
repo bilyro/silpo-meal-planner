@@ -2,7 +2,7 @@ import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 import * as repo from '../db/repo.js';
 import type { SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
-import { ensureCartContext } from './cartContext.js';
+import { ensureCartContext, getCartValidations } from './cartContext.js';
 import { FACT_KINDS, hardRestrictions, kindLabel, type UserFact } from './memory.js';
 import { resolveIngredients } from './resolveIngredients.js';
 import { matchesForRemoval } from './selectProduct.js';
@@ -268,13 +268,6 @@ export interface CheckoutSummary {
   error?: string;
 }
 
-interface CartValidation {
-  level?: string;
-  type?: string;
-  message?: string;
-  context?: Record<string, unknown>;
-}
-
 /**
  * Turns Silpo's cart validations into actionable Ukrainian text.
  *
@@ -285,8 +278,7 @@ interface CartValidation {
  * being unavailable below some total) are not the user's problem here.
  */
 export function describeBlockers(cart: Record<string, unknown>): string[] {
-  const validations = (cart.calculation as { validations?: CartValidation[] } | undefined)?.validations ?? [];
-  return validations
+  return getCartValidations(cart)
     .filter((v) => v.level === 'error')
     .map((v) => {
       if (v.message === 'order.cost.min') {

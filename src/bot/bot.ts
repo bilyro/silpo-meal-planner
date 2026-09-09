@@ -9,13 +9,14 @@ import { hardRestrictions } from '../agent/memory.js';
 import { loadLastPlanIntoState, savePlanFromState } from '../agent/plans.js';
 import { resolveIngredients } from '../agent/resolveIngredients.js';
 import { loadSession, saveSession } from '../agent/session.js';
-import { NeedsAuthError, SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
+import { NeedsAuthError } from '../mcp/SilpoMcpClient.js';
 import * as repo from '../db/repo.js';
 import { registerCommands } from './commands.js';
 import { cartActionsKeyboard, confirmMenuKeyboard, promoKeyboard } from './keyboards.js';
 import { relinkReply } from './messages.js';
 import { escapeHtml, formatResolvedItems, formatMenu, formatUah, stripHtml, stripLinks } from './format.js';
 import { sendWelcomeMessage } from './welcome.js';
+import { keepTyping, withMcpSession } from './mcpSession.js';
 
 /**
  * Sends an HTML-formatted reply, falling back to tag-stripped plain text if Telegram rejects it.
@@ -64,15 +65,6 @@ function errorBoundary(): (ctx: Context, next: () => Promise<void>) => Promise<v
         .catch(() => {});
     }
   };
-}
-
-/** Telegram stops showing "typing" after ~5s, so refresh it while a long tool chain runs. */
-function keepTyping(ctx: Context): () => void {
-  void ctx.replyWithChatAction('typing').catch(() => {});
-  const timer = setInterval(() => {
-    ctx.replyWithChatAction('typing').catch(() => {});
-  }, 4000);
-  return () => clearInterval(timer);
 }
 
 export function createBot() {
@@ -153,75 +145,67 @@ export function createBot() {
       await ctx.reply('Меню ще не складено. Напишіть, що спланувати.');
       return;
     }
+    const menu = state.menu;
 
-    const stopTyping = keepTyping(ctx);
-    const mcp = new SilpoMcpClient(user.id);
-    try {
-      await mcp.connect();
-
-      const cartCtx = await ensureCartContext(mcp, state);
-      await saveSession(user.id, state);
-      if ('needsAddress' in cartCtx) {
-        // The account has no saved address. Ask in plain text and stop: the user's reply goes
-        // through the normal agent turn, whose ensure_cart_context tool accepts an address.
-        await ctx.reply('Щоб зібрати кошик, напишіть адресу доставки текстом — напр. «Київ, вулиця Хрещатик, 1».');
-        return;
-      }
-
-      // Restrictions come from BOTH sources. Silpo's own food-restrictions field is authoritative
-      // when set, but on a real linked account it came back empty — nobody fills it in — so the
-      // allergies and diets the user told the bot must be merged in here. This is the deterministic
-      // 🛒 path, which does not go through the model at all: without this merge a stored allergy
-      // would constrain the model's menu and then be ignored by the code that actually picks the
-      // products.
-      const restrictions = await hardRestrictions(user.id, state);
-      // A stated budget puts selection into "stay under it" mode (spec's "budget selection mode"):
-      // cheapest-per-unit wins over promo status, which otherwise wins by default. Without a named
-      // budget there is nothing to stay under, so the ordinary promo-first ranking applies.
-      const preferCheapest = state.request?.budgetUah !== undefined;
-      const { items, misses } = await resolveIngredients(mcp, cartCtx.cartContext, state.menu, {
-        ...(restrictions.length > 0 ? { restrictions } : {}),
-        ...(preferCheapest ? { preferCheapest } : {}),
-      });
-
-      if (items.length === 0) {
-        await ctx.reply('На жаль, не вдалося підібрати жодного товару. Спробуйте змінити меню.');
-        return;
-      }
-
-      const totals = await applyResolution(user.id, state, items);
-      let body = formatResolvedItems(items, totals);
-      if (misses.length > 0) {
-        body += `\n\n⚠️ Не знайшли: ${misses.map((m) => escapeHtml(m)).join(', ')}`;
-      }
-      await replyHtml(ctx, body, cartActionsKeyboard);
-
-      // Recipes only get saved on a clean run — resolveIngredients reports misses across the
-      // WHOLE menu, not per dish, so "0 misses" is the only correctness bar available without
-      // re-deriving which dish a miss belonged to. Deliberately after the reply, own catch each:
-      // a failure to remember a recipe must not turn a cart that WAS built into an error message.
-      // Writes to BOTH the personal and shared pool — same correctness bar, no separate curation.
-      if (misses.length === 0) {
-        for (const dish of state.menu) {
-          await repo
-            .saveRecipe(user.id, dish.dish, dish.ingredients)
-            .catch((err) => logger.error({ err, userId: user.id, dish: dish.dish }, 'Failed to save recipe'));
-          await repo
-            .saveSharedRecipe(dish.dish, dish.ingredients, user.id)
-            .catch((err) => logger.error({ err, userId: user.id, dish: dish.dish }, 'Failed to save shared recipe'));
+    await withMcpSession(
+      ctx,
+      user.id,
+      { log: 'Failed to resolve ingredients', reply: 'Не вдалося підібрати товари. Спробуйте ще раз пізніше.' },
+      async (mcp) => {
+        const cartCtx = await ensureCartContext(mcp, state);
+        await saveSession(user.id, state);
+        if ('needsAddress' in cartCtx) {
+          // The account has no saved address. Ask in plain text and stop: the user's reply goes
+          // through the normal agent turn, whose ensure_cart_context tool accepts an address.
+          await ctx.reply('Щоб зібрати кошик, напишіть адресу доставки текстом — напр. «Київ, вулиця Хрещатик, 1».');
+          return;
         }
-      }
-    } catch (err) {
-      if (err instanceof NeedsAuthError) {
-        await ctx.reply(...relinkReply(err));
-        return;
-      }
-      logger.error({ err, userId: user.id }, 'Failed to resolve ingredients');
-      await ctx.reply('Не вдалося підібрати товари. Спробуйте ще раз пізніше.');
-    } finally {
-      stopTyping();
-      await mcp.close();
-    }
+
+        // Restrictions come from BOTH sources. Silpo's own food-restrictions field is authoritative
+        // when set, but on a real linked account it came back empty — nobody fills it in — so the
+        // allergies and diets the user told the bot must be merged in here. This is the deterministic
+        // 🛒 path, which does not go through the model at all: without this merge a stored allergy
+        // would constrain the model's menu and then be ignored by the code that actually picks the
+        // products.
+        const restrictions = await hardRestrictions(user.id, state);
+        // A stated budget puts selection into "stay under it" mode (spec's "budget selection mode"):
+        // cheapest-per-unit wins over promo status, which otherwise wins by default. Without a named
+        // budget there is nothing to stay under, so the ordinary promo-first ranking applies.
+        const preferCheapest = state.request?.budgetUah !== undefined;
+        const { items, misses } = await resolveIngredients(mcp, cartCtx.cartContext, menu, {
+          ...(restrictions.length > 0 ? { restrictions } : {}),
+          ...(preferCheapest ? { preferCheapest } : {}),
+        });
+
+        if (items.length === 0) {
+          await ctx.reply('На жаль, не вдалося підібрати жодного товару. Спробуйте змінити меню.');
+          return;
+        }
+
+        const totals = await applyResolution(user.id, state, items);
+        let body = formatResolvedItems(items, totals);
+        if (misses.length > 0) {
+          body += `\n\n⚠️ Не знайшли: ${misses.map((m) => escapeHtml(m)).join(', ')}`;
+        }
+        await replyHtml(ctx, body, cartActionsKeyboard);
+
+        // Recipes only get saved on a clean run — resolveIngredients reports misses across the
+        // WHOLE menu, not per dish, so "0 misses" is the only correctness bar available without
+        // re-deriving which dish a miss belonged to. Deliberately after the reply, own catch each:
+        // a failure to remember a recipe must not turn a cart that WAS built into an error message.
+        // Writes to BOTH the personal and shared pool — same correctness bar, no separate curation.
+        if (misses.length === 0) {
+          for (const dish of menu) {
+            await repo
+              .saveRecipe(user.id, dish.dish, dish.ingredients)
+              .catch((err) => logger.error({ err, userId: user.id, dish: dish.dish }, 'Failed to save recipe'));
+            await repo
+              .saveSharedRecipe(dish.dish, dish.ingredients, user.id)
+              .catch((err) => logger.error({ err, userId: user.id, dish: dish.dish }, 'Failed to save shared recipe'));
+          }
+        }
+      },
+    );
   });
 
   /**
@@ -237,10 +221,11 @@ export function createBot() {
       await ctx.reply('Спочатку потрібно підібрати список товарів.');
       return;
     }
+    const cartContext = state.cartContext;
 
-    const branchId = state.cartContext.branchId;
+    const branchId = cartContext.branchId;
     const skipped: string[] = [];
-    const products = [];
+    const products: { productId: string; companyId: string; branchId: string; quantity: number }[] = [];
     for (const item of state.resolvedItems) {
       // companyId is required by the API and comes from the product search payload; an item
       // missing it cannot be added, so report it rather than failing the whole batch.
@@ -256,67 +241,59 @@ export function createBot() {
       return;
     }
 
-    const stopTyping = keepTyping(ctx);
-    const mcp = new SilpoMcpClient(user.id);
-    try {
-      await mcp.connect();
-      // One batched call, not one per product (spec §8 Phase 5 step 5).
-      await mcp.callTool('silpo_add_or_update_cart_products', {
-        shoppingCartId: state.cartContext.cartId,
-        products,
-      });
-      // The one place this becomes true: finishWithCheckout() below refuses to read the cart at
-      // all until this is set, so the model calling it prematurely can't narrate a stale/empty
-      // cart as if it answered for a resolution nothing has actually been written for yet.
-      state.cartWritten = true;
+    await withMcpSession(
+      ctx,
+      user.id,
+      { log: 'Failed to build cart', reply: 'Не вдалося зібрати кошик. Спробуйте ще раз пізніше.' },
+      async (mcp) => {
+        // One batched call, not one per product (spec §8 Phase 5 step 5).
+        await mcp.callTool('silpo_add_or_update_cart_products', {
+          shoppingCartId: cartContext.cartId,
+          products,
+        });
+        // The one place this becomes true: finishWithCheckout() below refuses to read the cart at
+        // all until this is set, so the model calling it prematurely can't narrate a stale/empty
+        // cart as if it answered for a resolution nothing has actually been written for yet.
+        state.cartWritten = true;
 
-      const summary = await finishWithCheckout(user.id, state, mcp);
-      // Decorative extras, fetched together. Both swallow their own errors: a loyalty lookup must
-      // never turn a cart that WAS built into an error message.
-      const [loyaltyInfo, offers] = await Promise.all([fetchLoyalty(mcp), fetchOffers(mcp)]);
-      // Prefer Silpo's own total: it includes delivery, so it is what the user will actually pay.
-      const total = summary.cartTotal ?? state.totals?.sum ?? 0;
-      const lines = [`🛒 <b>Кошик зібрано</b> — ${products.length} поз., ${formatUah(total)} грн`];
-      if (skipped.length > 0) lines.push(`⚠️ Не додано: ${skipped.map((s) => escapeHtml(s)).join(', ')}`);
-      const link = summary.checkoutWebLink ?? summary.checkoutMobileLink;
-      if (link) {
-        lines.push(`\n👉 <a href="${escapeHtml(link)}">Оформити замовлення</a>`);
-      } else if (summary.blockers?.length) {
-        // Say WHY there is no link. Silpo withholds it below a minimum order value, and a bare
-        // "the link will appear later" leaves the user with no idea what to do about it.
-        lines.push(`\n⚠️ Оформлення поки недоступне: ${escapeHtml(summary.blockers.join('; '))}.`);
-        lines.push('Додайте ще позицій або попросіть мене доповнити меню.');
-      } else {
-        lines.push('\nПосилання на оформлення зʼявиться, коли кошик пройде перевірку в Сільпо.');
-      }
+        const summary = await finishWithCheckout(user.id, state, mcp);
+        // Decorative extras, fetched together. Both swallow their own errors: a loyalty lookup must
+        // never turn a cart that WAS built into an error message.
+        const [loyaltyInfo, offers] = await Promise.all([fetchLoyalty(mcp), fetchOffers(mcp)]);
+        // Prefer Silpo's own total: it includes delivery, so it is what the user will actually pay.
+        const total = summary.cartTotal ?? state.totals?.sum ?? 0;
+        const lines = [`🛒 <b>Кошик зібрано</b> — ${products.length} поз., ${formatUah(total)} грн`];
+        if (skipped.length > 0) lines.push(`⚠️ Не додано: ${skipped.map((s) => escapeHtml(s)).join(', ')}`);
+        const link = summary.checkoutWebLink ?? summary.checkoutMobileLink;
+        if (link) {
+          lines.push(`\n👉 <a href="${escapeHtml(link)}">Оформити замовлення</a>`);
+        } else if (summary.blockers?.length) {
+          // Say WHY there is no link. Silpo withholds it below a minimum order value, and a bare
+          // "the link will appear later" leaves the user with no idea what to do about it.
+          lines.push(`\n⚠️ Оформлення поки недоступне: ${escapeHtml(summary.blockers.join('; '))}.`);
+          lines.push('Додайте ще позицій або попросіть мене доповнити меню.');
+        } else {
+          lines.push('\nПосилання на оформлення зʼявиться, коли кошик пройде перевірку в Сільпо.');
+        }
 
-      // Bonuses and coupons last, so they never push the checkout link out of sight.
-      const loyaltyBlock = formatLoyaltyBlock({
-        cartLoyalty: summary.loyalty ?? null,
-        info: loyaltyInfo,
-        offers,
-      });
-      if (loyaltyBlock) lines.push('', loyaltyBlock);
+        // Bonuses and coupons last, so they never push the checkout link out of sight.
+        const loyaltyBlock = formatLoyaltyBlock({
+          cartLoyalty: summary.loyalty ?? null,
+          info: loyaltyInfo,
+          offers,
+        });
+        if (loyaltyBlock) lines.push('', loyaltyBlock);
 
-      const promoCode = firstApplicableCode(offers);
-      await replyHtml(ctx, lines.join('\n'), promoCode ? promoKeyboard(promoCode) : undefined);
+        const promoCode = firstApplicableCode(offers);
+        await replyHtml(ctx, lines.join('\n'), promoCode ? promoKeyboard(promoCode) : undefined);
 
-      // Bookkeeping, deliberately after the reply and with its own catch: a failure to archive the
-      // plan must not reach the handler's catch and tell the user the cart failed when it did not.
-      await savePlanFromState(user.id, state).catch((err) =>
-        logger.error({ err, userId: user.id }, 'Failed to save plan'),
-      );
-    } catch (err) {
-      if (err instanceof NeedsAuthError) {
-        await ctx.reply(...relinkReply(err));
-        return;
-      }
-      logger.error({ err, userId: user.id }, 'Failed to build cart');
-      await ctx.reply('Не вдалося зібрати кошик. Спробуйте ще раз пізніше.');
-    } finally {
-      stopTyping();
-      await mcp.close();
-    }
+        // Bookkeeping, deliberately after the reply and with its own catch: a failure to archive the
+        // plan must not reach the handler's catch and tell the user the cart failed when it did not.
+        await savePlanFromState(user.id, state).catch((err) =>
+          logger.error({ err, userId: user.id }, 'Failed to save plan'),
+        );
+      },
+    );
   });
 
   // 💸 / ✏️ — spec §8 Phase 5 steps 6-7. The full budget-squeeze and per-item removal flows are
@@ -347,24 +324,17 @@ export function createBot() {
       await ctx.reply('Спочатку потрібно зібрати кошик.');
       return;
     }
+    const cartContext = state.cartContext;
 
-    const stopTyping = keepTyping(ctx);
-    const mcp = new SilpoMcpClient(user.id);
-    try {
-      await mcp.connect();
-      const result = await applyPromoCode(mcp, state.cartContext.cartId, code);
-      await replyHtml(ctx, result.message);
-    } catch (err) {
-      if (err instanceof NeedsAuthError) {
-        await ctx.reply(...relinkReply(err));
-        return;
-      }
-      logger.error({ err, userId: user.id }, 'Failed to apply promo code');
-      await ctx.reply('Не вдалося застосувати промокод. Спробуйте ще раз пізніше.');
-    } finally {
-      stopTyping();
-      await mcp.close();
-    }
+    await withMcpSession(
+      ctx,
+      user.id,
+      { log: 'Failed to apply promo code', reply: 'Не вдалося застосувати промокод. Спробуйте ще раз пізніше.' },
+      async (mcp) => {
+        const result = await applyPromoCode(mcp, cartContext.cartId, code);
+        await replyHtml(ctx, result.message);
+      },
+    );
   });
 
   /**
@@ -404,25 +374,20 @@ export function createBot() {
       await ctx.reply('Кошика вже немає.');
       return;
     }
+    const cartContext = state.cartContext;
 
-    const mcp = new SilpoMcpClient(user.id);
-    try {
-      await mcp.connect();
-      await mcp.callTool('silpo_clear_shopping_cart', { shoppingCartId: state.cartContext.cartId });
-      state.cartContext = undefined;
-      state.stage = 'idle';
-      await saveSession(user.id, state);
-      await ctx.reply('Кошик очищено.');
-    } catch (err) {
-      if (err instanceof NeedsAuthError) {
-        await ctx.reply(...relinkReply(err));
-        return;
-      }
-      logger.error({ err, userId: user.id }, 'Failed to clear cart');
-      await ctx.reply('Не вдалося очистити кошик. Спробуйте ще раз пізніше.');
-    } finally {
-      await mcp.close();
-    }
+    await withMcpSession(
+      ctx,
+      user.id,
+      { log: 'Failed to clear cart', reply: 'Не вдалося очистити кошик. Спробуйте ще раз пізніше.' },
+      async (mcp) => {
+        await mcp.callTool('silpo_clear_shopping_cart', { shoppingCartId: cartContext.cartId });
+        state.cartContext = undefined;
+        state.stage = 'idle';
+        await saveSession(user.id, state);
+        await ctx.reply('Кошик очищено.');
+      },
+    );
   });
 
   bot.callbackQuery('clear_cancel', async (ctx) => {

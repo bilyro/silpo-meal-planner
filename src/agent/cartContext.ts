@@ -111,16 +111,28 @@ export function extractBranchId(cart: Record<string, unknown>): string {
   return '';
 }
 
-interface CartValidation {
+export interface CartValidation {
   level?: string;
   type?: string;
   message?: string;
+  context?: Record<string, unknown>;
+  productId?: string;
+}
+
+/**
+ * Silpo nests checkout-blocking validations under `calculation`, not the cart's top level — a
+ * detail three independent call sites (this file's `hasTimeslotError`, `localTools.ts`'s
+ * `describeBlockers`, `scripts/show-cart.ts`) used to re-derive on their own, each with its own
+ * slightly different local `CartValidation` type. One shared reader means a future change to
+ * where/how Silpo reports validations only needs fixing here.
+ */
+export function getCartValidations(cart: Record<string, unknown>): CartValidation[] {
+  return (cart.calculation as { validations?: CartValidation[] } | undefined)?.validations ?? [];
 }
 
 /** True when Silpo reports the cart's delivery slot as no longer bookable. */
 export function hasTimeslotError(cart: Record<string, unknown>): boolean {
-  const validations = (cart.calculation as { validations?: CartValidation[] } | undefined)?.validations ?? [];
-  return validations.some((v) => v.level === 'error' && v.type === 'timeslot');
+  return getCartValidations(cart).some((v) => v.level === 'error' && v.type === 'timeslot');
 }
 
 /**

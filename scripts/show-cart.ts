@@ -9,6 +9,7 @@
  */
 
 import { newestUserSession, runProbe, withMcp } from './lib/probe.js';
+import { getCartValidations } from '../src/agent/cartContext.js';
 
 interface CartResult {
   cart?: Record<string, unknown>;
@@ -48,12 +49,10 @@ async function main() {
       if (cart[key] !== undefined) console.log(`${key}: ${JSON.stringify(cart[key])}`);
     }
 
-    // Validations live under `calculation`, not at the top level — the same path hasTimeslotError
-    // uses. Reading `cart.validations` here silently reported "no validations" on a blocked cart.
-    const calculation = cart.calculation as
-      | { validations?: { level?: string; message?: string; type?: string; productId?: string }[] }
-      | undefined;
-    const validations = calculation?.validations ?? [];
+    // Reading `cart.validations` here used to silently report "no validations" on a blocked cart
+    // — they live under `calculation`, not the top level. getCartValidations() is the one shared
+    // reader for this (agent/cartContext.ts), not a third independently-typed local copy.
+    const validations = getCartValidations(cart);
     if (validations.length) {
       console.log('\nvalidations (why checkout may be blocked):');
       const byId = new Map(products.map((p) => [String(p.productId ?? p.id), String(p.name ?? '?')]));

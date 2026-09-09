@@ -16,7 +16,7 @@ async function main() {
 
   const bot = createBot();
 
-  const server = buildServer(bot);
+  const server = buildServer();
   await server.listen({ port: config.PORT, host: '0.0.0.0' });
   logger.info({ port: config.PORT }, 'Web server listening');
 

@@ -7,7 +7,7 @@ import { formatPlanSummary, parsePlanRow } from '../agent/plans.js';
 import { kindLabel } from '../agent/memory.js';
 import { clearCartKeyboard, repeatPlanKeyboard } from './keyboards.js';
 import { escapeHtml } from './format.js';
-import { relinkReply } from './messages.js';
+import { withMcpSession } from './mcpSession.js';
 
 interface GetShoppingCartByIdResult {
   success: boolean;
@@ -68,32 +68,25 @@ export function registerCommands(bot: Bot) {
       await ctx.reply('У вас ще немає кошика. Попросіть мене спланувати меню, і я його створю.');
       return;
     }
+    const cartContext = state.cartContext;
 
-    const mcp = new SilpoMcpClient(user.id);
-    try {
-      await mcp.connect();
-      const cart = await mcp.callTool<GetShoppingCartByIdResult>('silpo_get_shopping_cart_by_id', {
-        shoppingCartId: state.cartContext.cartId,
-      });
-      const lines = [
-        `🧾 Кошик: філія ${state.cartContext.branchId}, доставка ${state.cartContext.deliveryType}.`,
-      ];
-      if (state.cartContext.timeslot) {
-        lines.push(`Слот: ${state.cartContext.timeslot.start} — ${state.cartContext.timeslot.end}.`);
-      }
-      const checkoutLink = cart.checkoutWebLink ?? cart.checkoutMobileLink;
-      if (checkoutLink) lines.push(`Оформлення: ${checkoutLink}`);
-      await ctx.reply(lines.join('\n'));
-    } catch (err) {
-      if (err instanceof NeedsAuthError) {
-        await ctx.reply(...relinkReply(err));
-        return;
-      }
-      logger.error({ err, userId: user.id }, 'Failed to fetch cart');
-      await ctx.reply('Не вдалося отримати кошик. Спробуйте ще раз пізніше.');
-    } finally {
-      await mcp.close();
-    }
+    await withMcpSession(
+      ctx,
+      user.id,
+      { log: 'Failed to fetch cart', reply: 'Не вдалося отримати кошик. Спробуйте ще раз пізніше.' },
+      async (mcp) => {
+        const cart = await mcp.callTool<GetShoppingCartByIdResult>('silpo_get_shopping_cart_by_id', {
+          shoppingCartId: cartContext.cartId,
+        });
+        const lines = [`🧾 Кошик: філія ${cartContext.branchId}, доставка ${cartContext.deliveryType}.`];
+        if (cartContext.timeslot) {
+          lines.push(`Слот: ${cartContext.timeslot.start} — ${cartContext.timeslot.end}.`);
+        }
+        const checkoutLink = cart.checkoutWebLink ?? cart.checkoutMobileLink;
+        if (checkoutLink) lines.push(`Оформлення: ${checkoutLink}`);
+        await ctx.reply(lines.join('\n'));
+      },
+    );
   });
 
   bot.command('clear', async (ctx) => {
