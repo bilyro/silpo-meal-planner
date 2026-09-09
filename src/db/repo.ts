@@ -1,4 +1,5 @@
 import { and, eq, sql } from 'drizzle-orm';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { OAuthClientInformationFull, OAuthTokens } from '@modelcontextprotocol/sdk/shared/auth.js';
 import { db } from './client.js';
 import {
@@ -320,6 +321,19 @@ function dishKey(dishName: string): string {
 }
 
 /**
+ * `column + 1`, generic over which table's `timesUsed` column it targets — `saveRecipe` and
+ * `saveSharedRecipe` are otherwise near-identical upserts with no other structural link between
+ * them, so a future change to how the count is bumped (e.g. capping it) had no way to land in
+ * both places at once. This is the one piece worth sharing that way: `sql` fragments are tied to
+ * a specific column reference, so the surrounding insert/conflict shape (different target tables,
+ * different conflict keys, different extra columns) stays written out per function rather than
+ * forced through a generic wrapper that would be harder to follow than the duplication it removes.
+ */
+function bumpTimesUsed(column: AnyPgColumn) {
+  return sql`${column} + 1`;
+}
+
+/**
  * Saves or refreshes one dish's ingredient list. One row per (user, dish): re-cooking the same
  * dish updates `ingredientsJson` in place — the newest version is treated as the most refined
  * one — and bumps `timesUsed`, rather than accumulating a row per occurrence.
@@ -338,7 +352,7 @@ export async function saveRecipe(
       set: {
         dishName,
         ingredientsJson: ingredients,
-        timesUsed: sql`${recipes.timesUsed} + 1`,
+        timesUsed: bumpTimesUsed(recipes.timesUsed),
         lastUsedAt: sql`now()`,
       },
     });
@@ -386,7 +400,7 @@ export async function saveSharedRecipe(
         dishName,
         ingredientsJson: ingredients,
         contributedByUserId,
-        timesUsed: sql`${sharedRecipes.timesUsed} + 1`,
+        timesUsed: bumpTimesUsed(sharedRecipes.timesUsed),
         lastUsedAt: sql`now()`,
       },
     });

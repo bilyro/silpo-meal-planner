@@ -3,7 +3,7 @@ import { z } from 'zod';
 import * as repo from '../db/repo.js';
 import type { SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import { ensureCartContext } from './cartContext.js';
-import { FACT_KINDS, hardRestrictions, kindLabel } from './memory.js';
+import { FACT_KINDS, hardRestrictions, kindLabel, type UserFact } from './memory.js';
 import { resolveIngredients } from './resolveIngredients.js';
 import { matchesForRemoval } from './selectProduct.js';
 import { saveSession, type SessionState } from './session.js';
@@ -119,12 +119,13 @@ export async function addExtraItems(
   state: SessionState,
   mcp: SilpoMcpClient,
   wanted: { name: string; qty?: string }[],
+  preloadedFacts?: UserFact[],
 ): Promise<AddExtraItemsResult> {
   if (!state.cartContext?.timeslot) {
     throw new Error('Cart context has no timeslot — call ensure_cart_context before adding extra items');
   }
 
-  const restrictions = await hardRestrictions(userId, state);
+  const restrictions = await hardRestrictions(userId, state, preloadedFacts);
   // One synthetic "dish" holding every requested name — the same shape resolveIngredients()
   // already flattens menu ingredients from, so extra items go through IDENTICAL selection code
   // instead of a second, divergent implementation.
@@ -134,6 +135,9 @@ export async function addExtraItems(
 
   const { items: newItems, misses } = await resolveIngredients(mcp, state.cartContext, syntheticMenu, {
     ...(restrictions.length > 0 ? { restrictions } : {}),
+    // A budgeted plan stays in "prefer cheapest" mode for ad-hoc additions too — the same reason
+    // bot.ts's menu_confirm handler sets this.
+    ...(state.request?.budgetUah !== undefined ? { preferCheapest: true } : {}),
     // "чіпси" and "пиво" are exactly the processed/snack forms selectProduct normally demotes in
     // favour of a raw cooking ingredient — wrong here, since the processed form IS what was asked
     // for. See SelectionOptions.skipProcessedFormPenalty in selectProduct.ts.
@@ -348,7 +352,12 @@ export async function finishWithCheckout(
  * `remove_items`). `state` is mutated in place; the caller (runAgentTurn) persists it and reads
  * `state.stage` afterwards.
  */
-export function localTools(userId: number, state: SessionState, mcp: SilpoMcpClient): Record<string, Tool> {
+export function localTools(
+  userId: number,
+  state: SessionState,
+  mcp: SilpoMcpClient,
+  preloadedFacts?: UserFact[],
+): Record<string, Tool> {
   return {
     propose_menu: tool({
       description:
@@ -405,7 +414,7 @@ export function localTools(userId: number, state: SessionState, mcp: SilpoMcpCli
         'productId чи ціну. Контекст кошика (ensure_cart_context) має вже існувати.',
       inputSchema: extraItemsInput,
       execute: async ({ items }) => {
-        const { added, misses, totals } = await addExtraItems(userId, state, mcp, items);
+        const { added, misses, totals } = await addExtraItems(userId, state, mcp, items, preloadedFacts);
         return { ok: true, added, misses, totals };
       },
     }),

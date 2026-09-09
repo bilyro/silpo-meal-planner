@@ -175,8 +175,13 @@ export function createBot() {
       // would constrain the model's menu and then be ignored by the code that actually picks the
       // products.
       const restrictions = await hardRestrictions(user.id, state);
+      // A stated budget puts selection into "stay under it" mode (spec's "budget selection mode"):
+      // cheapest-per-unit wins over promo status, which otherwise wins by default. Without a named
+      // budget there is nothing to stay under, so the ordinary promo-first ranking applies.
+      const preferCheapest = state.request?.budgetUah !== undefined;
       const { items, misses } = await resolveIngredients(mcp, cartCtx.cartContext, state.menu, {
         ...(restrictions.length > 0 ? { restrictions } : {}),
+        ...(preferCheapest ? { preferCheapest } : {}),
       });
 
       if (items.length === 0) {

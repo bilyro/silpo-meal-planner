@@ -184,12 +184,19 @@ export function formatMemoryBlock(memory: RecalledMemory): string {
  * Both sources are needed. Silpo's field is authoritative when populated, but a live account came
  * back with none set, so in practice the stored facts are the only ones there are. De-duplicated
  * case-insensitively so «свинина» from both sources is one exclusion, not two.
+ *
+ * `preloadedFacts`, when given, skips the `listUserFacts` query entirely — `runAgentTurn` already
+ * fetches the identical active-facts row set via `recallMemory()` once per turn, and a model tool
+ * call reaching this function later in the SAME turn (add_extra_items) would otherwise pay for a
+ * redundant round-trip for data that provably has not changed. bot.ts's deterministic 🛒 handler,
+ * which never calls `recallMemory`, omits this and gets the normal fetch.
  */
 export async function hardRestrictions(
   userId: number,
   state: { profile?: { restrictions?: string[] } },
+  preloadedFacts?: UserFact[],
 ): Promise<string[]> {
-  const stored = await repo.listUserFacts(userId);
+  const stored = preloadedFacts ?? (await repo.listUserFacts(userId));
   const merged = [
     ...(state.profile?.restrictions ?? []),
     ...stored.filter((f) => isHardKind(f.kind)).map((f) => f.text),

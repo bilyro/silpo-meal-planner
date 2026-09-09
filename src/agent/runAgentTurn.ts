@@ -168,7 +168,9 @@ export async function runAgentTurn(userId: number, userMessage: string): Promise
       const memoryBlock = formatMemoryBlock(memory);
 
       const tools = {
-        ...localTools(userId, state, mcp),
+        // memory.facts is already this turn's active-facts row set (recallMemory above) —
+        // threaded through so add_extra_items's hardRestrictions() doesn't re-query it.
+        ...localTools(userId, state, mcp, memory.facts),
         ...repeatLastPlanTool(userId, state),
         ...(await mcp.toolsForAiSdk()),
       };

@@ -146,6 +146,21 @@ describe('addExtraItems — a stored hard restriction still excludes a conflicti
   });
 });
 
+describe('addExtraItems — preloadedFacts skips the redundant listUserFacts query', () => {
+  it('still excludes a conflicting extra item when facts are passed in directly', async () => {
+    // No facts() call here — listUserFacts must never be hit when preloadedFacts is supplied.
+    const state = baseState();
+    const mcp = mockMcp({ арахіс: [{ id: 'p-nuts', available: true, stock: 10, price: 30, name: 'Арахіс солоний' }] });
+    const preloadedFacts = [{ id: 1, kind: 'allergy', text: 'горіхи', source: 'user' as const }];
+
+    const result = await addExtraItems(1, state, mcp, [{ name: 'арахіс' }], preloadedFacts);
+
+    expect(result.added).toHaveLength(0);
+    expect(result.misses).toEqual(['арахіс']);
+    expect(listUserFacts).not.toHaveBeenCalled();
+  });
+});
+
 describe('applyResolution reuse — cartWritten is invalidated by an append too', () => {
   it('resets a stale cartWritten flag when extra items grow the list', async () => {
     const state = { ...baseState(), cartWritten: true };
