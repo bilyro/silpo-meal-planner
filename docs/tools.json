@@ -1,6 +1,7 @@
 {
-  "fetchedAt": "2026-09-06T07:41:06.452Z",
+  "fetchedAt": "2026-09-09T11:11:08.924Z",
   "toolCount": 40,
+  "tokenMeta": null,
   "tools": [
     {
       "name": "silpo_find_address",
@@ -125,7 +126,7 @@
     {
       "name": "silpo_get_time_slots",
       "title": "Get Delivery Time Slots",
-      "description": "Get available delivery time slots for a Silpo branch.\n\nUSAGE: Use slots[].start and slots[].end with silpo_update_shopping_cart timeslot param. Only pick slots where available=true.\n\nTIMES: All times in the response are UTC — always convert to user's local timezone when presenting.\n\nBRANCH: Prefer using branchId from silpo_get_shopping_cart_by_id (existing cart). Only use silpo_get_available_delivery_types if user wants to change address.",
+      "description": "Get available delivery time slots for a Silpo branch.\n\nUSAGE: Use slots[].start and slots[].end with silpo_update_shopping_cart timeslot param. Only pick slots where available=true.\n\nMIN ORDER COST: slots[].minOrderCost only exists in this tool's response. To tell the user the minimum order amount for their selected delivery slot, read it from here.\n\nTIMES: All times in the response are UTC — always convert to user's local timezone when presenting.\n\nBRANCH: Prefer using branchId from silpo_get_shopping_cart_by_id (existing cart). Only use silpo_get_available_delivery_types if user wants to change address.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -344,7 +345,7 @@
     {
       "name": "silpo_find_products_batch",
       "title": "Find Products Batch",
-      "description": "Search for multiple products at once (semicolon-separated, max 30). Prefer getting branchId/deliveryType/timeslot from silpo_get_shopping_cart_by_id (existing cart).\n\nSEARCH BY ARTICLE CODE: The `products` search terms accept exact numeric article codes (externalProductId) in addition to free-text names — e.g. searching \"795319\" returns the exact product with that externalProductId. This is the most reliable match: prefer numeric externalProductId over fuzzy name matching whenever it is already known (e.g. from a silpo_get_my_offline_orders receipt line's lagerId, a silpo_get_my_online_orders result, or a cart/favorites entry) — it eliminates ambiguity from product names.\n\nRESULT COUNT: queries[].totalFound is the real number of matches for that query — it can be larger than queries[].products.length if limit was smaller than the match count. If totalFound > products.length, more matches exist; increase limit or re-query to see them.\n\nPACKAGE SIZE: displayRatio shows the actual content of one unit (e.g. \"400г\", \"10 шт\") — use it together with step to compute how many units to add for a requested weight/volume/count. step alone only tells you the minimum increment (e.g. step=1 unit), not what one unit contains.\n\nBUDGET: If user mentions a budget, ALWAYS fill the cart as close to the budget limit as possible. Maximize the total spend without exceeding it — add more items or increase quantities to use the full budget.",
+      "description": "Search for multiple products at once (semicolon-separated, max 30). Prefer getting branchId/deliveryType/timeslot from silpo_get_shopping_cart_by_id (existing cart).\n\nSEARCH BY ARTICLE CODE: The `products` search terms accept exact numeric article codes (externalProductId) in addition to free-text names — e.g. searching \"795319\" returns the exact product with that externalProductId. This is the most reliable match: prefer numeric externalProductId over fuzzy name matching whenever it is already known (e.g. from a silpo_get_my_offline_orders receipt line's lagerId, a silpo_get_my_online_orders result, or a cart/favorites entry) — it eliminates ambiguity from product names. NOTE: products with zero stock at this branch may not appear in results even when searched by their exact article code — a missing result does NOT confirm the product doesn't exist, it may just be temporarily out of stock here.\n\nRESULT COUNT: queries[].totalFound is the real number of matches for that query — it can be larger than queries[].products.length if limit was smaller than the match count. If totalFound > products.length, more matches exist; increase limit or re-query to see them.\n\nPACKAGE SIZE: displayRatio shows the actual content of one unit (e.g. \"400г\", \"10 шт\") — use it together with step to compute how many units to add for a requested weight/volume/count. step alone only tells you the minimum increment (e.g. step=1 unit), not what one unit contains.\n\nWEIGHTED PRODUCT UNITS: For weighted=true products, step and quantity (in silpo_add_or_update_cart_products) are ALWAYS expressed in KILOGRAMS — regardless of what unit displayRatio shows (e.g. displayRatio=\"100г\" does NOT mean step is in units of 100g; step=0.35 always means 0.35 kg = 350g). Convert any requested weight to kilograms before computing quantity for weighted products. displayRatio is only for describing/pricing context to the user, never for unit conversion of step/quantity.\n\nBUDGET: If user mentions a budget, ALWAYS fill the cart as close to the budget limit as possible. Maximize the total spend without exceeding it — add more items or increase quantities to use the full budget.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1670,7 +1671,7 @@
     {
       "name": "silpo_get_shopping_cart_by_id",
       "title": "Get Shopping Cart Details",
-      "description": "View detailed shopping cart contents including products, delivery settings, totals, and errors/warnings.\n\nRESPONSE FIELDS GUIDE:\n- cart.shipments[0].branchId — use as branchId for product searches\n- cart.deliveryType — use as deliveryType for product searches\n- cart.timeslot.start / cart.timeslot.end — use as timeslotStart/timeslotEnd for product searches\n- cart.shipments[].products[].productId + companyId — use for add_or_update_cart_products\n- cart.calculation.validations[] — errors/warnings that block checkout\n- cart.calculation.total — full order total before discounts\n- cart.calculation.totalAfterDiscounts — the actual amount the user will PAY (always show this to the user, not total)\n- BUDGET CHECK: If the user stated a budget for this cart, compare it against cart.calculation.totalAfterDiscounts. If it exceeds the budget, you MUST go back to silpo_add_or_update_cart_products / silpo_remove_cart_products to reduce the cart, then call this tool again to re-verify — do NOT report the cart as complete while over budget.\n- cart.calculation.certificatesTotal — total discount applied from gift certificates\n- cart.calculation.delivery.totalWeight — total weight\n\nEXPRESS DELIVERY:\n- If cart.deliveryType = \"DeliveryExpressByPromise\": order will be delivered in ~cart.calculation.delivery.deliveryExpressByPromise.promiseTime seconds (convert to minutes for user). Use \"DeliveryHome\" as deliveryType for all other tools (product searches, time slots, etc.).\n- If cart.deliveryType != \"DeliveryExpressByPromise\": check cart.calculation.delivery.deliveryExpressByPromise. If isAvailable=true AND isTemporarilyUnavailable=false — HIGHLIGHT to user: \"Express delivery available! Delivery in ~{promiseTime/60} minutes for ₴{price}\". If user wants express, update cart deliveryType to \"DeliveryExpressByPromise\" via silpo_update_shopping_cart.\n\nTIMESLOT VALIDATION (MANDATORY — DO THIS IMMEDIATELY):\nYou MUST call silpo_get_time_slots IMMEDIATELY after this tool (branchId=cart.shipments[0].branchId, deliveryTypes=[cart.deliveryType], start=now, limit=10). Then check if cart.timeslot (start + end) exists in the returned slots where available=true. If not found or not available — ask user to pick a new timeslot and update via silpo_update_shopping_cart. Do NOT proceed with any other operations until timeslot is confirmed valid.\n\nVALIDATION HANDLING:\n- ERRORS in cart.calculation.validations[] MUST be highlighted to the user — they block checkout\n- WARNINGS MUST be communicated clearly\n- Timeslot times are UTC — always convert to user's local timezone\n\nPLASTIC BAGS: ALWAYS ignore plastic bags (пакет, пакет з пакетів, пакет-майка) when reordering products from this cart — never add them.\n\nCHECKOUT LINK: If checkoutWebLink/checkoutMobileLink are present in the response, ALWAYS show BOTH links to the user — checkoutWebLink labeled \"Оформити на сайті\" and checkoutMobileLink labeled \"Оформити в застосунку\".\n\nБАЛАБОНУСИ (BONUS PAY):\nCheck cart.calculation.loyalty after this tool:\n- If bonusRequested is null AND bonusAvailable > 0 AND bonusTotal >= bonusAvailable AND isEnabled is true — ALWAYS propose to user: \"У вас є {bonusAvailable} балабонусів. Бажаєте їх застосувати для оплати замовлення?\"\n- If user agrees — call silpo_update_shopping_cart with bonusRequested = bonusAvailable (or user-specified amount ≤ bonusAvailable)\n- If user declines — proceed without bonuses\n- bonusTotal — total balance the user has; bonusAvailable — amount applicable to this cart",
+      "description": "View detailed shopping cart contents including products, delivery settings, totals, and errors/warnings.\n\nRESPONSE FIELDS GUIDE:\n- cart.shipments[0].branchId — use as branchId for product searches\n- cart.deliveryType — use as deliveryType for product searches\n- cart.timeslot.start / cart.timeslot.end — use as timeslotStart/timeslotEnd for product searches\n- cart.shipments[].products[].productId + companyId — use for add_or_update_cart_products\n- cart.calculation.validations[] — errors/warnings that block checkout. validations[].message is a STABLE, dot-namespaced identifier (e.g. \"order.payment_types.disabled\", \"product.offer.stock.max\") — NOT a human-readable sentence. Match against these known identifiers rather than trying to parse or translate the string directly; validations[].context carries the structured data (amounts, reasons, etc.) needed to build a user-facing message yourself.\n- cart.calculation.total — full order total before discounts\n- cart.calculation.totalAfterDiscounts — the actual amount the user will PAY (always show this to the user, not total)\n- BUDGET CHECK: If the user stated a budget for this cart, compare it against cart.calculation.totalAfterDiscounts. If it exceeds the budget, you MUST go back to silpo_add_or_update_cart_products / silpo_remove_cart_products to reduce the cart, then call this tool again to re-verify — do NOT report the cart as complete while over budget.\n- cart.calculation.certificatesTotal — total discount applied from gift certificates\n- cart.calculation.delivery.totalWeight — total weight\n\nEXPRESS DELIVERY:\n- If cart.deliveryType = \"DeliveryExpressByPromise\": order will be delivered in ~cart.calculation.delivery.deliveryExpressByPromise.promiseTime seconds (convert to minutes for user). Use \"DeliveryHome\" as deliveryType for all other tools (product searches, time slots, etc.).\n- If cart.deliveryType != \"DeliveryExpressByPromise\": check cart.calculation.delivery.deliveryExpressByPromise. If isAvailable=true AND isTemporarilyUnavailable=false — HIGHLIGHT to user: \"Express delivery available! Delivery in ~{promiseTime/60} minutes for ₴{price}\". If user wants express, update cart deliveryType to \"DeliveryExpressByPromise\" via silpo_update_shopping_cart.\n\nTIMESLOT VALIDATION (MANDATORY — DO THIS IMMEDIATELY):\nYou MUST call silpo_get_time_slots IMMEDIATELY after this tool (branchId=cart.shipments[0].branchId, deliveryTypes=[cart.deliveryType], start=now, limit=10). Then check if cart.timeslot (start + end) exists in the returned slots where available=true. If not found or not available — ask user to pick a new timeslot and update via silpo_update_shopping_cart. Do NOT proceed with any other operations until timeslot is confirmed valid.\n\nVALIDATION HANDLING:\n- ERRORS in cart.calculation.validations[] MUST be highlighted to the user — they block checkout\n- WARNINGS MUST be communicated clearly\n- Timeslot times are UTC — always convert to user's local timezone\n\nPLASTIC BAGS: ALWAYS ignore plastic bags (пакет, пакет з пакетів, пакет-майка) when reordering products from this cart — never add them.\n\nCHECKOUT LINK: If checkoutWebLink/checkoutMobileLink are present in the response, ALWAYS show BOTH links to the user — checkoutWebLink labeled \"Оформити на сайті\" and checkoutMobileLink labeled \"Оформити в застосунку\".\n\nБАЛАБОНУСИ (BONUS PAY):\nCheck cart.calculation.loyalty after this tool:\n- If bonusRequested is null AND bonusAvailable > 0 AND bonusTotal >= bonusAvailable AND isEnabled is true — ALWAYS propose to user: \"У вас є {bonusAvailable} балабонусів. Бажаєте їх застосувати для оплати замовлення?\"\n- If user agrees — call silpo_update_shopping_cart with bonusRequested = bonusAvailable (or user-specified amount ≤ bonusAvailable)\n- If user declines — proceed without bonuses\n- bonusTotal — total balance the user has; bonusAvailable — amount applicable to this cart",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1767,7 +1768,7 @@
     {
       "name": "silpo_add_or_update_cart_products",
       "title": "Add/Update Cart Products",
-      "description": "Add products to shopping cart or update quantities. Requires productId, companyId, and branchId from product search results.\n\nsuccess:true only means the write request was accepted — it does NOT mean the quantity is valid. This tool cannot check stock itself; a quantity exceeding stock is accepted here and only surfaces later as an error-level entry in silpo_get_shopping_cart_by_id's validations[] (e.g. message \"product.offer.stock.max\" with context.stock). This is why the verification step below is mandatory, not optional.\n\nVERIFICATION (MANDATORY — DO THIS IMMEDIATELY):\nYou MUST call silpo_get_shopping_cart_by_id IMMEDIATELY after this tool, using the same shoppingCartId. Do NOT tell the user the cart is ready until you have done this and confirmed validations[] has no error-level entries for the products you just added — it covers budget checks and error/warning reporting.\n\nSTOCK LIMIT: NEVER add quantity exceeding the product's stock value. Before calling this tool, always check the stock field and inform the user of the maximum available quantity. If user requests more than stock — warn them and cap at stock value.\n\nPLASTIC BAGS: ALWAYS ignore plastic bags (пакет, пакет з пакетів, пакет-майка) — never add them to cart. Skip them silently without asking the user.",
+      "description": "Add products to shopping cart or update quantities. Requires productId, companyId, and branchId from product search results.\n\nADD_QUANTITY DEFAULT: If addQuantity is omitted, the API defaults to false (replace) — the quantity you send becomes the new total, it does NOT add to what's already in the cart. Only set addQuantity: true if you explicitly want to increase the existing quantity by the given amount (e.g. \"add 2 more\"). Prefer omitting it (or passing false) and sending the final desired quantity — this avoids accidentally doubling quantities across repeated calls for the same product, especially when re-syncing a cart to a budget.\n\nsuccess:true only means the write request was accepted — it does NOT mean the quantity is valid. This tool cannot check stock itself; a quantity exceeding stock is accepted here and only surfaces later as an error-level entry in silpo_get_shopping_cart_by_id's validations[] (e.g. message \"product.offer.stock.max\" with context.stock). This is why the verification step below is mandatory, not optional.\n\nVERIFICATION (MANDATORY — DO THIS IMMEDIATELY):\nYou MUST call silpo_get_shopping_cart_by_id IMMEDIATELY after this tool, using the same shoppingCartId. Do NOT tell the user the cart is ready until you have done this and confirmed validations[] has no error-level entries for the products you just added — it covers budget checks and error/warning reporting.\n\nSTOCK LIMIT: NEVER add quantity exceeding the product's stock value. Before calling this tool, always check the stock field and inform the user of the maximum available quantity. If user requests more than stock — warn them and cap at stock value.\n\nPLASTIC BAGS: ALWAYS ignore plastic bags (пакет, пакет з пакетів, пакет-майка) — never add them to cart. Skip them silently without asking the user.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1807,7 +1808,7 @@
                   "description": "Quantity to add. For weight goods, use multiples of addToBasketStep from product data (e.g. 0.5 for 500g step)"
                 },
                 "addQuantity": {
-                  "description": "Add to existing quantity (true) or replace (false)",
+                  "description": "true = add to existing quantity, false/omitted = replace with this quantity (API default is false when omitted)",
                   "type": "boolean"
                 },
                 "comment": {
@@ -2464,7 +2465,7 @@
     {
       "name": "silpo_get_product_details",
       "title": "Get Product Details",
-      "description": "Get detailed information about a specific product by branch and slug. Returns product attributes, nutrition info, and image URLs.\n\nCRITICAL: The slug parameter MUST come from the slug field in silpo_find_products_batch or silpo_get_products results. NEVER construct or guess a slug from a product name — slugs are generated by Silpo and cannot be derived from names. If you don't have a slug from a previous search, call silpo_find_products_batch first.\n\nPACKAGE SIZE: displayRatio shows the actual content of one unit (e.g. \"400г\", \"10 шт\") — use it together with step to compute how many units to add for a requested weight/volume/count. step alone only tells you the minimum increment, not what one unit contains.",
+      "description": "Get detailed information about a specific product by branch and slug. Returns product attributes, nutrition info, and image URLs.\n\nCRITICAL: The slug parameter MUST come from the slug field in silpo_find_products_batch or silpo_get_products results. NEVER construct or guess a slug from a product name — slugs are generated by Silpo and cannot be derived from names. If you don't have a slug from a previous search, call silpo_find_products_batch first.\n\nPACKAGE SIZE: displayRatio shows the actual content of one unit (e.g. \"400г\", \"10 шт\") — use it together with step to compute how many units to add for a requested weight/volume/count. step alone only tells you the minimum increment, not what one unit contains.\n\nWEIGHTED PRODUCT UNITS: For weighted=true products, step is ALWAYS expressed in KILOGRAMS regardless of what unit displayRatio shows (e.g. displayRatio=\"100г\" does NOT mean step is in units of 100g). Convert any requested weight to kilograms before computing quantity for weighted products.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3396,7 +3397,7 @@
     {
       "name": "silpo_get_coupon_details",
       "title": "Get Coupon Details",
-      "description": "Get detailed info about a specific coupon by its ID (from silpo_get_my_coupons).\n\nJOIN TO REWARDS: promoId matches rewards[].promoId in silpo_get_my_offline_orders — use it to check whether this coupon actually paid out. rewardValue's meaning depends on rewardSign/rewardUnit (e.g. sign \"x\" + unit \"балобонусів\" means \"×N bonus points\", not a currency amount). rewardLimit is the payout ceiling (same value referenced in warningText prose, e.g. \"Максимальна сума знижки 100 грн\").",
+      "description": "Get detailed info about a specific coupon by its ID (from silpo_get_my_coupons).\n\nJOIN TO REWARDS: promoId matches rewards[].promoId in silpo_get_my_offline_orders — use it to check whether this coupon actually paid out. rewardValue's meaning depends on rewardSign/rewardUnit (e.g. sign \"x\" + unit \"балобонусів\" means \"×N bonus points\", not a currency amount). rewardLimit is the payout ceiling (same value referenced in warningText prose, e.g. \"Максимальна сума знижки 100 грн\").\n\nPROGRESS: For coupons that require accumulating a spend/quantity/reward threshold (e.g. \"Придбайте на 2500 гривень\"), progress is non-null and shows current/target/percent already converted to the app's display scale, plus a unit to build a phrase like \"{current} {unit} з {target} {unit}\". If progress is null, this coupon does not track accumulation this way — rely on limitText/warningText instead.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3556,7 +3557,8 @@
                   {
                     "type": "null"
                   }
-                ]
+                ],
+                "description": "Unit of the reward payout itself (e.g. \"%\", \"балобонусів\") — separate from progress.unit, which is the unit of the spend/quantity threshold being tracked, not the reward"
               },
               "rewardSign": {
                 "anyOf": [
@@ -3577,6 +3579,49 @@
                     "type": "null"
                   }
                 ]
+              },
+              "progress": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "current": {
+                        "type": "number",
+                        "description": "Amount accumulated so far, already converted to the display scale"
+                      },
+                      "target": {
+                        "type": "number",
+                        "description": "Threshold required to unlock the reward, same scale as current"
+                      },
+                      "percent": {
+                        "type": "number",
+                        "description": "current/target as a 0-100 percentage, already clamped"
+                      },
+                      "unit": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "Display unit for current/target: \"₴\" (currency), \"шт\" (pieces), or \"балобонусів\" (bonus points). This is the unit of the tracked spend/quantity, not the reward payout — do not use rewardUnit/rewardSign here, they can differ (e.g. a \"-25%\" reward still tracks progress in ₴)"
+                      }
+                    },
+                    "required": [
+                      "current",
+                      "target",
+                      "percent",
+                      "unit"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Accumulation progress toward this coupon's threshold, or null if not applicable"
               }
             },
             "required": [
@@ -3597,7 +3642,8 @@
               "promoId",
               "rewardUnit",
               "rewardSign",
-              "rewardLimit"
+              "rewardLimit",
+              "progress"
             ],
             "additionalProperties": false
           }
