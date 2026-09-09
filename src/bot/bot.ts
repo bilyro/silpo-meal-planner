@@ -14,7 +14,8 @@ import * as repo from '../db/repo.js';
 import { registerCommands } from './commands.js';
 import { cartActionsKeyboard, confirmMenuKeyboard, promoKeyboard } from './keyboards.js';
 import { relinkReply } from './messages.js';
-import { escapeHtml, formatResolvedItems, formatMenu, formatUah, stripHtml } from './format.js';
+import { escapeHtml, formatResolvedItems, formatMenu, formatUah, stripHtml, stripLinks } from './format.js';
+import { sendWelcomeMessage } from './welcome.js';
 
 /**
  * Sends an HTML-formatted reply, falling back to tag-stripped plain text if Telegram rejects it.
@@ -86,6 +87,28 @@ export function createBot() {
     const chatId = String(ctx.chat.id);
     const user = await repo.getOrCreateUser(chatId);
 
+    // A bare 6-digit message is treated as an OAuth link confirmation code (see schema.ts's
+    // `confirmed` column doc) rather than routed to the agent — a real diet/planning request is
+    // never exactly six digits with nothing else, so this cannot misfire on ordinary conversation.
+    const confirmMatch = /^\s*(\d{6})\s*$/.exec(ctx.message.text);
+    const confirmCode = confirmMatch?.[1];
+    if (confirmCode) {
+      const pendingLink = await repo.findUnconfirmedByCode(confirmCode);
+      if (pendingLink) {
+        await repo.confirmLink(pendingLink.userId);
+        const linkedUser = await repo.getUserById(pendingLink.userId);
+        if (linkedUser) {
+          await sendWelcomeMessage(bot, linkedUser.telegramChatId, linkedUser.id);
+        }
+        // The chat that started /start already gets sendWelcomeMessage above; only ack separately
+        // if the code was typed somewhere else (someone relaying it on the linking chat's behalf).
+        if (pendingLink.userId !== user.id) {
+          await ctx.reply('✅ Код прийнято — підключення підтверджено.');
+        }
+        return;
+      }
+    }
+
     const stopTyping = keepTyping(ctx);
     try {
       const { text, stage, menu, resolvedItems, totals } = await runAgentTurn(user.id, ctx.message.text);
@@ -101,7 +124,7 @@ export function createBot() {
       // for 'menu_proposed', rendered no keyboard at all. The button the model just told the user
       // to press then didn't exist. Confirmed against a real conversation in the messages table
       // where exactly that happened.
-      let body = text;
+      let body = stripLinks(text);
       let keyboard: InlineKeyboard | undefined;
       if (stage === 'menu_proposed' && menu?.length) {
         body = `${formatMenu(menu)}\n\nПідтверджуєте меню?`;

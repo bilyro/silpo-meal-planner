@@ -128,6 +128,25 @@ export function matchesQuery(query: string, name: string): boolean {
 }
 
 /**
+ * Stricter than `matchesQuery`, for use where a false match causes a wrong DELETION rather than
+ * merely a candidate that still has to compete with others (`remove_items`).
+ *
+ * `matchesQuery`'s "match everything when every word is under 4 chars" fallback is deliberate for
+ * its own call site — narrowing SEARCH RESULTS Silpo already returned for that exact query, where
+ * over-filtering a short ingredient like «рис» matters more than under-filtering. Reused as-is for
+ * removal, that same fallback means «прибери сир»/«рис»/«мед» — any common 3-letter Ukrainian food
+ * word — would match every already-resolved line and delete whichever happened to be first. A
+ * destructive action needs the opposite default: an empty or too-short query matches NOTHING, and
+ * a short word is checked literally (it is already its own stem) instead of being ignored.
+ */
+export function matchesForRemoval(query: string, name: string): boolean {
+  const haystack = name.toLowerCase();
+  const words = query.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (words.length === 0) return false;
+  return words.every((w) => (w.length >= 4 ? stemsFor(w).some((s) => haystack.includes(s)) : haystack.includes(w)));
+}
+
+/**
  * True when a query word heads the product name. Silpo names products head-noun-first
  * («Морква мита», «Цибуля ріпчаста жовта»), so a query term appearing among the first two words
  * signals the product IS that thing, rather than merely containing it: «Сік Galicia Baby
@@ -289,8 +308,18 @@ const NAMED_MEATS: { key: string; stems: string[] }[] = [
 ];
 
 /** Which synonym keys a user's phrase invokes — «без свинини» and «свинина» both give `свин`. */
+/**
+ * Per-word prefix match, not a bare substring search: `RESTRICTION_SYNONYMS`'s own doc says keys
+ * are "matched as prefixes", but `phrase.includes(key)` checks for the key ANYWHERE in the phrase
+ * — and key `риб` (fish) is a literal substring of `гриб` (mushroom), so a stored mushroom
+ * restriction like «гриби» was pulling in every fish stem (лосось, тунець, скумбрія…) and silently
+ * blocking fish for someone whose restriction has nothing to do with fish. Splitting into words
+ * and checking `startsWith` matches the documented intent and Ukrainian's suffix-only inflection
+ * (стем + ending), so it still catches «свинини», «яловичина» etc. without the cross-key collision.
+ */
 function restrictionKeysFor(phrase: string): string[] {
-  return Object.keys(RESTRICTION_SYNONYMS).filter((key) => phrase.includes(key));
+  const words = phrase.split(/[^\p{L}]+/u).filter(Boolean);
+  return Object.keys(RESTRICTION_SYNONYMS).filter((key) => words.some((w) => w.startsWith(key)));
 }
 
 /**

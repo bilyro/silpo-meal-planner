@@ -1,11 +1,11 @@
 import Fastify from 'fastify';
+import { randomInt } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import type { Bot } from 'grammy';
 import { logger } from '../logger.js';
 import { db } from '../db/client.js';
 import * as repo from '../db/repo.js';
 import { completeAuthorization } from '../mcp/SilpoMcpClient.js';
-import { sendWelcomeMessage } from '../bot/welcome.js';
 import { escapeHtml } from '../bot/format.js';
 
 interface AuthCallbackQuery {
@@ -65,14 +65,18 @@ export function buildServer(bot: Bot) {
     }
     await repo.deletePendingAuth(pending.state);
 
-    const user = await repo.getUserById(pending.userId);
-    if (user) {
-      void sendWelcomeMessage(bot, user.telegramChatId, user.id).catch((err) =>
-        logger.error({ err, userId: user.id }, 'Failed to send post-link welcome message'),
-      );
-    }
+    // Deliberately not final yet: whoever ran /start in Telegram could have forwarded this exact
+    // authorize link to someone else, who is the one actually looking at this page right now (see
+    // the `confirmed` column doc in schema.ts). Nothing in the app will treat this account as
+    // linked — getTokens() filters on confirmed=true — until this code is typed back into the
+    // Telegram chat that started the flow, which the person looking at this page cannot do unless
+    // they have access to that chat.
+    const confirmCode = String(randomInt(100000, 1000000));
+    await repo.markUnconfirmed(pending.userId, confirmCode);
 
-    return reply.type('text/html').send('<h1>Готово! Повертайтесь у Telegram.</h1>');
+    return reply.type('text/html').send(
+      `<h1>Майже готово!</h1><p>Повертайтесь у Telegram-чат, де ви написали /start, і надішліть боту цей код, щоб підтвердити підключення:</p><p style="font-size:2em;font-weight:bold;letter-spacing:0.1em">${escapeHtml(confirmCode)}</p><p>Якщо ви не запускали підключення в Telegram самостійно — не надсилайте цей код нікому.</p>`,
+    );
   });
 
   return app;

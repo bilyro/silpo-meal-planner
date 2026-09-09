@@ -49,8 +49,11 @@ export async function saveOauthClient(info: OAuthClientInformationFull): Promise
   });
 }
 
+/** Only ever returns a CONFIRMED link — see the `confirmed` column doc in schema.ts. */
 export async function getTokens(userId: number): Promise<OAuthTokens | undefined> {
-  const row = await db.query.oauthTokens.findFirst({ where: eq(oauthTokens.userId, userId) });
+  const row = await db.query.oauthTokens.findFirst({
+    where: and(eq(oauthTokens.userId, userId), eq(oauthTokens.confirmed, true)),
+  });
   if (!row) return undefined;
   return {
     access_token: row.accessToken,
@@ -81,6 +84,27 @@ export async function saveTokens(userId: number, tokens: OAuthTokens): Promise<v
 
 export async function deleteTokens(userId: number): Promise<void> {
   await db.delete(oauthTokens).where(eq(oauthTokens.userId, userId));
+}
+
+/**
+ * Called right after a fresh code exchange (server.ts's /auth/callback), AFTER saveTokens() has
+ * already run for this grant. Explicitly forces confirmed back to false even if this userId was
+ * confirmed before — a new exchange is a new grant (possibly a different Silpo account, in the
+ * forwarding attack this column exists for) and must be re-confirmed regardless of history.
+ */
+export async function markUnconfirmed(userId: number, confirmCode: string): Promise<void> {
+  await db.update(oauthTokens).set({ confirmed: false, confirmCode }).where(eq(oauthTokens.userId, userId));
+}
+
+/** Looked up by whoever types the code back into Telegram — may be a different chat than the one that ran /start. */
+export async function findUnconfirmedByCode(confirmCode: string) {
+  return db.query.oauthTokens.findFirst({
+    where: and(eq(oauthTokens.confirmCode, confirmCode), eq(oauthTokens.confirmed, false)),
+  });
+}
+
+export async function confirmLink(userId: number): Promise<void> {
+  await db.update(oauthTokens).set({ confirmed: true, confirmCode: null }).where(eq(oauthTokens.userId, userId));
 }
 
 /**

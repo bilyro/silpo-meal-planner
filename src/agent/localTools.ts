@@ -5,7 +5,7 @@ import type { SilpoMcpClient } from '../mcp/SilpoMcpClient.js';
 import { ensureCartContext } from './cartContext.js';
 import { FACT_KINDS, hardRestrictions, kindLabel } from './memory.js';
 import { resolveIngredients } from './resolveIngredients.js';
-import { matchesQuery } from './selectProduct.js';
+import { matchesForRemoval } from './selectProduct.js';
 import { saveSession, type SessionState } from './session.js';
 
 const proposeMenuInput = z.object({
@@ -140,6 +140,16 @@ export async function addExtraItems(
     skipProcessedFormPenalty: true,
   });
 
+  // As in removeItems: nothing to add (every requested item missed resolution) means the list is
+  // unchanged, so a built cart must not be marked stale for a no-op.
+  if (newItems.length === 0) {
+    return {
+      added: newItems,
+      misses,
+      totals: state.totals ?? computeTotals(state.resolvedItems ?? [], state.request?.budgetUah),
+    };
+  }
+
   const combined = [...(state.resolvedItems ?? []), ...newItems];
   const totals = await applyResolution(userId, state, combined);
   return { added: newItems, misses, totals };
@@ -153,7 +163,7 @@ export interface RemoveItemsResult {
 
 /** True when `name`, as the user said it, refers to this already-resolved line. */
 function itemMatchesName(item: ResolvedItems[number], name: string): boolean {
-  return matchesQuery(name, item.ingredient) || matchesQuery(name, item.title);
+  return matchesForRemoval(name, item.ingredient) || matchesForRemoval(name, item.title);
 }
 
 /**
@@ -162,9 +172,11 @@ function itemMatchesName(item: ResolvedItems[number], name: string): boolean {
  * `addExtraItems`'s append: the model names WHICH existing lines go, code does the filtering, so a
  * line the user meant to keep can never be silently dropped or altered by a retyped list.
  *
- * Matching reuses `matchesQuery` (`selectProduct.ts`) against both `ingredient` (what the user
- * originally asked for) and `title` (the actual resolved product) — the same Ukrainian-inflection
- * tolerant matching the catalogue search already trusts, rather than a second, divergent heuristic.
+ * Matching uses `matchesForRemoval` (`selectProduct.ts`) against both `ingredient` (what the user
+ * originally asked for) and `title` (the actual resolved product) — Ukrainian-inflection tolerant
+ * like the catalogue search's own `matchesQuery`, but strict about short words: unlike search
+ * results (already narrowed by Silpo), an unfiltered "match everything" fallback here would delete
+ * the wrong line for any common 3-letter Ukrainian food word («сир», «рис», «мед»).
  * Each requested name removes at most ONE line (`find`, not a sweep): "прибери яловина" removing
  * every beef-named line at once — including one the user didn't mean — would be a worse mistake
  * than occasionally needing to ask again with a more specific name.
@@ -191,6 +203,14 @@ export async function removeItems(
     }
     removed.push(match);
     remaining = remaining.filter((item) => item !== match);
+  }
+
+  // Only a REAL change invalidates a built cart. Every requested name missing (a typo, an
+  // already-removed item) left `remaining` identical to `state.resolvedItems` — applyResolution's
+  // unconditional `cartWritten = false` would otherwise wrongly demand pressing 🛒 again for a
+  // cart that was never actually touched.
+  if (removed.length === 0) {
+    return { removed, notFound, totals: state.totals ?? computeTotals(remaining, state.request?.budgetUah) };
   }
 
   const totals = await applyResolution(userId, state, remaining);

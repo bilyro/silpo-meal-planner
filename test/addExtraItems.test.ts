@@ -155,4 +155,17 @@ describe('applyResolution reuse — cartWritten is invalidated by an append too'
 
     expect(state.cartWritten).toBe(false);
   });
+
+  it('does NOT reset cartWritten when nothing resolves (a no-op)', async () => {
+    // Every requested item missing leaves the list unchanged — a built cart must not be marked
+    // stale for a call that added nothing.
+    const state = { ...baseState(), cartWritten: true };
+    const mcp = mockMcp({});
+
+    const result = await addExtraItems(1, state, mcp, [{ name: 'нонейкзистент' }]);
+
+    expect(result.added).toHaveLength(0);
+    expect(state.cartWritten).toBe(true);
+    expect(state.resolvedItems).toHaveLength(1);
+  });
 });

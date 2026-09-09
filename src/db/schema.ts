@@ -25,6 +25,28 @@ export const oauthTokens = pgTable('oauth_tokens', {
   expiresAt: timestamp('expires_at', { withTimezone: true }),
   tokenType: text('token_type'),
   scope: text('scope'),
+  /**
+   * A /start link is a real, valid Silpo authorize URL — nothing stops whoever ran /start from
+   * forwarding it to someone else, who then logs into THEIR OWN real Silpo account and approves,
+   * unknowingly handing their tokens to the Telegram chat that forwarded the link (Silpo does not
+   * reliably echo `state`, so /auth/callback cannot otherwise tell which chat a code belongs to).
+   *
+   * `confirmed` closes this: /auth/callback saves tokens as usual but leaves this false and shows
+   * a one-time code on the success page instead of finishing. getTokens() only returns rows where
+   * this is true, so nothing in the app (including a fresh mcp.connect()) can use an unconfirmed
+   * link. The code must be typed back into Telegram (see bot.ts's message:text handler) before the
+   * link is trusted. In the forwarding attack, that code renders on the page the FORWARDED-TO
+   * person is looking at, not in the forwarder's own chat — so completing the takeover now needs
+   * that person to notice and relay a code, not just click once and approve, which a routine
+   * "connect your account" flow never asks for.
+   *
+   * A background token refresh (the SDK's automatic 401-retry) calls saveTokens() too but never
+   * touches this column — only server.ts's /auth/callback resets it — so an already-confirmed
+   * session's routine refresh does not unexpectedly lock the user out.
+   */
+  confirmed: boolean('confirmed').notNull().default(false),
+  /** Set alongside `confirmed = false`; cleared once confirmed. Null the rest of the time. */
+  confirmCode: text('confirm_code'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

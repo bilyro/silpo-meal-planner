@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { escapeHtml, formatMenu, pluralDays, stripHtml } from '../src/bot/format.js';
+import { escapeHtml, formatMenu, pluralDays, stripHtml, stripLinks } from '../src/bot/format.js';
 import type { SessionState } from '../src/agent/session.js';
 
 type Menu = NonNullable<SessionState['menu']>;
@@ -19,6 +19,27 @@ describe('pluralDays', () => {
     expect(pluralDays(11)).toBe('днів'); // teens are днів despite ending in 1
     expect(pluralDays(21)).toBe('день');
     expect(pluralDays(22)).toBe('дні');
+  });
+});
+
+describe('stripLinks', () => {
+  it('drops a link tag but keeps its visible text', () => {
+    // The attack this defends against: an ingredient string smuggled through the cross-user
+    // shared-recipe pool and relayed verbatim by the model inside an otherwise-legitimate reply.
+    const out = stripLinks('Привіт! <a href="http://evil.example/phish">Підтвердіть акаунт</a> тут.');
+    expect(out).toBe('Привіт! Підтвердіть акаунт тут.');
+    expect(out).not.toContain('<a');
+    expect(out).not.toContain('evil.example');
+  });
+
+  it('leaves Telegram-supported non-link formatting untouched', () => {
+    const out = stripLinks('<b>Меню</b> на <i>3 дні</i>, <code>без свинини</code>.');
+    expect(out).toBe('<b>Меню</b> на <i>3 дні</i>, <code>без свинини</code>.');
+  });
+
+  it('handles multiple links and mixed-case tags', () => {
+    const out = stripLinks('<A HREF="http://a">один</A> і <a href=\'http://b\'>два</a>');
+    expect(out).toBe('один і два');
   });
 });
 

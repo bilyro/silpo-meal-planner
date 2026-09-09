@@ -82,8 +82,14 @@ export function looksLikeUnconfirmedMenu(text: string): boolean {
   // bare "г" prefix of "грн" with nothing after it to reject. The lookahead requires that no
   // letter (Cyrillic or Latin) immediately follows the matched unit, so "г" alone still matches
   // "300г" (followed by a line break) but not the "г" inside "грн" (followed by "р").
+  //
+  // «зубч\w*» has the SAME \w bug one level up: \w* can only extend a match through ASCII word
+  // characters, so it matches zero extra letters before hitting the Cyrillic «и» in «зубчики» —
+  // the lookahead then correctly sees a letter right after «зубч» and rejects the whole match,
+  // silently dropping every bullet whose only quantity unit is a garlic-clove count. A Cyrillic
+  // character class, not \w, is what actually extends through the inflected ending.
   const recipeQtyBullet =
-    /^[•*-]\s*.+[—-]\s*[\d.,]+\s*(г|кг|мл|л|шт|ст\.?\s*л\.?|ч\.?\s*л\.?|щіпка|зубч\w*|пучок)(?![а-яіїєґА-ЯІЇЄҐa-zA-Z])/gim;
+    /^[•*-]\s*.+[—-]\s*[\d.,]+\s*(г|кг|мл|л|шт|ст\.?\s*л\.?|ч\.?\s*л\.?|щіпка|зубч[а-яіїєґ]*|пучок)(?![а-яіїєґА-ЯІЇЄҐa-zA-Z])/gim;
   return (text.match(recipeQtyBullet) ?? []).length >= 2;
 }
 

@@ -10,6 +10,19 @@ export function escapeHtml(text: string): string {
 }
 
 /**
+ * Strips <a> tags from model-generated free text before it reaches Telegram, keeping each tag's
+ * inner text but dropping the href/tag itself. The model is allowed to use Telegram's other
+ * formatting tags (<b>, <i>, ...) in free-text replies, but it has no legitimate reason to ever
+ * emit a link there — the one real link (checkout) is rendered by our own deterministic code from
+ * tool data, never echoed from the model's prose. This closes off a link being smuggled into a
+ * stranger's chat via text the model was asked to relay verbatim (e.g. an ingredient string from
+ * the cross-user shared-recipe pool) rather than text the model composed itself.
+ */
+export function stripLinks(text: string): string {
+  return text.replace(/<a\b[^>]*>/gi, '').replace(/<\/a>/gi, '');
+}
+
+/**
  * Last-resort de-formatting for a message Telegram rejected in HTML mode: drops every tag and
  * decodes the entities `escapeHtml` produces, so the text still reaches the user unformatted.
  */

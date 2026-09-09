@@ -4,6 +4,7 @@ import {
   hasStockHeadroom,
   isAvailable,
   isPromo,
+  matchesForRemoval,
   matchesQuery,
   packMass,
   selectProduct,
@@ -211,6 +212,16 @@ describe('violatesRestrictions', () => {
     });
   });
 
+  it('does not let a mushroom restriction pull in fish — "риб" is a substring of "гриб"', () => {
+    // restrictionKeysFor used a bare phrase.includes(key) check, and "гриби".includes("риб") is
+    // true (риб = the last three letters of гриб), so a mushroom-only restriction was silently
+    // blocking every fish product too.
+    expect(violatesRestrictions('Оселедець філе слабосолений', ['гриби'])).toBe(false);
+    expect(violatesRestrictions('Філе лосося', ['без грибів'])).toBe(false);
+    // The mushroom restriction itself must still work.
+    expect(violatesRestrictions('Печериці свіжі', ['гриби'])).toBe(true);
+  });
+
   it('leaves an unknown restriction as a literal match rather than ignoring it', () => {
     // Nothing in the synonym table covers this, so it must still behave like the old matcher.
     expect(violatesRestrictions('Кабачок цукіні', ['кабачок'])).toBe(true);
@@ -266,6 +277,32 @@ describe('matchesQuery', () => {
     expect(matchesQuery('куряче філе', 'Качине філе домашнє')).toBe(false);
     // …while a genuine chicken fillet still matches despite Ukrainian inflection.
     expect(matchesQuery('куряче філе', 'Філе куряче охолоджене')).toBe(true);
+  });
+});
+
+describe('matchesForRemoval', () => {
+  it('does not match everything for a short word, unlike matchesQuery', () => {
+    // The bug: remove_items reused matchesQuery, whose "match everything" fallback for words
+    // under 4 chars meant "прибери сир" could delete whichever item happened to be first.
+    expect(matchesQuery('сир', 'Кетчуп томатний')).toBe(true); // matchesQuery's deliberate behavior
+    expect(matchesForRemoval('сир', 'Кетчуп томатний')).toBe(false);
+    expect(matchesForRemoval('сир', 'Сир Голландський')).toBe(true);
+  });
+
+  it('checks short words literally, per word', () => {
+    expect(matchesForRemoval('рис', 'Рис Жасмин')).toBe(true);
+    expect(matchesForRemoval('мед', 'Мед квітковий')).toBe(true);
+    expect(matchesForRemoval('мед', 'Молоко Галичина')).toBe(false);
+  });
+
+  it('never matches on an empty or whitespace-only query', () => {
+    expect(matchesForRemoval('', 'Сир Голландський')).toBe(false);
+    expect(matchesForRemoval('   ', 'Сир Голландський')).toBe(false);
+  });
+
+  it('still stems and requires every word for longer queries, like matchesQuery', () => {
+    expect(matchesForRemoval('куряче філе', 'Філе куряче охолоджене')).toBe(true);
+    expect(matchesForRemoval('куряче філе', 'Качине філе домашнє')).toBe(false);
   });
 });
 

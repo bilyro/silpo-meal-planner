@@ -198,6 +198,12 @@ async function main() {
       shoppingCartId: state.cartContext!.cartId,
       products,
     });
+    // bot.ts's cart_build handler sets this right after the same call — finishWithCheckout()
+    // refuses to read the cart at all until it's set, so without this line every run of this
+    // script "mirroring the 🛒 handler" got a `{error: 'Кошик ще не зібрано...'}` instead of a
+    // real checkout summary, silently hiding whatever this script exists to catch (a regression
+    // in checkout behavior — see the header comment).
+    state.cartWritten = true;
 
     const summary = await finishWithCheckout(user.id, state, mcp);
     await saveSession(user.id, state);

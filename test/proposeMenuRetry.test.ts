@@ -108,6 +108,18 @@ describe('looksLikeUnconfirmedMenu', () => {
     expect(looksLikeUnconfirmedMenu(text)).toBe(true);
   });
 
+  it('matches a single-day menu whose only quantity unit is «зубчики» (garlic cloves)', () => {
+    // \w in JS regex does not include Cyrillic, so «зубч\w*» matched zero extra letters before
+    // hitting the «и» in «зубчики» and the trailing negative lookahead then rejected the whole
+    // bullet — a real recipe whose only units are clove counts never reached the >=2 threshold.
+    const text =
+      '🧄 <b>Вечеря: Часникова паста</b>\n' +
+      '• <i>Часник</i> — 3 зубчики\n' +
+      '• <i>Олія</i> — 2 ст. л.\n' +
+      'Приймаєш це меню?';
+    expect(looksLikeUnconfirmedMenu(text)).toBe(true);
+  });
+
   it('does not match a single bulleted line — needs at least two to avoid an incidental hit', () => {
     expect(looksLikeUnconfirmedMenu('До речі — • Одна нотатка — 5 хвилин почекайте.')).toBe(false);
   });

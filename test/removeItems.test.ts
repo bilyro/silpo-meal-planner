@@ -113,4 +113,17 @@ describe('removeItems — filters without touching what stays', () => {
 
     expect(state.cartWritten).toBe(false);
   });
+
+  it('does NOT reset cartWritten when every requested name misses (a no-op)', async () => {
+    // A typo or an already-gone item leaves the list unchanged — a built cart must not be marked
+    // stale for a call that changed nothing, which would wrongly demand pressing 🛒 again.
+    const rice = item({ ingredient: 'рис' });
+    const state = { ...baseState([rice]), cartWritten: true };
+
+    const result = await removeItems(1, state, ['лосось']);
+
+    expect(result.removed).toEqual([]);
+    expect(state.cartWritten).toBe(true);
+    expect(state.resolvedItems).toEqual([rice]);
+  });
 });
