@@ -75,6 +75,13 @@ export function createBot() {
 
   registerCommands(bot);
 
+  // Per-user, in-memory only — fine given the single-instance assumption this whole app already
+  // makes (CLAUDE.md). Without this, sending several messages before the first one's model call
+  // even finishes lets every one of them start its own full turn: `countUserMessagesToday`'s check
+  // in runAgentTurn only sees today's count as of when EACH turn starts, and none of a fast burst
+  // has been recorded yet when the others start, so all of them would pass a limit as tight as 8.
+  const turnsInProgress = new Set<number>();
+
   bot.on('message:text', async (ctx) => {
     const chatId = String(ctx.chat.id);
     const user = await repo.getOrCreateUser(chatId);
@@ -100,6 +107,12 @@ export function createBot() {
         return;
       }
     }
+
+    if (turnsInProgress.has(user.id)) {
+      await ctx.reply('Зачекайте, будь ласка — я ще обробляю попереднє повідомлення.');
+      return;
+    }
+    turnsInProgress.add(user.id);
 
     const stopTyping = keepTyping(ctx);
     try {
@@ -128,6 +141,7 @@ export function createBot() {
       await replyHtml(ctx, body, keyboard);
     } finally {
       stopTyping();
+      turnsInProgress.delete(user.id);
     }
   });
 

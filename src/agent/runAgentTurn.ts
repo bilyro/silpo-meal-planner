@@ -142,9 +142,28 @@ async function retryProposeMenuIfSkipped(
   // further to check here. The caller falls back to the original draft if it didn't.
 }
 
+/**
+ * This is an ordering agent, not an open-ended chat companion — a real session (plan, resolve,
+ * adjust once or twice, build cart) fits well under DAILY_MESSAGE_LIMIT. Checked here, before
+ * loadSession even runs the rest of the turn, so hitting the cap costs no model tokens and no
+ * Silpo API calls — the whole point of the guardrail.
+ */
+async function dailyLimitReply(userId: number, stage: SessionState['stage']): Promise<AgentTurnResult | undefined> {
+  const usedToday = await repo.countUserMessagesToday(userId);
+  if (usedToday < config.DAILY_MESSAGE_LIMIT) return undefined;
+  return {
+    text: `Ви досягли денного ліміту повідомлень (${config.DAILY_MESSAGE_LIMIT}). Спробуйте знову завтра.`,
+    stage,
+  };
+}
+
 /** spec §6.5: one function per user turn — loads session, runs the tool-calling loop, persists. */
 export async function runAgentTurn(userId: number, userMessage: string): Promise<AgentTurnResult> {
   const state = await loadSession(userId);
+
+  const limitReply = await dailyLimitReply(userId, state.stage);
+  if (limitReply) return limitReply;
+
   const mcp = new SilpoMcpClient(userId);
 
   // Single try/catch around connect() *and* generateText(): a connect() failure that is not

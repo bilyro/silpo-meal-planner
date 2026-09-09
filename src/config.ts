@@ -20,6 +20,10 @@ const envSchema = z.object({
   TURN_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   PORT: z.coerce.number().int().positive().default(3000),
   AGENT_MODEL: z.string().default('claude-haiku-4-5'),
+  // This is an ordering agent, not an open-ended chat companion — a real session (plan, resolve,
+  // adjust once or twice, build cart) fits well under this. Caps token spend per user per day;
+  // checked BEFORE any model or Silpo call, so hitting it costs nothing (see runAgentTurn.ts).
+  DAILY_MESSAGE_LIMIT: z.coerce.number().int().positive().default(8),
 });
 
 export type Config = z.infer<typeof envSchema>;

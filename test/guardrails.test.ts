@@ -20,6 +20,7 @@ vi.mock('../src/config.js', () => ({
     TURN_TIMEOUT_MS: 60_000,
     PORT: 3000,
     AGENT_MODEL: 'test-model',
+    DAILY_MESSAGE_LIMIT: 8,
   },
 }));
 
@@ -36,6 +37,9 @@ vi.mock('../src/db/repo.js', () => ({
   // Durable memory (agent/memory.ts) is read on every turn; an empty user remembers nothing.
   listUserFacts: vi.fn(async () => []),
   listRecentPlans: vi.fn(async () => []),
+  // Below DAILY_MESSAGE_LIMIT by default, so the existing deadline/dedupe tests below are
+  // unaffected; the daily-limit describe block below overrides this per test.
+  countUserMessagesToday: vi.fn(async () => 0),
 }));
 
 vi.mock('@ai-sdk/anthropic', () => ({ anthropic: vi.fn(() => ({ modelId: 'test-model' })) }));
@@ -54,6 +58,7 @@ import { SilpoMcpClient } from '../src/mcp/SilpoMcpClient.js';
 
 const generateTextMock = vi.mocked(generateText);
 const logToolCallMock = vi.mocked(repo.logToolCall);
+const countUserMessagesTodayMock = vi.mocked(repo.countUserMessagesToday);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -115,6 +120,51 @@ describe('per-turn deadline', () => {
     expect(repo.appendMessages).toHaveBeenCalledTimes(1);
     // The deadline timer must be cleared on the happy path, or every turn would leave one behind.
     expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe('daily message limit', () => {
+  function stubMcp() {
+    return {
+      connect: vi.spyOn(SilpoMcpClient.prototype, 'connect').mockResolvedValue(undefined),
+      close: vi.spyOn(SilpoMcpClient.prototype, 'close').mockResolvedValue(undefined),
+    };
+  }
+
+  it('refuses BEFORE connecting to Silpo or calling the model once the limit is reached', async () => {
+    const { connect, close } = stubMcp();
+    countUserMessagesTodayMock.mockResolvedValue(8); // === DAILY_MESSAGE_LIMIT
+
+    const result = await runAgentTurn(42, 'ще одне повідомлення');
+
+    expect(result.text).toContain('денного ліміту');
+    expect(connect).not.toHaveBeenCalled();
+    expect(generateTextMock).not.toHaveBeenCalled();
+    // Never opened, so nothing to close — this is the whole point: hitting the cap costs nothing.
+    expect(close).not.toHaveBeenCalled();
+    expect(repo.appendMessages).not.toHaveBeenCalled();
+  });
+
+  it('still refuses above the limit, not only exactly at it', async () => {
+    stubMcp();
+    countUserMessagesTodayMock.mockResolvedValue(50);
+
+    const result = await runAgentTurn(42, 'ще одне повідомлення');
+
+    expect(result.text).toContain('денного ліміту');
+    expect(generateTextMock).not.toHaveBeenCalled();
+  });
+
+  it('proceeds normally below the limit', async () => {
+    stubMcp();
+    vi.spyOn(SilpoMcpClient.prototype, 'toolsForAiSdk').mockResolvedValue({});
+    countUserMessagesTodayMock.mockResolvedValue(7); // one under the limit
+    generateTextMock.mockResolvedValue({ text: 'Ось меню', steps: [{ toolCalls: [] }] } as never);
+
+    const result = await runAgentTurn(42, 'меню на 3 дні');
+
+    expect(result.text).toBe('Ось меню');
+    expect(generateTextMock).toHaveBeenCalledTimes(1);
   });
 });
 

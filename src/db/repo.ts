@@ -181,6 +181,25 @@ export async function deleteMessages(userId: number): Promise<void> {
   await db.delete(messages).where(eq(messages.userId, userId));
 }
 
+/**
+ * This user's own messages (role='user') since the start of today (UTC calendar day) — the daily
+ * usage cap's check (config.DAILY_MESSAGE_LIMIT, runAgentTurn.ts). Counts only the user's side,
+ * not the assistant's reply, so a limit of N means N turns the user got to spend, not N/2.
+ */
+export async function countUserMessagesToday(userId: number): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.userId, userId),
+        eq(messages.role, 'user'),
+        sql`${messages.createdAt} >= date_trunc('day', now())`,
+      ),
+    );
+  return row ? Number(row.count) : 0;
+}
+
 export async function logToolCall(entry: {
   userId: number;
   tool: string;
