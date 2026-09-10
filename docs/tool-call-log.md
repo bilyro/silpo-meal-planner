@@ -15,381 +15,635 @@ code makes and the ones the model improvises. Nothing here is hand-written.
 
 ## Summary
 
-- Calls in this excerpt: **115**
-- Distinct tools exercised: **19**
-- Succeeded: **113** · failed or suppressed: **2**
-- Window: 2026-09-06T09:54:51.982Z → 2026-09-06T18:59:49.712Z
-- Latency of successful calls: p50 **241 ms**, p95 **487 ms**
+- Calls in this excerpt: **200**
+- Distinct tools exercised: **18**
+- Succeeded: **193** · failed or suppressed: **7**
+- Window: 2026-09-07T08:20:31.004Z → 2026-09-09T12:21:42.504Z
+- Latency of successful calls: p50 **238 ms**, p95 **775 ms**
 
 | Tool | Calls | OK | p50 ms |
 |---|---:|---:|---:|
-| `silpo_get_my_profile` | 19 | 19 | 189 |
-| `silpo_get_my_food_restrictions` | 19 | 19 | 254 |
-| `silpo_get_my_family` | 18 | 18 | 379 |
-| `silpo_get_shopping_cart_by_id` | 13 | 13 | 188 |
-| `silpo_find_products_batch` | 11 | 10 | 290 |
-| `silpo_get_my_delivery_addresses` | 10 | 10 | 319 |
-| `silpo_get_my_shopping_cart` | 9 | 9 | 170 |
-| `silpo_add_or_update_cart_products` | 3 | 3 | 310 |
-| `silpo_get_time_slots` | 2 | 2 | 176 |
-| `silpo_get_promotions` | 2 | 1 | 215 |
-| `silpo_find_address` | 1 | 1 | 122 |
-| `silpo_get_available_delivery_types` | 1 | 1 | 105 |
-| `silpo_create_shopping_cart` | 1 | 1 | 106 |
-| `silpo_update_shopping_cart` | 1 | 1 | 99 |
-| `silpo_clear_shopping_cart` | 1 | 1 | 174 |
-| `silpo_get_loyalty_info` | 1 | 1 | 124 |
-| `silpo_get_my_coupons` | 1 | 1 | 155 |
-| `silpo_get_promo_codes` | 1 | 1 | 104 |
-| `silpo_get_my_promos` | 1 | 1 | 117 |
+| `silpo_find_products_batch` | 65 | 63 | 230 |
+| `silpo_get_shopping_cart_by_id` | 26 | 26 | 540 |
+| `silpo_get_my_food_restrictions` | 16 | 16 | 347 |
+| `silpo_get_time_slots` | 15 | 14 | 143 |
+| `silpo_get_my_profile` | 14 | 14 | 309 |
+| `silpo_get_my_family` | 14 | 14 | 375 |
+| `silpo_clear_shopping_cart` | 9 | 9 | 234 |
+| `silpo_add_or_update_cart_products` | 9 | 9 | 157 |
+| `silpo_get_my_shopping_cart` | 9 | 9 | 147 |
+| `silpo_get_product_details` | 9 | 6 | 219 |
+| `silpo_get_my_delivery_addresses` | 4 | 4 | 351 |
+| `silpo_get_my_online_orders` | 2 | 2 | 148 |
+| `silpo_get_my_offline_orders` | 2 | 1 | 170 |
+| `silpo_update_shopping_cart` | 2 | 2 | 501 |
+| `silpo_find_address` | 1 | 1 | 295 |
+| `silpo_get_loyalty_info` | 1 | 1 | 166 |
+| `silpo_get_my_coupons` | 1 | 1 | 285 |
+| `silpo_get_promo_codes` | 1 | 1 | 337 |
 
 ## Transcript
 
 ```jsonrpc
-// 2026-09-06T09:54:51.982Z
-{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 112 ms (response body not stored: contains personal data)
-// 2026-09-06T09:54:52.090Z
-{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 219 ms (response body not stored: contains personal data)
-// 2026-09-06T09:54:52.179Z
-{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 309 ms (response body not stored: contains personal data)
-// 2026-09-06T09:55:41.005Z
-{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 152 ms (response body not stored: contains personal data)
-// 2026-09-06T09:55:41.477Z
-{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 452 ms (response body not stored: contains personal data)
-// 2026-09-06T09:55:41.583Z
-{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 102 ms (response body not stored: contains personal data)
-// 2026-09-06T09:55:41.846Z
-{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
-// → ok in 260 ms (response body not stored: contains personal data)
-// 2026-09-06T09:57:01.158Z
-{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 600 ms (response body not stored: contains personal data)
-// 2026-09-06T09:57:03.010Z
-{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 2450 ms (response body not stored: contains personal data)
-// 2026-09-06T09:57:05.873Z
-{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 5310 ms (response body not stored: contains personal data)
-// 2026-09-06T09:57:26.956Z
-{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 163 ms (response body not stored: contains personal data)
-// 2026-09-06T09:57:27.110Z
-{"jsonrpc":"2.0","id":12,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
-// → ok in 319 ms (response body not stored: contains personal data)
-// 2026-09-06T09:57:27.144Z
-{"jsonrpc":"2.0","id":13,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 354 ms (response body not stored: contains personal data)
-// 2026-09-06T09:57:27.150Z
-{"jsonrpc":"2.0","id":14,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 358 ms (response body not stored: contains personal data)
-// 2026-09-06T09:58:45.263Z
-{"jsonrpc":"2.0","id":15,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
-// → ok in 104 ms (response body not stored: contains personal data)
-// 2026-09-06T09:58:45.514Z
-{"jsonrpc":"2.0","id":16,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
-// → ok in 243 ms (response body not stored: contains personal data)
-// 2026-09-06T09:58:45.816Z
-{"jsonrpc":"2.0","id":17,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
-// → ok in 295 ms (response body not stored: contains personal data)
-// 2026-09-06T09:58:46.011Z
-{"jsonrpc":"2.0","id":18,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
-// → ok in 187 ms (response body not stored: contains personal data)
-// 2026-09-06T09:58:46.136Z
-{"jsonrpc":"2.0","id":19,"method":"tools/call","params":{"name":"silpo_find_address","arguments":{"address":"«redacted»"}}}
-// → ok in 122 ms (response body not stored: contains personal data)
-// 2026-09-06T09:58:46.243Z
-{"jsonrpc":"2.0","id":20,"method":"tools/call","params":{"name":"silpo_get_available_delivery_types","arguments":{"latitude":"«redacted»","longitude":"«redacted»"}}}
-// → ok in 105 ms (response body not stored: contains personal data)
-// 2026-09-06T09:58:46.367Z
-{"jsonrpc":"2.0","id":21,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","deliveryTypes":["DeliveryHome"]}}}
-// → ok in 121 ms (response body not stored: contains personal data)
-// 2026-09-06T09:58:46.475Z
-{"jsonrpc":"2.0","id":22,"method":"tools/call","params":{"name":"silpo_create_shopping_cart","arguments":{"city":"Київ","house":"«redacted»","street":"«redacted»","branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","latitude":"«redacted»","timeslot":{"end":"2026-09-06T13:30:00+00:00","start":"2026-09-06T12:00:00+00:00"},"longitude":"«redacted»","addressType":"house","deliveryType":"DeliveryHome"}}}
-// → ok in 106 ms (response body not stored: contains personal data)
-// 2026-09-06T09:59:11.044Z
-{"jsonrpc":"2.0","id":23,"method":"tools/call","params":{"name":"silpo_get_promotions","arguments":{"limit":3}}}
-// → FAILED in 100 ms: Tool silpo_get_promotions failed: [{"type":"text","text":"MCP error -32602: Input validation error: Invalid arguments for tool silpo_get_promotions: [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"branchId\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"Unknown\",\n      \"SelfPickup\",\n      \"DeliveryHome\",\n      \"DeliveryFlat\",\n      \"DeliveryOffice\",\n      \"DeliveryGlovo\",\n      \"DeliveryExpress\",\n      \"DeliveryExpressFood\",\n      \"JustIn\",\n      \"LongDelivery\",\n      \"JustInPost\",\n      \"NovaPoshta\",\n      \"DeliveryExpressByPromise\",\n      \"WideAssortDelivery\",\n      \"B2B\",\n      \"PreOrder\"\n    ],\n    \"path\": [\n      \"deliveryType\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"Unknown\\\"|\\\"SelfPickup\\\"|\\\"DeliveryHome\\\"|\\\"DeliveryFlat\\\"|\\\"DeliveryOffice\\\"|\\\"DeliveryGlovo\\\"|\\\"DeliveryExpress\\\"|\\\"DeliveryExpressFood\\\"|\\\"JustIn\\\"|\\\"LongDelivery\\\"|\\\"JustInPost\\\"|\\\"NovaPoshta\\\"|\\\"DeliveryExpressByPromise\\\"|\\\"WideAssortDelivery\\\"|\\\"B2B\\\"|\\\"PreOrder\\\"\"\n  },\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"timeslotStart\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"timeslotEnd\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  }\n]"}]
-// 2026-09-06T09:59:11.138Z
-{"jsonrpc":"2.0","id":24,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"queries":[{"limit":2,"query":"куряче філе"}]}}}
-// → FAILED in 86 ms: Tool silpo_find_products_batch failed: [{"type":"text","text":"MCP error -32602: Input validation error: Invalid arguments for tool silpo_find_products_batch: [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"branchId\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"Unknown\",\n      \"SelfPickup\",\n      \"DeliveryHome\",\n      \"DeliveryFlat\",\n      \"DeliveryOffice\",\n      \"DeliveryGlovo\",\n      \"DeliveryExpress\",\n      \"DeliveryExpressFood\",\n      \"JustIn\",\n      \"LongDelivery\",\n      \"JustInPost\",\n      \"NovaPoshta\",\n      \"DeliveryExpressByPromise\",\n      \"WideAssortDelivery\",\n      \"B2B\",\n      \"PreOrder\"\n    ],\n    \"path\": [\n      \"deliveryType\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"Unknown\\\"|\\\"SelfPickup\\\"|\\\"DeliveryHome\\\"|\\\"DeliveryFlat\\\"|\\\"DeliveryOffice\\\"|\\\"DeliveryGlovo\\\"|\\\"DeliveryExpress\\\"|\\\"DeliveryExpressFood\\\"|\\\"JustIn\\\"|\\\"LongDelivery\\\"|\\\"JustInPost\\\"|\\\"NovaPoshta\\\"|\\\"DeliveryExpressByPromise\\\"|\\\"WideAssortDelivery\\\"|\\\"B2B\\\"|\\\"PreOrder\\\"\"\n  },\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"timeslotStart\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"timeslotEnd\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"products\"\n    ],\n    \"message\": \"Invalid input: expected array, received undefined\"\n  }\n]"}]
-// 2026-09-06T09:59:38.652Z
-{"jsonrpc":"2.0","id":25,"method":"tools/call","params":{"name":"silpo_get_promotions","arguments":{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","timeslotEnd":"2026-09-06T13:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-06T12:00:00+00:00"}}}
-// → ok in 215 ms (response body not stored: contains personal data)
-// 2026-09-06T09:59:38.949Z
-{"jsonrpc":"2.0","id":26,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":2,"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","products":["куряче філе","гречка"],"timeslotEnd":"2026-09-06T13:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-06T12:00:00+00:00"}}}
-// → ok in 290 ms (response body not stored: contains personal data)
-// 2026-09-06T10:16:47.429Z
-{"jsonrpc":"2.0","id":27,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 301 ms (response body not stored: contains personal data)
-// 2026-09-06T10:16:47.430Z
-{"jsonrpc":"2.0","id":28,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 304 ms (response body not stored: contains personal data)
-// 2026-09-06T11:43:07.040Z
-{"jsonrpc":"2.0","id":29,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 256 ms (response body not stored: contains personal data)
-// 2026-09-06T11:43:07.046Z
-{"jsonrpc":"2.0","id":30,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 263 ms (response body not stored: contains personal data)
-// 2026-09-06T11:43:07.129Z
-{"jsonrpc":"2.0","id":31,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 346 ms (response body not stored: contains personal data)
-// 2026-09-06T12:47:39.468Z
-{"jsonrpc":"2.0","id":32,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 334 ms (response body not stored: contains personal data)
-// 2026-09-06T12:47:39.521Z
-{"jsonrpc":"2.0","id":33,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 388 ms (response body not stored: contains personal data)
-// 2026-09-06T12:47:39.651Z
-{"jsonrpc":"2.0","id":34,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 517 ms (response body not stored: contains personal data)
-// 2026-09-06T18:17:54.177Z
-{"jsonrpc":"2.0","id":35,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 114 ms (response body not stored: contains personal data)
-// 2026-09-06T18:17:54.404Z
-{"jsonrpc":"2.0","id":36,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 341 ms (response body not stored: contains personal data)
-// 2026-09-06T18:17:54.442Z
-{"jsonrpc":"2.0","id":37,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 379 ms (response body not stored: contains personal data)
-// 2026-09-06T18:22:43.460Z
-{"jsonrpc":"2.0","id":38,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
-// → ok in 162 ms (response body not stored: contains personal data)
-// 2026-09-06T18:22:43.500Z
-{"jsonrpc":"2.0","id":39,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 203 ms (response body not stored: contains personal data)
-// 2026-09-06T18:22:43.694Z
-{"jsonrpc":"2.0","id":40,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 397 ms (response body not stored: contains personal data)
-// 2026-09-06T18:22:43.697Z
-{"jsonrpc":"2.0","id":41,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 401 ms (response body not stored: contains personal data)
-// 2026-09-06T18:22:48.065Z
-{"jsonrpc":"2.0","id":42,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 112 ms (response body not stored: contains personal data)
-// 2026-09-06T18:22:48.076Z
-{"jsonrpc":"2.0","id":43,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 124 ms (response body not stored: contains personal data)
-// 2026-09-06T18:22:48.167Z
-{"jsonrpc":"2.0","id":44,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 214 ms (response body not stored: contains personal data)
-// 2026-09-06T18:22:49.898Z
-{"jsonrpc":"2.0","id":45,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
-// → ok in 167 ms (response body not stored: contains personal data)
-// 2026-09-06T18:22:50.091Z
-{"jsonrpc":"2.0","id":46,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 188 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:04.612Z
-{"jsonrpc":"2.0","id":47,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 164 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:04.687Z
-{"jsonrpc":"2.0","id":48,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 239 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:04.822Z
-{"jsonrpc":"2.0","id":49,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
-// → ok in 373 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:04.837Z
-{"jsonrpc":"2.0","id":50,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 390 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:13.193Z
-{"jsonrpc":"2.0","id":51,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 158 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:13.291Z
-{"jsonrpc":"2.0","id":52,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 257 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:13.412Z
-{"jsonrpc":"2.0","id":53,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
-// → ok in 377 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:13.431Z
-{"jsonrpc":"2.0","id":54,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 396 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:19.423Z
-{"jsonrpc":"2.0","id":55,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 126 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:19.475Z
-{"jsonrpc":"2.0","id":56,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 178 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:19.764Z
-{"jsonrpc":"2.0","id":57,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
-// → ok in 467 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:19.764Z
-{"jsonrpc":"2.0","id":58,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 468 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:22.219Z
-{"jsonrpc":"2.0","id":59,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
-// → ok in 249 ms (response body not stored: contains personal data)
-// 2026-09-06T18:23:22.323Z
-{"jsonrpc":"2.0","id":60,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 100 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:08.091Z
-{"jsonrpc":"2.0","id":61,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 169 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:08.242Z
-{"jsonrpc":"2.0","id":62,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 322 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:08.259Z
-{"jsonrpc":"2.0","id":63,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 338 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:20.542Z
-{"jsonrpc":"2.0","id":64,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 189 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:20.649Z
-{"jsonrpc":"2.0","id":65,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 306 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:20.682Z
-{"jsonrpc":"2.0","id":66,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 340 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:32.782Z
-{"jsonrpc":"2.0","id":67,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 178 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:32.877Z
-{"jsonrpc":"2.0","id":68,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 273 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:32.973Z
-{"jsonrpc":"2.0","id":69,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
-// → ok in 368 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:33.081Z
-{"jsonrpc":"2.0","id":70,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 477 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:45.672Z
-{"jsonrpc":"2.0","id":71,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 107 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:45.678Z
-{"jsonrpc":"2.0","id":72,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 114 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:45.824Z
-{"jsonrpc":"2.0","id":73,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 259 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:58.781Z
-{"jsonrpc":"2.0","id":74,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// 2026-09-07T08:20:31.004Z
+{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 991 ms (response body not stored: contains personal data)
+// 2026-09-07T08:24:03.192Z
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["гречка","капуста","буряк","квасоля","макарони","олія соняшникова","томатна паста","каша вівсяна","куряче стегно","фарш","риба","оселедець"],"timeslotEnd":"2026-09-07T10:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T09:00:00+00:00"}}}
+// → ok in 455 ms (response body not stored: contains personal data)
+// 2026-09-07T08:24:19.729Z
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["крупа гречана","гречана крупа","пшоно","горох","рис","сіль","цукор","хліб","молоко","яйця","сметана","сир твердий"],"timeslotEnd":"2026-09-07T10:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T09:00:00+00:00"}}}
+// → ok in 413 ms (response body not stored: contains personal data)
+// 2026-09-07T08:25:55.232Z
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"silpo_clear_shopping_cart","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 443 ms (response body not stored: contains personal data)
+// 2026-09-07T08:25:55.722Z
+{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["каша вівсяна","молоко","банан","цукор","буряк","капуста","картопля","морква","цибуля","томатна паста","макарони","фарш","олія соняшникова","яйця","хліб","куряче стегно","петрушка","рис","сир кисломолочний","борошно","сметана","оселедець","сир твердий","масло вершкове"],"timeslotEnd":"2026-09-07T10:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T09:00:00+00:00"}}}
+// → ok in 465 ms (response body not stored: contains personal data)
+// 2026-09-07T08:25:56.054Z
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"silpo_add_or_update_cart_products","arguments":{"products":[{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0769f-d69a-611a-aaf2-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1eda19c3-d82c-6cb4-8710-fdc61a51c956"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-ae9b-6f2a-bf1a-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f3-43db-6fce-99df-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30e-6f08-8145-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1.4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30f-65c0-974b-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07616-9a9b-668e-85e4-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f8-5600-69f2-92fb-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f08f644-f105-6e52-bb52-c58660d65235"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1086ee-3b32-6ce6-83ab-0f168ea6b21b"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a1-d61d-6334-932f-c1af87aa927f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edaf08e-5749-65fa-a326-e17a9d63ee24"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075e4-66a8-60de-b82b-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f182310-12a9-6be2-8fd0-35b8de465203"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edaf2dd-a25c-6140-9f65-67d0bfe96414"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07609-566a-64fe-9a9c-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075fb-3abb-69d2-9ba0-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed55d1b-6852-6e98-a932-8da7e587e2ec"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed4e22f-26a4-60da-877d-e74aee9384e5"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ee909f4-8ea3-6856-9d2a-c1465b4891a9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed547a7-ca1c-6ff4-9260-8da7e587e2ec"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f032ac9-b8ae-662c-a997-41e62aca8d26"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a7-c9c2-6e8a-8ed0-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1efcdc0f-0f35-6bb8-8ebc-25a12daa3fa1"}],"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 302 ms (response body not stored: contains personal data)
+// 2026-09-07T08:25:56.702Z
+{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 642 ms (response body not stored: contains personal data)
+// 2026-09-07T08:26:16.096Z
+{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 479 ms (response body not stored: contains personal data)
+// 2026-09-07T08:26:43.520Z
+{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
 // → ok in 199 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:58.835Z
-{"jsonrpc":"2.0","id":75,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 254 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:58.891Z
-{"jsonrpc":"2.0","id":76,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
-// → ok in 310 ms (response body not stored: contains personal data)
-// 2026-09-06T18:24:58.963Z
-{"jsonrpc":"2.0","id":77,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 381 ms (response body not stored: contains personal data)
-// 2026-09-06T18:29:17.169Z
-{"jsonrpc":"2.0","id":78,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
-// → ok in 94 ms (response body not stored: contains personal data)
-// 2026-09-06T18:29:17.180Z
-{"jsonrpc":"2.0","id":79,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
-// → ok in 107 ms (response body not stored: contains personal data)
-// 2026-09-06T18:29:17.185Z
-{"jsonrpc":"2.0","id":80,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
-// → ok in 112 ms (response body not stored: contains personal data)
-// 2026-09-06T18:37:14.237Z
-{"jsonrpc":"2.0","id":81,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
-// → ok in 284 ms (response body not stored: contains personal data)
-// 2026-09-06T18:37:14.413Z
-{"jsonrpc":"2.0","id":82,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 167 ms (response body not stored: contains personal data)
-// 2026-09-06T18:37:14.512Z
-{"jsonrpc":"2.0","id":83,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"","products":["куряче філе","рис","морква","цибуля","часник","спагеті","помідори","сир пармезан"],"timeslotEnd":"2026-09-06T13:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-06T12:00:00+00:00"}}}
-// → ok in 93 ms (response body not stored: contains personal data)
-// 2026-09-06T18:37:36.936Z
-{"jsonrpc":"2.0","id":84,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
+// 2026-09-07T08:26:58.567Z
+{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":4,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["каша вівсяна"],"timeslotEnd":"2026-09-07T10:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T09:00:00+00:00"}}}
+// → ok in 575 ms (response body not stored: contains personal data)
+// 2026-09-07T08:27:22.459Z
+{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":4,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["капуста"],"timeslotEnd":"2026-09-07T10:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T09:00:00+00:00"}}}
+// → ok in 233 ms (response body not stored: contains personal data)
+// 2026-09-07T08:27:26.440Z
+{"jsonrpc":"2.0","id":12,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":4,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["оселедець"],"timeslotEnd":"2026-09-07T10:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T09:00:00+00:00"}}}
+// → ok in 377 ms (response body not stored: contains personal data)
+// 2026-09-07T08:28:03.735Z
+{"jsonrpc":"2.0","id":13,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 390 ms (response body not stored: contains personal data)
+// 2026-09-07T08:28:26.969Z
+{"jsonrpc":"2.0","id":14,"method":"tools/call","params":{"name":"silpo_clear_shopping_cart","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 328 ms (response body not stored: contains personal data)
+// 2026-09-07T08:28:27.546Z
+{"jsonrpc":"2.0","id":15,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["каша вівсяна","молоко","банан","цукор","буряк","капуста","картопля","морква","цибуля","томатна паста","макарони","фарш","олія соняшникова","яйця","хліб","куряче стегно","петрушка","рис","сир кисломолочний","борошно","сметана","оселедець","сир твердий","масло вершкове"],"timeslotEnd":"2026-09-07T10:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T09:00:00+00:00"}}}
+// → ok in 553 ms (response body not stored: contains personal data)
+// 2026-09-07T08:28:27.724Z
+{"jsonrpc":"2.0","id":16,"method":"tools/call","params":{"name":"silpo_add_or_update_cart_products","arguments":{"products":[{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0769f-d69a-611a-aaf2-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1eda19c3-d82c-6cb4-8710-fdc61a51c956"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-ae9b-6f2a-bf1a-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f3-43db-6fce-99df-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30e-6f08-8145-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1.4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30f-65c0-974b-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07616-9a9b-668e-85e4-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f8-5600-69f2-92fb-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f08f644-f105-6e52-bb52-c58660d65235"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1086ee-3b32-6ce6-83ab-0f168ea6b21b"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a1-d61d-6334-932f-c1af87aa927f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edaf08e-5749-65fa-a326-e17a9d63ee24"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075e4-66a8-60de-b82b-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f182310-12a9-6be2-8fd0-35b8de465203"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edaf2dd-a25c-6140-9f65-67d0bfe96414"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07609-566a-64fe-9a9c-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075fb-3abb-69d2-9ba0-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed55d1b-6852-6e98-a932-8da7e587e2ec"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed4e22f-26a4-60da-877d-e74aee9384e5"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ee909f4-8ea3-6856-9d2a-c1465b4891a9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed547a7-ca1c-6ff4-9260-8da7e587e2ec"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f032ac9-b8ae-662c-a997-41e62aca8d26"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a7-c9c2-6e8a-8ed0-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1efcdc0f-0f35-6bb8-8ebc-25a12daa3fa1"}],"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 157 ms (response body not stored: contains personal data)
+// 2026-09-07T08:28:28.528Z
+{"jsonrpc":"2.0","id":17,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 799 ms (response body not stored: contains personal data)
+// 2026-09-07T08:28:48.679Z
+{"jsonrpc":"2.0","id":18,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":4,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["олія соняшникова"],"timeslotEnd":"2026-09-07T10:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T09:00:00+00:00"}}}
+// → ok in 456 ms (response body not stored: contains personal data)
+// 2026-09-07T08:29:07.230Z
+{"jsonrpc":"2.0","id":19,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":4,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["олія соняшникова"],"timeslotEnd":"2026-09-07T10:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T09:00:00+00:00"}}}
+// → ok in 844 ms (response body not stored: contains personal data)
+// 2026-09-07T08:29:32.674Z
+{"jsonrpc":"2.0","id":20,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":4,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["олія соняшникова"],"timeslotEnd":"2026-09-07T10:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T09:00:00+00:00"}}}
+// → ok in 329 ms (response body not stored: contains personal data)
+// 2026-09-07T08:30:55.103Z
+{"jsonrpc":"2.0","id":21,"method":"tools/call","params":{"name":"silpo_clear_shopping_cart","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 384 ms (response body not stored: contains personal data)
+// 2026-09-07T08:30:55.639Z
+{"jsonrpc":"2.0","id":22,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["каша вівсяна","молоко","банан","цукор","буряк","капуста","картопля","морква","цибуля","томатна паста","макарони","фарш","олія соняшникова","яйця","хліб","куряче стегно","петрушка","рис","сир кисломолочний","борошно","сметана","оселедець","сир твердий","масло вершкове"],"timeslotEnd":"2026-09-07T10:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T09:00:00+00:00"}}}
+// → ok in 515 ms (response body not stored: contains personal data)
+// 2026-09-07T08:30:55.799Z
+{"jsonrpc":"2.0","id":23,"method":"tools/call","params":{"name":"silpo_add_or_update_cart_products","arguments":{"products":[{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0769f-d69a-611a-aaf2-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1eda19c3-d82c-6cb4-8710-fdc61a51c956"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-ae9b-6f2a-bf1a-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f3-43db-6fce-99df-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30e-6f08-8145-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1.4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30f-65c0-974b-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07616-9a9b-668e-85e4-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f8-5600-69f2-92fb-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f08f644-f105-6e52-bb52-c58660d65235"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1086ee-3b32-6ce6-83ab-0f168ea6b21b"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a1-d61d-6334-932f-c1af87aa927f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edaf08e-5749-65fa-a326-e17a9d63ee24"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07680-ae80-6c02-877b-c1af87aa927f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f182310-12a9-6be2-8fd0-35b8de465203"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edaf2dd-a25c-6140-9f65-67d0bfe96414"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07609-566a-64fe-9a9c-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075fb-3abb-69d2-9ba0-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed55d1b-6852-6e98-a932-8da7e587e2ec"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed4e22f-26a4-60da-877d-e74aee9384e5"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ee909f4-8ea3-6856-9d2a-c1465b4891a9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed547a7-ca1c-6ff4-9260-8da7e587e2ec"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f032ac9-b8ae-662c-a997-41e62aca8d26"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a7-c9c2-6e8a-8ed0-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1efcdc0f-0f35-6bb8-8ebc-25a12daa3fa1"}],"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 133 ms (response body not stored: contains personal data)
+// 2026-09-07T08:30:56.725Z
+{"jsonrpc":"2.0","id":24,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 920 ms (response body not stored: contains personal data)
+// 2026-09-07T12:22:20.275Z
+{"jsonrpc":"2.0","id":25,"method":"tools/call","params":{"name":"silpo_get_my_online_orders","arguments":{}}}
+// → ok in 141 ms (response body not stored: contains personal data)
+// 2026-09-07T12:22:20.400Z
+{"jsonrpc":"2.0","id":26,"method":"tools/call","params":{"name":"silpo_get_my_offline_orders","arguments":{}}}
+// → FAILED in 103 ms: Tool silpo_get_my_offline_orders failed: [{"type":"text","text":"MCP error -32602: Input validation error: Invalid arguments for tool silpo_get_my_offline_orders: [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"branchId\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"deliveryType\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"timeslotStart\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"timeslotEnd\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  }\n]"}]
+// 2026-09-07T12:22:20.710Z
+{"jsonrpc":"2.0","id":27,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 305 ms (response body not stored: contains personal data)
+// 2026-09-07T12:22:44.579Z
+{"jsonrpc":"2.0","id":28,"method":"tools/call","params":{"name":"silpo_get_my_online_orders","arguments":{}}}
+// → ok in 148 ms (response body not stored: contains personal data)
+// 2026-09-07T12:22:44.698Z
+{"jsonrpc":"2.0","id":29,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
+// → ok in 109 ms (response body not stored: contains personal data)
+// 2026-09-07T12:22:45.482Z
+{"jsonrpc":"2.0","id":30,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 780 ms (response body not stored: contains personal data)
+// 2026-09-07T12:22:45.756Z
+{"jsonrpc":"2.0","id":31,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryHome"]}}}
+// → ok in 271 ms (response body not stored: contains personal data)
+// 2026-09-07T12:22:46.263Z
+{"jsonrpc":"2.0","id":32,"method":"tools/call","params":{"name":"silpo_update_shopping_cart","arguments":{"address":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","timeslot":{"end":"2026-09-07T15:00:00+00:00","start":"2026-09-07T13:30:00+00:00"},"shipments":[{"id":"bc02cd0a-1dfb-4ddd-9c86-bbae0f46035d","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":[{"name":"Банан","slug":"banan-32485","image":"https://images.silpo.ua/v2/products/500x500/webp/f5214071-6d83-4de8-b655-b977809cf880.png","price":64.49,"ratio":"100г","stock":310,"total":25.79,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":0.4,"subTotal":28.66,"weighted":true,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-ae9b-6f2a-bf1a-dd63763181f9","subDiscount":2.87,"addToBasketStep":0.4},{"name":"Буряк","slug":"buriak-32570","image":"https://images.silpo.ua/v2/products/500x500/webp/01b0c4a4-f713-41f3-8c2d-1de20831dba2.png","price":13.49,"ratio":"100г","stock":412.5,"total":6.75,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":0.5,"subTotal":7.5,"weighted":true,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30e-6f08-8145-dd63763181f9","subDiscount":0.75,"addToBasketStep":0.5},{"name":"Цукор «Премія»® білий пресований швидкорозчинний","slug":"tsukor-premiia-bilyi-presovanyi-shvydkorozchynnyi-324558","image":"https://images.silpo.ua/v2/products/500x500/webp/f9403a18-5a4d-430a-a10f-03076d3c1063.png","price":19.79,"ratio":"250г","stock":16,"total":19.79,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":1,"subTotal":21.99,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f3-43db-6fce-99df-dd63763181f9","subDiscount":2.2,"addToBasketStep":1},{"name":"Каша вівсяна Doctor Benner в чашку з полуницею","slug":"kasha-vivsiana-doctor-benner-v-chashku-z-polunytseiu-874101","image":"https://images.silpo.ua/v2/products/500x500/webp/a458d870-8703-4996-87be-fb4cd9e5d33f.png","price":16.64,"ratio":"40г","stock":5,"total":83.2,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":5,"subTotal":92.45,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0769f-d69a-611a-aaf2-5f148feebb3f","subDiscount":9.25,"addToBasketStep":1},{"name":"Молоко пастеризоване Молокія 2,5% пляшка","slug":"moloko-pasteryzovane-molokiia-2-5-pliashka-917218","image":"https://images.silpo.ua/v2/products/500x500/webp/3bbe69c3-3d63-4a49-add5-d10a2e316314.png","price":52.99,"ratio":"870г","stock":44,"total":52.99,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":71.49,"quantity":1,"subTotal":71.49,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1eda19c3-d82c-6cb4-8710-fdc61a51c956","subDiscount":18.5,"addToBasketStep":1},{"name":"Капуста білоголова","slug":"kapusta-bilogolova-32572","image":"https://images.silpo.ua/v2/products/500x500/webp/d614939d-adf2-46a4-b4ea-e80c31443761.png","price":17.99,"ratio":"100г","stock":243.6,"total":25.19,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":1.4,"subTotal":27.99,"weighted":true,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30f-65c0-974b-dd63763181f9","subDiscount":2.8,"addToBasketStep":1.4},{"name":"Морква мита","slug":"morkva-myta-367056","image":"https://images.silpo.ua/v2/products/500x500/webp/4104a6f7-ff0a-4e0e-895c-f8b25b7319cc.png","price":27.89,"ratio":"100г","stock":90.6,"total":5.58,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":0.2,"subTotal":6.2,"weighted":true,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f8-5600-69f2-92fb-dd63763181f9","subDiscount":0.62,"addToBasketStep":0.2},{"name":"Петрушка кучерява","slug":"petrushka-kucheriava-386823","image":"https://images.silpo.ua/v2/products/500x500/webp/d6236ce5-2ab5-42ae-8b62-37465040483b.png","price":23.39,"ratio":"50г","stock":6,"total":23.39,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":1,"subTotal":25.99,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075fb-3abb-69d2-9ba0-dd63763181f9","subDiscount":2.6,"addToBasketStep":1},{"name":"Куряче стегно","slug":"kuriache-stegno-461762","image":"https://images.silpo.ua/v2/products/500x500/webp/c5af716d-49fe-4be9-b534-cbc70276b2d6.png","price":162.14,"ratio":"100г","stock":109,"total":162.14,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":1,"subTotal":180.15,"weighted":true,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07609-566a-64fe-9a9c-dd63763181f9","subDiscount":18.01,"addToBasketStep":0.5},{"name":"Картопля рожева мита","slug":"kartoplia-rozheva-myta-510506","image":"https://images.silpo.ua/v2/products/500x500/webp/8050f52f-7181-471f-bebf-14233089e2d6.png","price":32.84,"ratio":"100г","stock":0,"total":32.84,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":1,"subTotal":36.49,"weighted":true,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07616-9a9b-668e-85e4-dd63763181f9","subDiscount":3.65,"addToBasketStep":1},{"name":"Олія соняшникова «Повна Чаша»® нерафінована","slug":"oliia-soniashnykova-povna-chasha-nerafinovana-816389","image":"https://images.silpo.ua/v2/products/500x500/webp/e12e714c-1cf7-4b2e-b62b-a16b9e039645.png","price":76.49,"ratio":"850мл","stock":21,"total":76.49,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":80.99,"quantity":1,"subTotal":80.99,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07680-ae80-6c02-877b-c1af87aa927f","subDiscount":4.5,"addToBasketStep":1},{"name":"Вироби макаронні Cantare Linguine №30","slug":"vyroby-makaronni-cantare-linguine-30-878323","image":"https://images.silpo.ua/v2/products/500x500/webp/9160018f-e199-4ac9-a9f5-932f68122842.png","price":36.99,"ratio":"400г","stock":1229,"total":36.99,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":49.99,"quantity":1,"subTotal":49.99,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a1-d61d-6334-932f-c1af87aa927f","subDiscount":13,"addToBasketStep":1},{"name":"Курячий фарш із філе подрібнений","slug":"kuriachyi-farsh-iz-file-podribnenyi-465006","image":"https://images.silpo.ua/v2/products/500x500/webp/be9f0aad-f470-435b-92be-24261ad5c08b.png","price":189,"ratio":"100г","stock":0,"total":94.5,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":243,"quantity":0.5,"subTotal":121.5,"weighted":true,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edaf08e-5749-65fa-a326-e17a9d63ee24","subDiscount":27,"addToBasketStep":0.5},{"name":"Хліб «Кулиничі» «Європейський» тостовий білий","slug":"khlib-kulynychi-yevropeiskyi-tostovyi-bilyi-526712","image":"https://images.silpo.ua/v2/products/500x500/webp/ae5dce0d-8b3c-42a8-ba57-25b830b4fdd8.png","price":31.49,"ratio":"330г","stock":12,"total":31.49,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":1,"subTotal":34.99,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edaf2dd-a25c-6140-9f65-67d0bfe96414","subDiscount":3.5,"addToBasketStep":1},{"name":"Цибуля біла фасована","slug":"tsybulia-bila-fasovana-1003153","image":"https://images.silpo.ua/v2/products/500x500/webp/77e4a818-8b60-46be-9a7c-40246a1b2757.png","price":55.79,"ratio":"3шт","stock":24,"total":55.79,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":1,"subTotal":61.99,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f08f644-f105-6e52-bb52-c58660d65235","subDiscount":6.2,"addToBasketStep":1},{"name":"Паста томатна Pripravka PasteMix з солодким перцем 25%","slug":"pasta-tomatna-pripravka-pastemix-z-solodkym-pertsem-25-1015682","image":"https://images.silpo.ua/v2/products/500x500/webp/53de81f3-387f-4133-a63e-0f269917d68d.png","price":24.49,"ratio":"70г","stock":268,"total":48.98,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":33.49,"quantity":2,"subTotal":66.98,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1086ee-3b32-6ce6-83ab-0f168ea6b21b","subDiscount":18,"addToBasketStep":1},{"name":"Яйця курячі Ситий двір С2","slug":"yaitsia-kuriachi-sytyi-dvir-s2-1033507","image":"https://images.silpo.ua/v2/products/500x500/webp/d91a7ab3-850d-451d-a494-568fb7dfaecb.png","price":49.49,"ratio":"10шт","stock":22,"total":49.49,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":1,"subTotal":54.99,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f182310-12a9-6be2-8fd0-35b8de465203","subDiscount":5.5,"addToBasketStep":1},{"name":"Сир «Пирятин» «Голландський» твердий нарізаний 45%","slug":"syr-pyriatyn-gollandskyi-tverdyi-narizanyi-45-889404","image":"https://images.silpo.ua/v2/products/500x500/webp/c312ce8e-f640-43e8-91bb-7ce9c20249df.png","price":79.99,"ratio":"150г","stock":19,"total":79.99,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":113,"quantity":1,"subTotal":113,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a7-c9c2-6e8a-8ed0-5f148feebb3f","subDiscount":33.01,"addToBasketStep":1},{"name":"Сир кисломолочний President Сирна Традиція 5% ванночка","slug":"syr-kyslomolochnyi-president-syrna-tradytsiia-5-vannochka-857555","image":"https://images.silpo.ua/v2/products/500x500/webp/e5d09480-c97e-42cd-b7ab-e2aadb88043a.png","price":66.99,"ratio":"220г","stock":18,"total":133.98,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":82.99,"quantity":2,"subTotal":165.98,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed4e22f-26a4-60da-877d-e74aee9384e5","subDiscount":32,"addToBasketStep":1},{"name":"Сметана «Галичина» 15%","slug":"smetana-galychyna-15-914623","image":"https://images.silpo.ua/v2/products/500x500/webp/53935578-59ff-4476-92fb-e546174698da.png","price":48.99,"ratio":"300г","stock":33,"total":48.99,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":61.99,"quantity":1,"subTotal":61.99,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed547a7-ca1c-6ff4-9260-8da7e587e2ec","subDiscount":13,"addToBasketStep":1},{"name":"Рисове асорті Trapeza чорний+пропарений, Таїланд","slug":"rysove-asorti-trapeza-chornyi-proparenyi-tailand-786792","image":"https://images.silpo.ua/v2/products/500x500/webp/7e857a59-06b0-4310-84c5-fcf5482b4333.png","price":60.29,"ratio":"5*80г","stock":15,"total":60.29,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":1,"subTotal":66.99,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed55d1b-6852-6e98-a932-8da7e587e2ec","subDiscount":6.7,"addToBasketStep":1},{"name":"Борошно HomeSuperFood амарантове цільнозернове","slug":"boroshno-homesuperfood-amarantove-tsilnozernove-943839","image":"https://images.silpo.ua/v2/products/500x500/webp/70be3b50-6f59-49f5-9d7e-8d9effc906b7.png","price":60.29,"ratio":"500г","stock":2,"total":60.29,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":null,"quantity":1,"subTotal":66.99,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ee909f4-8ea3-6856-9d2a-c1465b4891a9","subDiscount":6.7,"addToBasketStep":1},{"name":"Масло солодковершкове «Повна Чаша»® Селянське 72,6%","slug":"maslo-solodkovershkove-povna-chasha-selianske-72-6-978679","image":"https://images.silpo.ua/v2/products/500x500/webp/7b47ebfe-67f2-4cf2-a9ee-aced5628e8b9.png","price":74.99,"ratio":"180г","stock":145,"total":74.99,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":89.99,"quantity":1,"subTotal":89.99,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1efcdc0f-0f35-6bb8-8ebc-25a12daa3fa1","subDiscount":15,"addToBasketStep":1},{"name":"Оселедець Norven Lofoten філе слабосолений з цибулею без олії","slug":"oseledets-norven-lofoten-file-slabosolenyi-z-tsybuleiu-bez-olii-991437","image":"https://images.silpo.ua/v2/products/500x500/webp/fd0dcd85-8da1-48bc-8d4a-9b758135891b.png","price":74.99,"ratio":"180г","stock":9,"total":149.98,"comment":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","oldPrice":96.99,"quantity":2,"subTotal":193.98,"weighted":false,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f032ac9-b8ae-662c-a997-41e62aca8d26","subDiscount":44,"addToBasketStep":1}],"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31"}],"deliveryType":"DeliveryHome","shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 501 ms (response body not stored: contains personal data)
+// 2026-09-07T12:22:46.443Z
+{"jsonrpc":"2.0","id":33,"method":"tools/call","params":{"name":"silpo_get_my_offline_orders","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","timeslotEnd":"2026-09-07T15:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T13:30:00+00:00"}}}
 // → ok in 170 ms (response body not stored: contains personal data)
-// 2026-09-06T18:37:37.070Z
-{"jsonrpc":"2.0","id":85,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 126 ms (response body not stored: contains personal data)
-// 2026-09-06T18:37:56.743Z
-{"jsonrpc":"2.0","id":86,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
-// → ok in 124 ms (response body not stored: contains personal data)
-// 2026-09-06T18:37:57.018Z
-{"jsonrpc":"2.0","id":87,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 267 ms (response body not stored: contains personal data)
-// 2026-09-06T18:39:30.424Z
-{"jsonrpc":"2.0","id":88,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
-// → ok in 211 ms (response body not stored: contains personal data)
-// 2026-09-06T18:39:30.534Z
-{"jsonrpc":"2.0","id":89,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 104 ms (response body not stored: contains personal data)
-// 2026-09-06T18:39:30.715Z
-{"jsonrpc":"2.0","id":90,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","deliveryTypes":["DeliveryHome"]}}}
-// → ok in 176 ms (response body not stored: contains personal data)
-// 2026-09-06T18:39:30.818Z
-{"jsonrpc":"2.0","id":91,"method":"tools/call","params":{"name":"silpo_update_shopping_cart","arguments":{"address":"«redacted»","branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","timeslot":{"end":"2026-09-07T07:30:00+00:00","start":"2026-09-07T06:00:00+00:00"},"shipments":[{"id":"bc02cd0a-1dfb-4ddd-9c86-bbae0f46035d","branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","products":[],"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31"}],"deliveryType":"DeliveryHome","shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 99 ms (response body not stored: contains personal data)
-// 2026-09-06T18:39:31.024Z
-{"jsonrpc":"2.0","id":92,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","products":["куряче філе","рис","морква","цибуля","часник","спагеті","помідори","сир пармезан"],"timeslotEnd":"2026-09-07T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T06:00:00+00:00"}}}
-// → ok in 201 ms (response body not stored: contains personal data)
-// 2026-09-06T18:39:57.084Z
-{"jsonrpc":"2.0","id":93,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":3,"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","products":["часник","цибуля","морква","помідори"],"timeslotEnd":"2026-09-07T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T06:00:00+00:00"}}}
-// → ok in 334 ms (response body not stored: contains personal data)
-// 2026-09-06T18:42:23.002Z
-{"jsonrpc":"2.0","id":94,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","products":["куряче філе","рис","морква","цибуля","часник","спагеті","помідори","сир пармезан"],"timeslotEnd":"2026-09-07T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T06:00:00+00:00"}}}
-// → ok in 409 ms (response body not stored: contains personal data)
-// 2026-09-06T18:42:48.992Z
-{"jsonrpc":"2.0","id":95,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":3,"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","products":["помідори","сир пармезан"],"timeslotEnd":"2026-09-07T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T06:00:00+00:00"}}}
-// → ok in 187 ms (response body not stored: contains personal data)
-// 2026-09-06T18:43:34.829Z
-{"jsonrpc":"2.0","id":96,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","products":["куряче філе","рис","морква","цибуля","часник","спагеті","помідори","сир пармезан"],"timeslotEnd":"2026-09-07T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T06:00:00+00:00"}}}
-// → ok in 320 ms (response body not stored: contains personal data)
-// 2026-09-06T18:45:23.576Z
-{"jsonrpc":"2.0","id":97,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","products":["куряче філе","рис","морква","цибуля"],"timeslotEnd":"2026-09-07T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T06:00:00+00:00"}}}
+// 2026-09-07T12:22:46.603Z
+{"jsonrpc":"2.0","id":34,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 152 ms (response body not stored: contains personal data)
+// 2026-09-07T14:32:37.710Z
+{"jsonrpc":"2.0","id":35,"method":"tools/call","params":{"name":"silpo_clear_shopping_cart","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 234 ms (response body not stored: contains personal data)
+// 2026-09-07T14:32:37.833Z
+{"jsonrpc":"2.0","id":36,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
+// → ok in 80 ms (response body not stored: contains personal data)
+// 2026-09-07T14:32:38.018Z
+{"jsonrpc":"2.0","id":37,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 182 ms (response body not stored: contains personal data)
+// 2026-09-07T14:32:38.143Z
+{"jsonrpc":"2.0","id":38,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryHome"]}}}
+// → ok in 120 ms (response body not stored: contains personal data)
+// 2026-09-07T14:32:38.281Z
+{"jsonrpc":"2.0","id":39,"method":"tools/call","params":{"name":"silpo_update_shopping_cart","arguments":{"address":"«redacted»","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","timeslot":{"end":"2026-09-07T18:00:00+00:00","start":"2026-09-07T16:30:00+00:00"},"shipments":[{"id":"bc02cd0a-1dfb-4ddd-9c86-bbae0f46035d","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":[],"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31"}],"deliveryType":"DeliveryHome","shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 135 ms (response body not stored: contains personal data)
+// 2026-09-07T14:32:38.702Z
+{"jsonrpc":"2.0","id":40,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["каша вівсяна","молоко","банан","цукор","буряк","капуста","картопля","морква","цибуля","томатна паста","макарони","фарш","олія соняшникова","яйця","хліб","куряче стегно","петрушка","рис","сир кисломолочний","борошно","сметана","оселедець","сир твердий","масло вершкове"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 398 ms (response body not stored: contains personal data)
+// 2026-09-07T14:32:38.982Z
+{"jsonrpc":"2.0","id":41,"method":"tools/call","params":{"name":"silpo_add_or_update_cart_products","arguments":{"products":[{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0769f-d69a-611a-aaf2-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0765c-17fd-668c-80f6-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-ae9b-6f2a-bf1a-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f3-43db-6fce-99df-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30e-6f08-8145-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1.4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30f-65c0-974b-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edb9595-26eb-6712-b936-53e7405e8b7a"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075dc-ed57-634e-a239-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30f-6912-ab4d-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1086ee-3dd1-6970-b2bc-0f168ea6b21b"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1086e8-8146-658a-b7e6-0f168ea6b21b"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edaf08e-5749-65fa-a326-e17a9d63ee24"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07680-ae80-6c02-877b-c1af87aa927f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f0f011c-ac6e-6490-9fc3-9ff8813d03f6"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edaf2dd-a25c-6140-9f65-67d0bfe96414"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07609-566a-64fe-9a9c-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075fb-3abb-69d2-9ba0-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed55d1b-6852-6e98-a932-8da7e587e2ec"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":3,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f0dd370-4123-647c-92e3-f1b7700b619b"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ee909f4-8ea3-6856-9d2a-c1465b4891a9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f05ca6a-7110-637c-8242-37d41529c495"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f032ac9-b8ae-662c-a997-41e62aca8d26"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edc9d0c-e37c-65be-9dff-05c329cb4de9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a9-8f6e-65e8-9d1b-eb0bb71c4ffc"}],"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 233 ms (response body not stored: contains personal data)
+// 2026-09-07T14:32:39.589Z
+{"jsonrpc":"2.0","id":42,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 597 ms (response body not stored: contains personal data)
+// 2026-09-07T14:32:50.351Z
+{"jsonrpc":"2.0","id":43,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["фарш"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
 // → ok in 160 ms (response body not stored: contains personal data)
-// 2026-09-06T18:45:23.702Z
-{"jsonrpc":"2.0","id":98,"method":"tools/call","params":{"name":"silpo_add_or_update_cart_products","arguments":{"products":[{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f0c5a3d-5c31-633e-95d7-058173b52f91"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edb2508-2f1d-64e2-9d3e-e990029622e2"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f8-5600-69f2-92fb-dd63763181f9"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30f-6912-ab4d-dd63763181f9"}],"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 111 ms (response body not stored: contains personal data)
-// 2026-09-06T18:45:24.111Z
-{"jsonrpc":"2.0","id":99,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 402 ms (response body not stored: contains personal data)
-// 2026-09-06T18:45:24.447Z
-{"jsonrpc":"2.0","id":100,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 331 ms (response body not stored: contains personal data)
-// 2026-09-06T18:46:28.628Z
-{"jsonrpc":"2.0","id":101,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","products":["куряче філе","рис","морква","цибуля","олія оливкова","кава мелена","сир твердий","масло вершкове"],"timeslotEnd":"2026-09-07T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T06:00:00+00:00"}}}
-// → ok in 241 ms (response body not stored: contains personal data)
-// 2026-09-06T18:46:28.960Z
-{"jsonrpc":"2.0","id":102,"method":"tools/call","params":{"name":"silpo_add_or_update_cart_products","arguments":{"products":[{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f0c5a3d-5c31-633e-95d7-058173b52f91"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edb2508-2f1d-64e2-9d3e-e990029622e2"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f8-5600-69f2-92fb-dd63763181f9"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30f-6912-ab4d-dd63763181f9"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f1-e7a2-6c2c-869a-dd63763181f9"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076ad-4c45-6e48-932b-c1af87aa927f"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":0.4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ef8b11f-53c6-6e4a-9e06-71f289c9459e"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f0d16fe-c980-6f06-809c-f9958331687d"}],"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 310 ms (response body not stored: contains personal data)
-// 2026-09-06T18:46:29.576Z
-{"jsonrpc":"2.0","id":103,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 613 ms (response body not stored: contains personal data)
-// 2026-09-06T18:46:29.708Z
-{"jsonrpc":"2.0","id":104,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 127 ms (response body not stored: contains personal data)
-// 2026-09-06T18:47:32.377Z
-{"jsonrpc":"2.0","id":105,"method":"tools/call","params":{"name":"silpo_clear_shopping_cart","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 174 ms (response body not stored: contains personal data)
-// 2026-09-06T18:47:34.074Z
-{"jsonrpc":"2.0","id":106,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","products":["куряче філе","рис","морква","цибуля","олія оливкова","кава мелена","сир твердий","масло вершкове"],"timeslotEnd":"2026-09-07T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T06:00:00+00:00"}}}
-// → ok in 383 ms (response body not stored: contains personal data)
-// 2026-09-06T18:47:34.579Z
-{"jsonrpc":"2.0","id":107,"method":"tools/call","params":{"name":"silpo_add_or_update_cart_products","arguments":{"products":[{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f0c5a3d-5c31-633e-95d7-058173b52f91"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edb2508-2f1d-64e2-9d3e-e990029622e2"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f8-5600-69f2-92fb-dd63763181f9"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30f-6912-ab4d-dd63763181f9"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f1-e7a2-6c2c-869a-dd63763181f9"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076ad-4c45-6e48-932b-c1af87aa927f"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ef8b11f-53c6-6e4a-9e06-71f289c9459e"},{"branchId":"1edb6b38-214b-66d6-a8e0-7f2fdd178564","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f0d16fe-c980-6f06-809c-f9958331687d"}],"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 487 ms (response body not stored: contains personal data)
-// 2026-09-06T18:47:35.034Z
-{"jsonrpc":"2.0","id":108,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 451 ms (response body not stored: contains personal data)
-// 2026-09-06T18:47:35.167Z
-{"jsonrpc":"2.0","id":109,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 128 ms (response body not stored: contains personal data)
-// 2026-09-06T18:59:21.077Z
-{"jsonrpc":"2.0","id":110,"method":"tools/call","params":{"name":"silpo_get_loyalty_info","arguments":{}}}
-// → ok in 124 ms (response body not stored: contains personal data)
-// 2026-09-06T18:59:21.249Z
-{"jsonrpc":"2.0","id":111,"method":"tools/call","params":{"name":"silpo_get_my_coupons","arguments":{}}}
+// 2026-09-07T14:33:00.347Z
+{"jsonrpc":"2.0","id":44,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":4,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["фарш"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 147 ms (response body not stored: contains personal data)
+// 2026-09-07T14:33:28.135Z
+{"jsonrpc":"2.0","id":45,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["фарш"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 163 ms (response body not stored: contains personal data)
+// 2026-09-07T14:33:28.282Z
+{"jsonrpc":"2.0","id":46,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["ковбаса"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 133 ms (response body not stored: contains personal data)
+// 2026-09-07T14:33:28.527Z
+{"jsonrpc":"2.0","id":47,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["сало"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 238 ms (response body not stored: contains personal data)
+// 2026-09-07T14:34:47.298Z
+{"jsonrpc":"2.0","id":48,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["фарш"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 135 ms (response body not stored: contains personal data)
+// 2026-09-07T14:34:47.471Z
+{"jsonrpc":"2.0","id":49,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["ковбаса"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 156 ms (response body not stored: contains personal data)
+// 2026-09-07T14:34:47.728Z
+{"jsonrpc":"2.0","id":50,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["сало"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 250 ms (response body not stored: contains personal data)
+// 2026-09-07T14:34:48.059Z
+{"jsonrpc":"2.0","id":51,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["шинка"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 324 ms (response body not stored: contains personal data)
+// 2026-09-07T14:34:48.199Z
+{"jsonrpc":"2.0","id":52,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["бекон"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 136 ms (response body not stored: contains personal data)
+// 2026-09-07T14:35:38.168Z
+{"jsonrpc":"2.0","id":53,"method":"tools/call","params":{"name":"silpo_clear_shopping_cart","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 179 ms (response body not stored: contains personal data)
+// 2026-09-07T14:35:38.676Z
+{"jsonrpc":"2.0","id":54,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["каша вівсяна","молоко","банан","цукор","буряк","капуста","картопля","морква","цибуля","томатна паста","макарони","фарш","олія соняшникова","яйця","хліб","куряче стегно","петрушка","рис","сир кисломолочний","борошно","сметана","оселедець","сир твердий","масло вершкове"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 476 ms (response body not stored: contains personal data)
+// 2026-09-07T14:35:38.839Z
+{"jsonrpc":"2.0","id":55,"method":"tools/call","params":{"name":"silpo_add_or_update_cart_products","arguments":{"products":[{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0769f-d69a-611a-aaf2-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0765c-17fd-668c-80f6-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-ae9b-6f2a-bf1a-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f3-43db-6fce-99df-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30e-6f08-8145-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1.4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30f-65c0-974b-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edb9595-26eb-6712-b936-53e7405e8b7a"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075dc-ed57-634e-a239-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30f-6912-ab4d-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1086ee-3dd1-6970-b2bc-0f168ea6b21b"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1086e8-8146-658a-b7e6-0f168ea6b21b"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edaf08e-5749-65fa-a326-e17a9d63ee24"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07680-ae80-6c02-877b-c1af87aa927f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f0f011c-ac6e-6490-9fc3-9ff8813d03f6"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edaf2dd-a25c-6140-9f65-67d0bfe96414"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07609-566a-64fe-9a9c-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075fb-3abb-69d2-9ba0-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed55d1b-6852-6e98-a932-8da7e587e2ec"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":3,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f0dd370-4123-647c-92e3-f1b7700b619b"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ee909f4-8ea3-6856-9d2a-c1465b4891a9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f05ca6a-7110-637c-8242-37d41529c495"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f032ac9-b8ae-662c-a997-41e62aca8d26"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edc9d0c-e37c-65be-9dff-05c329cb4de9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a9-8f6e-65e8-9d1b-eb0bb71c4ffc"}],"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 138 ms (response body not stored: contains personal data)
+// 2026-09-07T14:35:39.551Z
+{"jsonrpc":"2.0","id":56,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 704 ms (response body not stored: contains personal data)
+// 2026-09-07T14:42:23.331Z
+{"jsonrpc":"2.0","id":57,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":3,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["ковбаса"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 148 ms (response body not stored: contains personal data)
+// 2026-09-07T14:42:23.498Z
+{"jsonrpc":"2.0","id":58,"method":"tools/call","params":{"name":"silpo_get_product_details","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","productId":"1f1499db-99d2-6306-b984-ebf9cff8a2e0","timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → FAILED in 151 ms: Tool silpo_get_product_details failed: [{"type":"text","text":"MCP error -32602: Input validation error: Invalid arguments for tool silpo_get_product_details: [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"slug\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  }\n]"}]
+// 2026-09-07T14:42:23.657Z
+{"jsonrpc":"2.0","id":59,"method":"tools/call","params":{"name":"silpo_get_product_details","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","productId":"1ed0766f-3d0b-69fc-a615-c1af87aa927f","timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → FAILED in 155 ms: Tool silpo_get_product_details failed: [{"type":"text","text":"MCP error -32602: Input validation error: Invalid arguments for tool silpo_get_product_details: [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"slug\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  }\n]"}]
+// 2026-09-07T14:42:23.729Z
+{"jsonrpc":"2.0","id":60,"method":"tools/call","params":{"name":"silpo_get_product_details","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","productId":"1ed07687-3d5d-6eec-8568-eb0bb71c4ffc","timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → FAILED in 70 ms: Tool silpo_get_product_details failed: [{"type":"text","text":"MCP error -32602: Input validation error: Invalid arguments for tool silpo_get_product_details: [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"slug\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  }\n]"}]
+// 2026-09-07T14:42:33.810Z
+{"jsonrpc":"2.0","id":61,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":3,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["ковбаса"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 179 ms (response body not stored: contains personal data)
+// 2026-09-07T14:42:34.122Z
+{"jsonrpc":"2.0","id":62,"method":"tools/call","params":{"name":"silpo_get_product_details","arguments":{"slug":"kovbasa-salsus-likarska-varena-n-o-v-g-portsiina-1024628","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 306 ms (response body not stored: contains personal data)
+// 2026-09-07T14:42:34.346Z
+{"jsonrpc":"2.0","id":63,"method":"tools/call","params":{"name":"silpo_get_product_details","arguments":{"slug":"kovbasa-alan-braunshveigska-s-k-v-g-758170","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 219 ms (response body not stored: contains personal data)
+// 2026-09-07T14:42:34.501Z
+{"jsonrpc":"2.0","id":64,"method":"tools/call","params":{"name":"silpo_get_product_details","arguments":{"slug":"kovbasa-premiia-saliami-zolotysta-s-k-v-g-narizka-830896","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 150 ms (response body not stored: contains personal data)
+// 2026-09-07T14:42:52.185Z
+{"jsonrpc":"2.0","id":65,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":3,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["сосиски"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 200 ms (response body not stored: contains personal data)
+// 2026-09-07T14:42:52.352Z
+{"jsonrpc":"2.0","id":66,"method":"tools/call","params":{"name":"silpo_get_product_details","arguments":{"slug":"sosysky-m-iasnyi-khutir-molochni-n-o-v-g-920414","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 158 ms (response body not stored: contains personal data)
+// 2026-09-07T14:42:52.583Z
+{"jsonrpc":"2.0","id":67,"method":"tools/call","params":{"name":"silpo_get_product_details","arguments":{"slug":"sosysky-alan-dytiachi-p-a-v-g-902098","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 225 ms (response body not stored: contains personal data)
+// 2026-09-07T14:42:52.791Z
+{"jsonrpc":"2.0","id":68,"method":"tools/call","params":{"name":"silpo_get_product_details","arguments":{"slug":"sosysky-globyno-niamski-z-teliatynoiu-b-o-v-g-830988","branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 203 ms (response body not stored: contains personal data)
+// 2026-09-07T14:45:35.891Z
+{"jsonrpc":"2.0","id":69,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["ковбаса"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 270 ms (response body not stored: contains personal data)
+// 2026-09-07T14:45:36.039Z
+{"jsonrpc":"2.0","id":70,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["сосиски"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 136 ms (response body not stored: contains personal data)
+// 2026-09-07T14:45:36.213Z
+{"jsonrpc":"2.0","id":71,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["салямі"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 168 ms (response body not stored: contains personal data)
+// 2026-09-07T14:45:36.354Z
+{"jsonrpc":"2.0","id":72,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["паштет"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 138 ms (response body not stored: contains personal data)
+// 2026-09-07T17:08:35.349Z
+{"jsonrpc":"2.0","id":73,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["ковбаса"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 152 ms (response body not stored: contains personal data)
+// 2026-09-07T17:08:35.602Z
+{"jsonrpc":"2.0","id":74,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["сосиски"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 231 ms (response body not stored: contains personal data)
+// 2026-09-07T17:08:35.751Z
+{"jsonrpc":"2.0","id":75,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["салямі"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 132 ms (response body not stored: contains personal data)
+// 2026-09-07T17:08:36.002Z
+{"jsonrpc":"2.0","id":76,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["паштет"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 243 ms (response body not stored: contains personal data)
+// 2026-09-07T17:08:36.247Z
+{"jsonrpc":"2.0","id":77,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["сало"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 230 ms (response body not stored: contains personal data)
+// 2026-09-07T17:08:36.381Z
+{"jsonrpc":"2.0","id":78,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["шинка"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 125 ms (response body not stored: contains personal data)
+// 2026-09-07T17:08:36.504Z
+{"jsonrpc":"2.0","id":79,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["бекон"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 116 ms (response body not stored: contains personal data)
+// 2026-09-07T17:28:16.019Z
+{"jsonrpc":"2.0","id":80,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["ковбаса"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 153 ms (response body not stored: contains personal data)
+// 2026-09-07T17:28:33.614Z
+{"jsonrpc":"2.0","id":81,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 239 ms (response body not stored: contains personal data)
+// 2026-09-07T17:36:08.836Z
+{"jsonrpc":"2.0","id":82,"method":"tools/call","params":{"name":"silpo_clear_shopping_cart","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 255 ms (response body not stored: contains personal data)
+// 2026-09-07T17:36:09.088Z
+{"jsonrpc":"2.0","id":83,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["каша вівсяна","молоко","банан","цукор","буряк","капуста","картопля","морква","цибуля","томатна паста","макарони","фарш","олія соняшникова","яйця","хліб","куряче стегно","петрушка","рис","сир кисломолочний","борошно","сметана","оселедець","сир твердий","масло вершкове"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 232 ms (response body not stored: contains personal data)
+// 2026-09-07T17:36:09.232Z
+{"jsonrpc":"2.0","id":84,"method":"tools/call","params":{"name":"silpo_add_or_update_cart_products","arguments":{"products":[{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f07e347-371b-6e62-ab70-cb21cfc34445"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07670-575b-604a-8c50-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edb260a-7918-63b4-a48e-e990029622e2"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1759f8-853e-67de-afa1-59b86da3383c"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":9,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1759f8-841c-65e0-b0c1-59b86da3383c"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edbc597-eb89-60e2-b448-1df4cd9fb6b0"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ef13d72-3f85-6dc8-9506-bfafdd703924"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075d5-8396-6ccc-bdaf-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1efe6773-ebc2-6284-83ad-25a12daa3fa1"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0766e-ff49-62b8-a3ee-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a6-789e-6e24-bb96-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0760c-2827-6aa8-8433-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a7-c9c2-6e8a-8ed0-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f04c97d-e067-6c82-b826-bf5befd577b5"}],"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 123 ms (response body not stored: contains personal data)
+// 2026-09-07T17:36:09.974Z
+{"jsonrpc":"2.0","id":85,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 740 ms (response body not stored: contains personal data)
+// 2026-09-07T17:37:12.340Z
+{"jsonrpc":"2.0","id":86,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":4,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["банан"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 303 ms (response body not stored: contains personal data)
+// 2026-09-07T17:37:37.696Z
+{"jsonrpc":"2.0","id":87,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":20,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["банан"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 163 ms (response body not stored: contains personal data)
+// 2026-09-07T17:37:56.042Z
+{"jsonrpc":"2.0","id":88,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":10,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["яйця"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
 // → ok in 155 ms (response body not stored: contains personal data)
-// 2026-09-06T18:59:21.359Z
-{"jsonrpc":"2.0","id":112,"method":"tools/call","params":{"name":"silpo_get_promo_codes","arguments":{}}}
-// → ok in 104 ms (response body not stored: contains personal data)
-// 2026-09-06T18:59:21.480Z
-{"jsonrpc":"2.0","id":113,"method":"tools/call","params":{"name":"silpo_get_my_promos","arguments":{}}}
-// → ok in 117 ms (response body not stored: contains personal data)
-// 2026-09-06T18:59:49.420Z
-{"jsonrpc":"2.0","id":114,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
-// → ok in 98 ms (response body not stored: contains personal data)
-// 2026-09-06T18:59:49.712Z
-{"jsonrpc":"2.0","id":115,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
-// → ok in 287 ms (response body not stored: contains personal data)
+// 2026-09-07T17:38:06.978Z
+{"jsonrpc":"2.0","id":89,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["молоко"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 145 ms (response body not stored: contains personal data)
+// 2026-09-07T17:38:08.476Z
+{"jsonrpc":"2.0","id":90,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["хліб"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 220 ms (response body not stored: contains personal data)
+// 2026-09-07T17:38:21.369Z
+{"jsonrpc":"2.0","id":91,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["хліб"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 145 ms (response body not stored: contains personal data)
+// 2026-09-07T17:38:25.906Z
+{"jsonrpc":"2.0","id":92,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["хліб"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 151 ms (response body not stored: contains personal data)
+// 2026-09-07T17:38:30.405Z
+{"jsonrpc":"2.0","id":93,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["яйця"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 153 ms (response body not stored: contains personal data)
+// 2026-09-07T17:39:37.005Z
+{"jsonrpc":"2.0","id":94,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["хліб"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 133 ms (response body not stored: contains personal data)
+// 2026-09-07T17:39:48.687Z
+{"jsonrpc":"2.0","id":95,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 257 ms (response body not stored: contains personal data)
+// 2026-09-07T17:40:02.847Z
+{"jsonrpc":"2.0","id":96,"method":"tools/call","params":{"name":"silpo_clear_shopping_cart","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 183 ms (response body not stored: contains personal data)
+// 2026-09-07T17:40:03.230Z
+{"jsonrpc":"2.0","id":97,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["каша вівсяна","молоко","банан","цукор","буряк","капуста","картопля","морква","цибуля","томатна паста","макарони","фарш","олія соняшникова","яйця","хліб","куряче стегно","петрушка","рис","сир кисломолочний","борошно","сметана","оселедець","сир твердий","масло вершкове"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 366 ms (response body not stored: contains personal data)
+// 2026-09-07T17:40:03.489Z
+{"jsonrpc":"2.0","id":98,"method":"tools/call","params":{"name":"silpo_add_or_update_cart_products","arguments":{"products":[{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":7,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f13aaf9-2841-6d30-9662-e943dc725269"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07670-575b-604a-8c50-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edb260a-7918-63b4-a48e-e990029622e2"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1759f8-853e-67de-afa1-59b86da3383c"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":9,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1759f8-841c-65e0-b0c1-59b86da3383c"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edbc597-eb89-60e2-b448-1df4cd9fb6b0"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ef13d72-3f85-6dc8-9506-bfafdd703924"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075d5-8396-6ccc-bdaf-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1efe6773-ebc2-6284-83ad-25a12daa3fa1"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0766e-ff49-62b8-a3ee-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a6-789e-6e24-bb96-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0760c-2827-6aa8-8433-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a7-c9c2-6e8a-8ed0-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f04c97d-e067-6c82-b826-bf5befd577b5"}],"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 239 ms (response body not stored: contains personal data)
+// 2026-09-07T17:40:04.555Z
+{"jsonrpc":"2.0","id":99,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 1054 ms (response body not stored: contains personal data)
+// 2026-09-07T17:40:17.485Z
+{"jsonrpc":"2.0","id":100,"method":"tools/call","params":{"name":"silpo_clear_shopping_cart","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 218 ms (response body not stored: contains personal data)
+// 2026-09-07T17:40:17.762Z
+{"jsonrpc":"2.0","id":101,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["каша вівсяна","молоко","банан","цукор","буряк","капуста","картопля","морква","цибуля","томатна паста","макарони","фарш","олія соняшникова","яйця","хліб","куряче стегно","петрушка","рис","сир кисломолочний","борошно","сметана","оселедець","сир твердий","масло вершкове"],"timeslotEnd":"2026-09-07T18:00:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-07T16:30:00+00:00"}}}
+// → ok in 259 ms (response body not stored: contains personal data)
+// 2026-09-07T17:40:17.923Z
+{"jsonrpc":"2.0","id":102,"method":"tools/call","params":{"name":"silpo_add_or_update_cart_products","arguments":{"products":[{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":7,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f13aaf9-2841-6d30-9662-e943dc725269"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07670-575b-604a-8c50-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edb260a-7918-63b4-a48e-e990029622e2"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1759f8-853e-67de-afa1-59b86da3383c"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":9,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1759f8-841c-65e0-b0c1-59b86da3383c"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edbc597-eb89-60e2-b448-1df4cd9fb6b0"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ef13d72-3f85-6dc8-9506-bfafdd703924"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075d5-8396-6ccc-bdaf-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1efe6773-ebc2-6284-83ad-25a12daa3fa1"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0766e-ff49-62b8-a3ee-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a6-789e-6e24-bb96-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed0760c-2827-6aa8-8433-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed076a7-c9c2-6e8a-8ed0-5f148feebb3f"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f04c97d-e067-6c82-b826-bf5befd577b5"}],"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 142 ms (response body not stored: contains personal data)
+// 2026-09-07T17:40:18.821Z
+{"jsonrpc":"2.0","id":103,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 893 ms (response body not stored: contains personal data)
+// 2026-09-07T17:40:34.566Z
+{"jsonrpc":"2.0","id":104,"method":"tools/call","params":{"name":"silpo_clear_shopping_cart","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 213 ms (response body not stored: contains personal data)
+// 2026-09-07T17:55:55.346Z
+{"jsonrpc":"2.0","id":105,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
+// → ok in 144 ms (response body not stored: contains personal data)
+// 2026-09-07T17:56:16.523Z
+{"jsonrpc":"2.0","id":106,"method":"tools/call","params":{"name":"silpo_find_address","arguments":{"address":"«redacted»"}}}
+// → ok in 295 ms (response body not stored: contains personal data)
+// 2026-09-07T17:56:30.506Z
+{"jsonrpc":"2.0","id":107,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
+// → ok in 147 ms (response body not stored: contains personal data)
+// 2026-09-07T17:56:30.619Z
+{"jsonrpc":"2.0","id":108,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 95 ms (response body not stored: contains personal data)
+// 2026-09-07T17:56:37.691Z
+{"jsonrpc":"2.0","id":109,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["яловина","картопля","морква","цибуля","томатна паста","олія соняшникова"],"timeslotEnd":"2026-09-07T19:00:00+00:00","deliveryType":"DeliveryExpressByPromise","timeslotStart":"2026-09-07T18:00:00+00:00"}}}
+// → ok in 790 ms (response body not stored: contains personal data)
+// 2026-09-07T17:58:36.878Z
+{"jsonrpc":"2.0","id":110,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 100 ms (response body not stored: contains personal data)
+// 2026-09-07T18:01:46.141Z
+{"jsonrpc":"2.0","id":111,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 382 ms (response body not stored: contains personal data)
+// 2026-09-07T18:11:30.747Z
+{"jsonrpc":"2.0","id":112,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["яловина","картопля","морква","цибуля","томатна паста","олія соняшникова"],"timeslotEnd":"2026-09-07T19:00:00+00:00","deliveryType":"DeliveryExpressByPromise","timeslotStart":"2026-09-07T18:00:00+00:00"}}}
+// → ok in 160 ms (response body not stored: contains personal data)
+// 2026-09-07T18:22:02.910Z
+{"jsonrpc":"2.0","id":113,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["яловина","картопля","морква","цибуля","томатна паста","олія соняшникова","яловина стейк","рис","болгарський перець","часник"],"timeslotEnd":"2026-09-07T19:00:00+00:00","deliveryType":"DeliveryExpressByPromise","timeslotStart":"2026-09-07T18:00:00+00:00"}}}
+// → FAILED in 0 ms: Not connected
+// 2026-09-07T18:22:06.158Z
+{"jsonrpc":"2.0","id":114,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["яловина","картопля","морква","цибуля","томатна паста","олія соняшникова","яловина стейк","рис","болгарський перець","часник"],"timeslotEnd":"2026-09-07T19:00:00+00:00","deliveryType":"DeliveryExpressByPromise","timeslotStart":"2026-09-07T18:00:00+00:00"}}}
+// → FAILED in 0 ms: duplicate_tool_call: identical to the immediately preceding call, not sent to Silpo
+// 2026-09-07T18:32:36.194Z
+{"jsonrpc":"2.0","id":115,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["яловина","картопля","морква","цибуля","томатна паста","олія соняшникова","яловина стейк","рис","болгарський перець","часник"],"timeslotEnd":"2026-09-07T19:00:00+00:00","deliveryType":"DeliveryExpressByPromise","timeslotStart":"2026-09-07T18:00:00+00:00"}}}
+// → ok in 775 ms (response body not stored: contains personal data)
+// 2026-09-07T18:33:33.250Z
+{"jsonrpc":"2.0","id":116,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["яловина","буряк","капуста свіжа","картопля","морква","цибуля","томатна паста","олія соняшникова"],"timeslotEnd":"2026-09-07T19:00:00+00:00","deliveryType":"DeliveryExpressByPromise","timeslotStart":"2026-09-07T18:00:00+00:00"}}}
+// → ok in 435 ms (response body not stored: contains personal data)
+// 2026-09-07T18:34:55.710Z
+{"jsonrpc":"2.0","id":117,"method":"tools/call","params":{"name":"silpo_add_or_update_cart_products","arguments":{"products":[{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.3,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ef49431-ead3-6874-8c90-a9c44e6b1e0c"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.5,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075db-b30e-6f08-8145-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1efce1d7-585f-6852-9fd9-25a12daa3fa1"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1edb9595-26eb-6712-b936-53e7405e8b7a"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":0.4,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed075f8-5600-69f2-92fb-dd63763181f9"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f08f644-f105-6e52-bb52-c58660d65235"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":2,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1f1086ee-3b32-6ce6-83ab-0f168ea6b21b"},{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","quantity":1,"companyId":"1ec88c5d-a050-669c-8467-570a157f3e31","productId":"1ed07680-ae80-6c02-877b-c1af87aa927f"}],"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 309 ms (response body not stored: contains personal data)
+// 2026-09-07T18:34:56.279Z
+{"jsonrpc":"2.0","id":118,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 561 ms (response body not stored: contains personal data)
+// 2026-09-07T18:34:56.449Z
+{"jsonrpc":"2.0","id":119,"method":"tools/call","params":{"name":"silpo_get_loyalty_info","arguments":{}}}
+// → ok in 166 ms (response body not stored: contains personal data)
+// 2026-09-07T18:34:56.568Z
+{"jsonrpc":"2.0","id":120,"method":"tools/call","params":{"name":"silpo_get_my_coupons","arguments":{}}}
+// → ok in 285 ms (response body not stored: contains personal data)
+// 2026-09-07T18:34:56.627Z
+{"jsonrpc":"2.0","id":121,"method":"tools/call","params":{"name":"silpo_get_promo_codes","arguments":{}}}
+// → ok in 337 ms (response body not stored: contains personal data)
+// 2026-09-07T18:43:40.361Z
+{"jsonrpc":"2.0","id":122,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
+// → ok in 113 ms (response body not stored: contains personal data)
+// 2026-09-07T18:43:40.908Z
+{"jsonrpc":"2.0","id":123,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 540 ms (response body not stored: contains personal data)
+// 2026-09-07T18:43:41.075Z
+{"jsonrpc":"2.0","id":124,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryExpressByPromise"]}}}
+// → ok in 163 ms (response body not stored: contains personal data)
+// 2026-09-07T18:45:07.351Z
+{"jsonrpc":"2.0","id":125,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
+// → ok in 123 ms (response body not stored: contains personal data)
+// 2026-09-07T18:45:07.490Z
+{"jsonrpc":"2.0","id":126,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 134 ms (response body not stored: contains personal data)
+// 2026-09-07T18:45:07.579Z
+{"jsonrpc":"2.0","id":127,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryExpressByPromise"]}}}
+// → ok in 86 ms (response body not stored: contains personal data)
+// 2026-09-07T18:45:37.194Z
+{"jsonrpc":"2.0","id":128,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
+// → ok in 171 ms (response body not stored: contains personal data)
+// 2026-09-07T18:45:37.437Z
+{"jsonrpc":"2.0","id":129,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 229 ms (response body not stored: contains personal data)
+// 2026-09-07T18:45:37.541Z
+{"jsonrpc":"2.0","id":130,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryExpressByPromise"]}}}
+// → ok in 99 ms (response body not stored: contains personal data)
+// 2026-09-07T18:45:37.688Z
+{"jsonrpc":"2.0","id":131,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryExpressByPromise"]}}}
+// → ok in 143 ms (response body not stored: contains personal data)
+// 2026-09-07T18:46:07.650Z
+{"jsonrpc":"2.0","id":132,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
+// → ok in 315 ms (response body not stored: contains personal data)
+// 2026-09-07T18:46:07.808Z
+{"jsonrpc":"2.0","id":133,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 150 ms (response body not stored: contains personal data)
+// 2026-09-07T18:46:07.903Z
+{"jsonrpc":"2.0","id":134,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryExpressByPromise"]}}}
+// → ok in 90 ms (response body not stored: contains personal data)
+// 2026-09-07T18:46:08.010Z
+{"jsonrpc":"2.0","id":135,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryExpressByPromise"]}}}
+// → ok in 103 ms (response body not stored: contains personal data)
+// 2026-09-07T18:46:08.256Z
+{"jsonrpc":"2.0","id":136,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryHome"]}}}
+// → ok in 242 ms (response body not stored: contains personal data)
+// 2026-09-07T18:46:10.111Z
+{"jsonrpc":"2.0","id":137,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryFlat"]}}}
+// → FAILED in 1849 ms: Tool silpo_get_time_slots failed: [{"type":"text","text":"Error in get-time-slots: API returned 500 Internal Server Error."}]
+// 2026-09-07T18:50:56.116Z
+{"jsonrpc":"2.0","id":138,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
+// → ok in 311 ms (response body not stored: contains personal data)
+// 2026-09-07T18:50:57.031Z
+{"jsonrpc":"2.0","id":139,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 905 ms (response body not stored: contains personal data)
+// 2026-09-07T18:50:57.125Z
+{"jsonrpc":"2.0","id":140,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryExpressByPromise"]}}}
+// → ok in 91 ms (response body not stored: contains personal data)
+// 2026-09-07T18:50:57.251Z
+{"jsonrpc":"2.0","id":141,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryHome"]}}}
+// → ok in 124 ms (response body not stored: contains personal data)
+// 2026-09-07T18:50:57.503Z
+{"jsonrpc":"2.0","id":142,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["чіпси","пиво"],"timeslotEnd":"2026-09-08T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-08T06:00:00+00:00"}}}
+// → ok in 244 ms (response body not stored: contains personal data)
+// 2026-09-07T18:50:57.742Z
+{"jsonrpc":"2.0","id":143,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["печиво"],"timeslotEnd":"2026-09-08T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-08T06:00:00+00:00"}}}
+// → ok in 223 ms (response body not stored: contains personal data)
+// 2026-09-07T18:50:57.892Z
+{"jsonrpc":"2.0","id":144,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["арахіс"],"timeslotEnd":"2026-09-08T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-08T06:00:00+00:00"}}}
+// → ok in 140 ms (response body not stored: contains personal data)
+// 2026-09-07T18:51:10.541Z
+{"jsonrpc":"2.0","id":145,"method":"tools/call","params":{"name":"silpo_get_my_shopping_cart","arguments":{}}}
+// → ok in 375 ms (response body not stored: contains personal data)
+// 2026-09-07T18:51:10.703Z
+{"jsonrpc":"2.0","id":146,"method":"tools/call","params":{"name":"silpo_get_shopping_cart_by_id","arguments":{"shoppingCartId":"9adb0dd8-e520-49ee-bf1c-a79d7310d760"}}}
+// → ok in 152 ms (response body not stored: contains personal data)
+// 2026-09-07T18:51:11.014Z
+{"jsonrpc":"2.0","id":147,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryExpressByPromise"]}}}
+// → ok in 306 ms (response body not stored: contains personal data)
+// 2026-09-07T18:51:54.214Z
+{"jsonrpc":"2.0","id":148,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryHome"]}}}
+// → ok in 194 ms (response body not stored: contains personal data)
+// 2026-09-07T18:51:54.438Z
+{"jsonrpc":"2.0","id":149,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["чіпси"],"timeslotEnd":"2026-09-08T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-08T06:00:00+00:00"}}}
+// → ok in 218 ms (response body not stored: contains personal data)
+// 2026-09-07T18:51:54.573Z
+{"jsonrpc":"2.0","id":150,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["чіпс"],"timeslotEnd":"2026-09-08T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-08T06:00:00+00:00"}}}
+// → ok in 131 ms (response body not stored: contains personal data)
+// 2026-09-07T18:51:55.002Z
+{"jsonrpc":"2.0","id":151,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":8,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["снек"],"timeslotEnd":"2026-09-08T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-08T06:00:00+00:00"}}}
+// → ok in 425 ms (response body not stored: contains personal data)
+// 2026-09-07T18:53:16.107Z
+{"jsonrpc":"2.0","id":152,"method":"tools/call","params":{"name":"silpo_get_time_slots","arguments":{"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","deliveryTypes":["DeliveryHome"]}}}
+// → ok in 149 ms (response body not stored: contains personal data)
+// 2026-09-07T18:53:16.396Z
+{"jsonrpc":"2.0","id":153,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["чіпси","пиво"],"timeslotEnd":"2026-09-08T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-08T06:00:00+00:00"}}}
+// → ok in 269 ms (response body not stored: contains personal data)
+// 2026-09-07T18:53:16.765Z
+{"jsonrpc":"2.0","id":154,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["печиво"],"timeslotEnd":"2026-09-08T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-08T06:00:00+00:00"}}}
+// → ok in 351 ms (response body not stored: contains personal data)
+// 2026-09-07T18:53:17.086Z
+{"jsonrpc":"2.0","id":155,"method":"tools/call","params":{"name":"silpo_find_products_batch","arguments":{"limit":5,"branchId":"1edb6b5f-e651-6e90-87e8-0f3d58dec197","products":["арахіс"],"timeslotEnd":"2026-09-08T07:30:00+00:00","deliveryType":"DeliveryHome","timeslotStart":"2026-09-08T06:00:00+00:00"}}}
+// → ok in 304 ms (response body not stored: contains personal data)
+// 2026-09-09T11:36:47.079Z
+{"jsonrpc":"2.0","id":156,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 135 ms (response body not stored: contains personal data)
+// 2026-09-09T11:36:47.253Z
+{"jsonrpc":"2.0","id":157,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 309 ms (response body not stored: contains personal data)
+// 2026-09-09T11:36:47.268Z
+{"jsonrpc":"2.0","id":158,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
+// → ok in 325 ms (response body not stored: contains personal data)
+// 2026-09-09T11:36:47.524Z
+{"jsonrpc":"2.0","id":159,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 580 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:15.293Z
+{"jsonrpc":"2.0","id":160,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 454 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:15.295Z
+{"jsonrpc":"2.0","id":161,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 459 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:15.347Z
+{"jsonrpc":"2.0","id":162,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
+// → ok in 510 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:15.371Z
+{"jsonrpc":"2.0","id":163,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 536 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:26.789Z
+{"jsonrpc":"2.0","id":164,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 353 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:26.790Z
+{"jsonrpc":"2.0","id":165,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 356 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:26.801Z
+{"jsonrpc":"2.0","id":166,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 367 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:38.259Z
+{"jsonrpc":"2.0","id":167,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 222 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:38.284Z
+{"jsonrpc":"2.0","id":168,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 248 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:38.625Z
+{"jsonrpc":"2.0","id":169,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 587 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:51.527Z
+{"jsonrpc":"2.0","id":170,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 375 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:51.527Z
+{"jsonrpc":"2.0","id":171,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 376 ms (response body not stored: contains personal data)
+// 2026-09-09T11:37:51.535Z
+{"jsonrpc":"2.0","id":172,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 384 ms (response body not stored: contains personal data)
+// 2026-09-09T11:46:42.576Z
+{"jsonrpc":"2.0","id":173,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 127 ms (response body not stored: contains personal data)
+// 2026-09-09T11:46:42.606Z
+{"jsonrpc":"2.0","id":174,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 158 ms (response body not stored: contains personal data)
+// 2026-09-09T11:46:42.796Z
+{"jsonrpc":"2.0","id":175,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 347 ms (response body not stored: contains personal data)
+// 2026-09-09T11:46:51.700Z
+{"jsonrpc":"2.0","id":176,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 365 ms (response body not stored: contains personal data)
+// 2026-09-09T11:46:51.786Z
+{"jsonrpc":"2.0","id":177,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 452 ms (response body not stored: contains personal data)
+// 2026-09-09T11:46:51.798Z
+{"jsonrpc":"2.0","id":178,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 464 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:02.817Z
+{"jsonrpc":"2.0","id":179,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 397 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:02.817Z
+{"jsonrpc":"2.0","id":180,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 396 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:02.817Z
+{"jsonrpc":"2.0","id":181,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 397 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:13.400Z
+{"jsonrpc":"2.0","id":182,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 124 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:13.435Z
+{"jsonrpc":"2.0","id":183,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 160 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:13.627Z
+{"jsonrpc":"2.0","id":184,"method":"tools/call","params":{"name":"silpo_get_my_delivery_addresses","arguments":{}}}
+// → ok in 351 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:13.627Z
+{"jsonrpc":"2.0","id":185,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 352 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:24.552Z
+{"jsonrpc":"2.0","id":186,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 232 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:24.702Z
+{"jsonrpc":"2.0","id":187,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 383 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:24.713Z
+{"jsonrpc":"2.0","id":188,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 394 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:34.225Z
+{"jsonrpc":"2.0","id":189,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 159 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:34.259Z
+{"jsonrpc":"2.0","id":190,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 193 ms (response body not stored: contains personal data)
+// 2026-09-09T11:47:34.414Z
+{"jsonrpc":"2.0","id":191,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 346 ms (response body not stored: contains personal data)
+// 2026-09-09T11:56:57.478Z
+{"jsonrpc":"2.0","id":192,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 125 ms (response body not stored: contains personal data)
+// 2026-09-09T11:56:57.515Z
+{"jsonrpc":"2.0","id":193,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 163 ms (response body not stored: contains personal data)
+// 2026-09-09T11:56:57.657Z
+{"jsonrpc":"2.0","id":194,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 304 ms (response body not stored: contains personal data)
+// 2026-09-09T12:21:14.142Z
+{"jsonrpc":"2.0","id":195,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 127 ms (response body not stored: contains personal data)
+// 2026-09-09T12:21:14.340Z
+{"jsonrpc":"2.0","id":196,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 324 ms (response body not stored: contains personal data)
+// 2026-09-09T12:21:14.348Z
+{"jsonrpc":"2.0","id":197,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 332 ms (response body not stored: contains personal data)
+// 2026-09-09T12:21:42.263Z
+{"jsonrpc":"2.0","id":198,"method":"tools/call","params":{"name":"silpo_get_my_food_restrictions","arguments":{}}}
+// → ok in 163 ms (response body not stored: contains personal data)
+// 2026-09-09T12:21:42.380Z
+{"jsonrpc":"2.0","id":199,"method":"tools/call","params":{"name":"silpo_get_my_profile","arguments":{}}}
+// → ok in 280 ms (response body not stored: contains personal data)
+// 2026-09-09T12:21:42.504Z
+{"jsonrpc":"2.0","id":200,"method":"tools/call","params":{"name":"silpo_get_my_family","arguments":{}}}
+// → ok in 404 ms (response body not stored: contains personal data)
 ```
 

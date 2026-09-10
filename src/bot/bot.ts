@@ -79,7 +79,7 @@ export function createBot() {
   // makes (CLAUDE.md). Without this, sending several messages before the first one's model call
   // even finishes lets every one of them start its own full turn: `countUserMessagesToday`'s check
   // in runAgentTurn only sees today's count as of when EACH turn starts, and none of a fast burst
-  // has been recorded yet when the others start, so all of them would pass a limit as tight as 8.
+  // has been recorded yet when the others start, so all of them would pass a limit this tight.
   const turnsInProgress = new Set<number>();
 
   bot.on('message:text', async (ctx) => {

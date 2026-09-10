@@ -241,7 +241,11 @@ account, not guessed:
 ## Status
 
 Phases 0–6 are complete and **verified live against a real Silpo account** (6–7 Sept 2026). Phase 7
-(deploy and submission) is in progress.
+(deploy and submission) is in progress. A hardening pass landed 9–10 Sept 2026, independent of the
+Phase 7 checklist below — a critical OAuth fix, an HTML-escaping fix, four correctness bugs from a
+code-quality review, a feature-completion, a refactor, and a new daily message cap; see
+[Hardening pass, 9-10 Sept 2026](#hardening-pass-9-10-sept-2026) below for what changed and how it
+was verified.
 
 - [x] **Phase 0** — project skeleton, config, Docker Postgres, Drizzle schema.
 - [x] **Phase 1** — MCP spike: OAuth login + `tools/list` → [`docs/tools.json`](docs/tools.json),
@@ -282,10 +286,78 @@ Phases 0–6 are complete and **verified live against a real Silpo account** (6�
       dependency stage, migrations applied on boot, bounded graceful shutdown, and `/readyz`
       alongside `/healthz`. Runbook in [`docs/deploy.md`](docs/deploy.md); cold start verified
       locally (migrate → listen → both probes 200 → SIGTERM → clean exit). Submission artefacts:
-      [`docs/tool-call-log.md`](docs/tool-call-log.md) (generated, not hand-written) and
+      [`docs/tool-call-log.md`](docs/tool-call-log.md) (generated, not hand-written; regenerated
+      10 Sept 2026 via `npm run export-log` — **200 calls across 18 distinct tools**) and
       [`docs/pitch-deck.md`](docs/pitch-deck.md).
       **Left:** `fly deploy` itself, three consecutive clean end-to-end runs from a phone, the video,
       and the submission form.
+
+### Hardening pass, 9-10 Sept 2026
+
+Six commits landed after the Phase 6 sign-off above, independent of the Phase 7 deploy checklist.
+Verification for all of it: the unit suite (**249 tests across 18 files, `npm test`, all green** —
+several of the fixes below were mutation-tested, i.e. the fix was temporarily reverted to confirm
+the test actually fails without it, then restored) plus, for the two DB-touching pieces (link
+confirmation, message counting), live scripts against the real dev Postgres using synthetic test
+users. **None of this went through a real end-to-end Telegram OAuth conversation this session** —
+that is a lower bar than "verified live" above, and is called out per item rather than implied.
+
+- **Critical: closed an OAuth account-hijack hole** (`e40443b`, 9 Sept). `/start` hands out a real,
+  valid Silpo authorize URL, and nothing stopped it being forwarded — even second-hand: whoever
+  opened it would log into *their own* real Silpo account and unknowingly attach it to the
+  *forwarder's* Telegram chat, because Silpo does not reliably echo `state`, so `/auth/callback` had
+  no way to tell which link attempt a code belonged to. Fixed with a confirmation step: `oauth_tokens`
+  gained `confirmed`/`confirmCode` (doc comment at `src/db/schema.ts:28–46`). A fresh token exchange
+  is saved but left unconfirmed, and `/auth/callback` (`src/web/server.ts`) shows a one-time 6-digit
+  code on the success page instead of finishing the link there. `getTokens()` only returns confirmed
+  rows, so nothing — including a fresh `mcp.connect()` — can use an unconfirmed link. The code must be
+  typed back into the Telegram chat that ran `/start`; `bot.ts`'s `message:text` handler recognizes a
+  bare 6-digit message, looks it up via `repo.findUnconfirmedByCode`, and confirms. **This changes the
+  linking UX** — see the note added to [Known issues](#known-issues) below. Unit-tested
+  (`test/relink.test.ts`); not exercised through a real Silpo login this session.
+- **HTML-escaping fix**, same commit. The default free-text reply path could carry an unescaped
+  `<a>` tag surfaced through model-relayed text — closing a route where a link smuggled into the
+  cross-user shared recipe pool would be echoed verbatim by the model. `stripLinks()`
+  (`src/bot/format.ts:21–23`) now strips `<a>` tags there; the two structured render paths (menu,
+  resolved list) were already safe since they never echo arbitrary text.
+- **Four correctness bugs from a code-quality review** (`e40443b`):
+  - `remove_items` could delete the wrong cart line for short Ukrainian words like «сир»/«рис»/
+    «мед» — it reused `matchesQuery`'s deliberate "match everything when every word is under 4
+    chars" fallback, correct for narrowing a search but wrong for picking exactly one line to
+    delete. New `matchesForRemoval()` (`src/agent/selectProduct.ts:142`) never matches on
+    empty/short-only input.
+  - Restriction-synonym key `риб` (fish) is a literal substring of `гриб` (mushroom), so a stored
+    mushroom-only restriction silently blocked fish too. `restrictionKeysFor` now matches per-word
+    prefixes (`src/agent/selectProduct.ts:320–322`), as its own doc comment already claimed.
+  - `removeItems`/`addExtraItems` called `applyResolution` — which unconditionally resets
+    `cartWritten` — even on a no-op (every name missed), wrongly demanding the cart be rebuilt for a
+    call that changed nothing.
+  - The `propose_menu` retry regex used `зубч\w*` to catch garlic-clove quantities, but `\w` is
+    ASCII-only and can't match the Cyrillic ending, so a menu whose only quantity unit was garlic
+    cloves never reached the retry threshold (`src/agent/runAgentTurn.ts:86–92`).
+  All four are unit-tested and mutation-verified.
+- **Budget selection mode wired up** (`d236a77`, 9 Sept). `SelectionOptions.preferCheapest` existed
+  and was unit-tested but had zero production callers. A stated budget (`state.request.budgetUah`
+  set) now switches `resolveIngredients` to cheapest-first in both `bot.ts`'s `menu_confirm` handler
+  and `localTools.ts`'s `addExtraItems`. Code-complete and unit-tested; not yet exercised against a
+  real cart with a real stated budget.
+- **Refactor** (`d1c2653`, 9 Sept): the connect / `catch(NeedsAuthError)` / close skeleton, copied
+  across 5 bot handlers and already drifted (`clear_confirm` was missing the typing indicator the
+  other four had), is now `withMcpSession()` (`src/bot/mcpSession.ts`) — used by every handler that
+  talks to Silpo, including the ones in the [tools table](#silpo-mcp-tools-used) below. Cart-validation
+  reading — independently reimplemented three times with three slightly different local types — is
+  now one `getCartValidations()` + `CartValidation` type in `src/agent/cartContext.ts:114–130`. Both
+  extractions are unit-tested, with the original call sites now verified to break together.
+- **New: a daily per-user message cap** (`6bffa4d`, `734c997`, 9 Sept). This is an ordering agent,
+  not an open-ended chat companion, so `DAILY_MESSAGE_LIMIT` (env, default **10**, raised from an
+  initial 8) bounds a user to that many free-text turns per day — checked in `runAgentTurn` via
+  `repo.countUserMessagesToday()` **before** session load and before any model or Silpo call, so
+  hitting it costs nothing. A same-user concurrency guard (`turnsInProgress`, `src/bot/bot.ts:83`)
+  closes the burst gap the count alone would leave open (several messages sent before the first turn
+  finishes would otherwise all see the same pre-burst count and all pass). Button taps (✅ / 🛒 / etc.)
+  are callback queries, not text messages, so they don't count against the cap. Mutation-verified
+  against the gate itself; `countUserMessagesToday` live-verified against the dev DB (counts only
+  `role='user'` rows, correctly excludes assistant replies).
 
 Note: `SessionState.metrics.toolCalls` is currently a placeholder that nothing increments —
 `tool_call_log` is the real per-session record and the one to query for the metrics slide.
@@ -376,6 +448,14 @@ names, branch and cart ids are left intact, since they are the part that shows t
 ## Known issues
 
 ### `PUBLIC_BASE_URL` must be an internet-reachable HTTPS origin, or phone-based linking fails
+
+> **Since 9 Sept 2026 this section only covers reaching a successful `/auth/callback` redirect —
+> that redirect no longer finishes the link by itself.** A confirmation step closes an
+> account-hijack hole (see [Status](#status)): `/auth/callback` now shows a one-time 6-digit code on
+> the success page, and the link stays unconfirmed — unusable by `getTokens()` — until that code is
+> typed back into the Telegram chat that ran `/start`. Everything below (the broker, the state
+> consumption, the phone-WebView failure mode) still describes reaching that page correctly; getting
+> there is necessary but no longer sufficient.
 
 **Symptom:** Silpo login fails with `400 Invalid or expired state` (observed ~7 of 8 attempts,
 6 Sept 2026).
