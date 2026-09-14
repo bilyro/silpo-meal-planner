@@ -89,38 +89,33 @@ rather than being wired to their own buttons yet. Leave them unclicked, or narra
 
 Voiceover over an empty Telegram chat, or a phone next to a paper shopping list:
 
-> «Що приготувати?» → «Що купити?» → 30-40 хвилин щотижня. Список пишеться десь окремо від
-> застосунку, промо-акції перевіряються вибірково або не перевіряються взагалі, і кошик виходить
-> дорожчим і менш повним, ніж міг би бути.
+> «Що приготувати?» → «Що купити?» — 30-40 хвилин щотижня. Список — окремо від застосунку, акції
+> ніхто не перевіряє, і кошик виходить дорожчим, ніж міг би бути.
 
 ### 0:15–0:30 · Користувач
 
-> Це та сама рутина для кожної родини, яка регулярно замовляє продукти в Сільпо — особливо коли
-> є харчові обмеження чи алергії, які треба пам'ятати щоразу. Сільпо вже знає склад сім'ї,
-> обмеження й адресу — просто ніхто не використовує ці дані, щоб відповісти на реальне запитання.
+> Це рутина кожної родини, яка регулярно замовляє в Сільпо — особливо з харчовими обмеженнями чи
+> алергіями. Сільпо вже знає сім'ю, обмеження й адресу — просто ці дані ніхто не використовує.
 
 ### 0:30–0:50 · Рішення
 
 > «Сільпо Шеф» — телеграм-агент, який доводить це до кінця: одне повідомлення на вході, реальний
-> зібраний кошик і посилання на оформлення — на виході. Все через офіційний Silpo MCP-сервер,
-> проти справжнього акаунта, без пісочниці й без вигаданих даних.
+> кошик і посилання на оформлення — на виході. Через офіційний Silpo MCP, на справжньому акаунті,
+> без вигаданих даних.
 
 *(Show the screen: Telegram on one side, `silpo.ua` on the other — the visual for the whole video.)*
 
 ### 0:50–1:15 · Agent flow
 
-> Модель вирішує ЩО і КОЛИ, а не ЯК. Чотири кроки — встановити контекст кошика, підібрати товари,
-> зафіксувати список, прочитати кошик і видати посилання — виконує звичайний детермінований код,
-> а не імпровізація LLM. І модель фізично не має інструменту, який може змінити кошик: усі
-> мутуючі дії доступні лише коду, і без натискання кнопки нічого не записується.
+> Модель вирішує ЩО і КОЛИ, а не ЯК — усі чотири кроки від кошика до посилання виконує звичайний
+> код, не LLM. І модель фізично не має інструменту, який змінює кошик: без натискання кнопки
+> нічого не записується.
 
 ### 1:15–1:40 · MCP «Сільпо»
 
-> Бот читає всі 40 інструментів з реального сервера під час старту — жодна форма аргументів не
-> захардкоджена. Моделі доступні 33 read-інструменти з шести категорій: профіль, пошук товарів,
-> акції, кошик, доставка, лояльність. Сім інструментів, які можуть змінити акаунт, — недоступні
-> моделі взагалі, лише нашому коду. Кожен виклик логується: інструмент, аргументи, статус,
-> тривалість.
+> Бот читає всі 40 інструментів з реального сервера — нічого не захардкоджено. Моделі доступні 33
+> read-інструменти з шести категорій; сім, що можуть змінити акаунт, — лише нашому коду. Кожен
+> виклик логується.
 
 *(Optional visual: `docs/tools.json` scrolling, or the tools table from README/pitch-deck slide 4.)*
 
@@ -134,7 +129,7 @@ login → type the 6-digit confirmation code back into the chat. Bot answers fro
 > Готово, {імʼя}! Я бачу вашу {сімʼю з N осіб}.
 > Обмеження харчування: {…}.
 
-Say: *nothing here was typed by me — it's the profile and restrictions read live from Silpo MCP.*
+Say: *nothing here was typed by me — it's the profile read live from Silpo MCP.*
 
 **The request and the menu.** Type, in one message:
 
@@ -146,7 +141,7 @@ Bot renders (typing indicator, then):
 > **День 1** — *{страва}* · • {інгредієнт} — {кількість} …
 > Підтверджуєте меню? **[✅ Так] [✏️ Змінити]**
 
-Point out: no pork anywhere, sized for four — neither fact was in the typed message.
+Point out: no pork, sized for four — neither was in the typed message.
 
 **✅ — resolution against the real catalogue.** Tap **✅ Так**. Behind one tap: cart context
 established (branch, delivery type, first slot), every ingredient batch-searched, one product
@@ -157,9 +152,8 @@ picked each.
 > • {Товар} × {кількість} — {ціна} грн 🔥
 > **[🛒 Зібрати кошик]**
 
-Narrate: 🔥 is a real promo read per-product from `specialPrices`/`oldPrice`; 🔄 is a substitute
-from `silpo_get_replacements` for an out-of-stock pick. *Every name and price here comes from a
-tool result — the model cannot write them.*
+Narrate: 🔥 is a real per-product promo, 🔄 is a substitute for an out-of-stock pick. *Every name
+and price here comes from a tool result, not the model.*
 
 **🛒 — the real cart and the checkout link.** Tap **🛒 Зібрати кошик**. One batched
 `silpo_add_or_update_cart_products` call, then the cart is read back:
@@ -176,10 +170,9 @@ tool, and the agent must never pay for anything.
 
 ### 3:40–4:00 · Цінність
 
-> Для гостя: менше часу на рутину, повніший і дешевший кошик — акції перевірені по кожній позиції,
-> а не вибірково, і жодного ризику купити заборонений продукт, бо обмеження — тверде правило в
-> коді, не прохання до моделі. Для бізнесу: більші кошики і вище викуп акційних товарів, бо агент
-> перевіряє те, що покупець вручну ніколи не перевіряє повністю.
+> Для гостя: менше часу, повніший і дешевший кошик — акції перевірені по кожній позиції, і
+> жодного ризику купити заборонене, бо обмеження — правило коду, не прохання до моделі. Для
+> бізнесу: більші кошики й вищий викуп акційних товарів.
 
 ### 4:00–4:30 · Метрики
 
@@ -200,17 +193,15 @@ SELECT tool, count(*), round(avg(ms)) AS avg_ms
 FROM tool_call_log GROUP BY tool ORDER BY count(*) DESC;
 ```
 
-Say out loud, filling in the real numbers from this run: *time from request to checkout link,
-number of MCP calls across N distinct tools, promo share and substitution rate — shown live as
-«🔥 K акційних · 🔄 M замін» — and this ran on ~$0.003 per request thanks to prompt caching on the
-tool block.*
+Say out loud, filling in the real numbers from this run: *time to checkout link, number of MCP
+calls, promo/substitution share — already shown live as «🔥 K · 🔄 M» — and ~$0.003 per request
+thanks to prompt caching.*
 
 ### 4:30–4:50 · Наступний крок
 
-> Той самий агент — усередині самого застосунку Сільпо, оскільки весь потік вже завершується на
-> справжньому checkout Сільпо. План уже зберігається в базі — «Повтори минулий план» працює
-> сьогодні, тож щотижневий авто-план по четвергах — наступний логічний крок. І інверсія: замість
-> підбирати акції під обране меню, будувати меню з цьогорічних акцій напряму.
+> Той самий агент — усередині застосунку Сільпо, бо потік уже завершується на справжньому
+> checkout. План зберігається в базі, тож щотижневий авто-план — наступний крок. І інверсія:
+> будувати меню з акцій напряму, а не навпаки.
 
 ---
 
