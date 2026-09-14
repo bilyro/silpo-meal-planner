@@ -280,7 +280,7 @@ was verified.
       deadline that cancels in-flight MCP requests, consecutive-duplicate call suppression, and a
       grammY error boundary so no handler can fail silently.
       **Not verified live:** `applyPromoCode` — test it on a throwaway cart, never the demo cart.
-- [ ] **Phase 7** — deploy, record the ≤3 min video, pitch deck, submit.
+- [ ] **Phase 7** — deploy, record the ≤5 min video, pitch deck, submit.
       **Done:** the deploy is buildable and reproducible — [`fly.toml`](fly.toml), a
       [`.dockerignore`](.dockerignore) that keeps `.env` out of the image, a production-only
       dependency stage, migrations applied on boot, bounded graceful shutdown, and `/readyz`
