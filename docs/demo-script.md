@@ -49,10 +49,10 @@ list type «додай ще один день» and re-confirm before recording.
 
 ## Pre-flight (before you hit record)
 
-1. **`PUBLIC_BASE_URL` must be an internet-reachable HTTPS origin** if you open the OAuth link on a
-   phone. `cloudflared tunnel --url http://localhost:3000`, put the HTTPS URL in `.env`, then
-   `DELETE FROM oauth_clients; DELETE FROM oauth_pending;` so the DCR client re-registers with the
-   new redirect_uri. Recording on the desktop that runs the server works without a tunnel.
+1. **Recording on the Mac that runs the server — no tunnel needed.** `PUBLIC_BASE_URL` only needs
+   to be an internet-reachable HTTPS origin when the OAuth link opens on a *different* device (e.g.
+   a phone). Since the login link opens in a browser on this same Mac, `http://localhost:3000`
+   resolves fine as-is — skip the `cloudflared`/DCR-re-registration step entirely.
 2. **Since 9 Sept, linking has an extra step**: after Silpo login, `/auth/callback` shows a one-time
    6-digit code instead of finishing immediately — type it back into the same Telegram chat to
    confirm the link (closes an account-hijack hole; see README's Known Issues). Rehearse this once
@@ -65,8 +65,12 @@ list type «додай ще один день» and re-confirm before recording.
    conversation history for a genuine cold start. If login is flaky on the day, skip it: record an
    already-linked account and cover onboarding in narration (this also sidesteps the confirm-code
    step above).
-6. Have the **Silpo app** open on a second device, logged into the same account, on the cart screen.
-   The strongest moment of the video is the cart appearing there with the same items.
+6. **Recording entirely on the Mac — no second device.** Open **Telegram** (desktop app or
+   `web.telegram.org`) in one window and **`silpo.ua`** (logged into the same account, on the cart
+   page) in a browser window, arranged side by side or in separate tabs you switch between.
+   Screen-record with **⌘⇧5** (or QuickTime Player → File → New Screen Recording) — pick "Record
+   Selected Portion" if you want to frame just the Telegram + browser area. The strongest moment of
+   the video is the cart appearing on `silpo.ua` with the same items right after the 🛒 tap.
 7. Have a terminal ready with the `tool_call_log` queries (Метрики section, below).
 8. Confirm the profile has a **food restriction** stored (e.g. «без свинини»). It's what makes the
    agent look like it knows the user rather than guessing.
@@ -101,7 +105,7 @@ Voiceover over an empty Telegram chat, or a phone next to a paper shopping list:
 > зібраний кошик і посилання на оформлення — на виході. Все через офіційний Silpo MCP-сервер,
 > проти справжнього акаунта, без пісочниці й без вигаданих даних.
 
-*(Show the phone: chat on one side, Silpo app on the other — the visual for the whole video.)*
+*(Show the screen: Telegram on one side, `silpo.ua` on the other — the visual for the whole video.)*
 
 ### 0:50–1:15 · Agent flow
 
@@ -164,9 +168,11 @@ tool result — the model cannot write them.*
 > 💳 Бонусів доступно: {баланс}
 > 👉 **Оформити замовлення**
 
-**Cut to the Silpo app**, refresh the cart — same items, same branch, same slot. Hold this shot for
-2-3 seconds; it's the strongest single moment in the video. Note the bot stops at the checkout
-link on purpose — the MCP has no checkout tool, and the agent must never pay for anything.
+**Switch to the `silpo.ua` browser window** and refresh the cart — same items, same branch, same
+slot. (Simplest version: just click the bot's own checkout link and land straight on that cart —
+no separate pre-opened tab needed.) Hold this shot for 2-3 seconds; it's the strongest single
+moment in the video. Note the bot stops at the checkout link on purpose — the MCP has no checkout
+tool, and the agent must never pay for anything.
 
 ### 3:40–4:00 · Цінність
 
