@@ -94,7 +94,7 @@ Then the end-to-end check, **from a phone**, which is the thing the tunnel could
 3. Open the link: the cart is really there in Silpo.
 
 Remember the **799 грн minimum** — below it Silpo omits `checkoutWebLink` entirely and the bot says
-why. Plan the demo basket above it (see [demo-script.uk.md](demo-script.uk.md)).
+why. Plan the demo basket above it.
 
 ## 7. Capture the submission artefact
 

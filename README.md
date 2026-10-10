@@ -11,7 +11,6 @@ Built for the «Сільпо» AI Factory hackathon. Every step that touches dat
 against `https://mcp.silpo.ua/mcp` — there is no mock layer and no sandbox.
 
 Full design and phased build plan: [`docs/silpo-meal-planner-agent-spec.md`](docs/silpo-meal-planner-agent-spec.md).
-Demo walkthrough for the video: [`docs/demo-script.uk.md`](docs/demo-script.uk.md).
 
 ---
 
@@ -221,7 +220,7 @@ account, not guessed:
 - **Silpo enforces a 799 грн minimum order.** Below it, `checkoutWebLink` is *absent* — not empty —
   with `{level:'error', message:'order.cost.min'}` in the cart's validations. The bot surfaces the
   reason in Ukrainian instead of showing a mysteriously missing link. This is also the single
-  biggest trap for the demo video; see [`docs/demo-script.uk.md`](docs/demo-script.uk.md).
+  biggest trap for the demo video.
 - Search is fuzzy: «куряче філе» returns «Качине філе» (duck). `selectProduct` requires every
   distinguishing query word to appear in the product name, and ranks head-noun matches above promo
   price — buying the wrong food is worse than missing a discount.
@@ -535,7 +534,7 @@ src/
                    resolveIngredients, selectProduct, session
   bot/             grammY bot, commands, keyboards, HTML formatting, welcome
 scripts/           mcp-spike.ts (OAuth + tools/list), dump-tools.ts, export-tool-log.ts
-docs/              spec, tools.json snapshot, phase5-findings, demo-script, deploy, pitch-deck,
+docs/              spec, tools.json snapshot, phase5-findings, deploy, pitch-deck,
                    tool-call-log.md (generated)
 drizzle/           generated SQL migrations
 test/              unit tests (no network)
